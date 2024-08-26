@@ -1,0 +1,93 @@
+<div class="col-12 grid-margin stretch-card w-100">
+    <div class="card stretch-card">
+        <div class="card-body">
+
+            <!-- Flash Messages -->
+            <% if (messages.success) { %>
+                <div class="alert alert-success">
+                    <%= messages.success %>
+                </div>
+            <% } %>
+            <% if (messages.error) { %>
+                <div class="alert alert-danger">
+                    <%= messages.error %>
+                </div>
+            <% } %>
+            <!-- End of Flash Messages -->
+
+            <!-- Search Bar -->
+            <div class="input-group mb-3">
+                <input type="text" class="form-control" placeholder="Search..." aria-label="Search">
+                <span class="input-group-text" id="basic-addon1"><i class="mdi mdi-magnify"></i></span>
+            </div>
+
+            <!-- Products Table -->
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Image</th>
+                            <th>Product Name</th>
+                            <th>Is Deleted</th>
+                            <th>Category</th>
+                            <th>Brand</th>
+                            <th>Stock</th>
+                            <th>Price</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% products.forEach((product) => { %>
+                        <tr>
+                            <!-- Display the first image from the product's images array -->
+                            <td>
+                                <img src="/<%= product.images[0].replace(/\\/g, '/') %>" alt="Product Image" class="img-thumbnail" style="width: 50px; height: 50px;">
+                            </td>
+                            <td><%= product.product_name %></td>
+                            <td>
+                                <% if (product.isDelete) { %>
+                                    <!-- Display a status bar or button indicating that the product is deleted -->
+                                    <span class="badge bg-danger">Deleted</span>
+                                <% } else { %>
+                                    <!-- Display a status bar or button indicating that the product is not deleted -->
+                                    <span class="badge bg-success">Active</span>
+                                <% } %>
+                            </td>
+                            
+                            <td><%= product.category_id.category_name %></td>
+                            <td><%= product.brand_id.brand_name %></td>
+                            <td class="<%= product.variants[0].stock > 0 ? 'text-success' : 'text-danger' %>">
+                                <%= product.variants[0].stock > 0 ? `${product.variants[0].stock} In Stock` : 'Out of Stock' %>
+                            </td>
+                            <td><%= product.variants[0].price %></td>
+                            <td>
+                                <!-- Inline buttons in the Action column -->
+                                <form action="/admin/edit-product/<%= product._id %>" method="GET" class="d-inline">
+                                    <button type="submit" class="btn btn-warning">Edit</button>
+                                </form>
+                                <% if (product.isDelete) { %>
+                                    <form action="/admin/delete-product/<%= product._id %>" method="POST" class="d-inline">
+                                        <button type="submit" class="btn btn-success">Restore</button>
+                                    </form>
+                                <% } else { %>
+                                    <form action="/admin/delete-product/<%= product._id %>" method="POST" class="d-inline">
+                                        <button type="submit" class="btn btn-danger">Delete</button>
+                                    </form>
+                                <% } %>
+                            </td>
+                        </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Add New Product Button -->
+            <div class="mt-4 text-center">
+                <a href="/admin/add-product" class="btn btn-outline-dark btn-lg">
+                    <i class="mdi mdi-plus"></i> Add New Product
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>

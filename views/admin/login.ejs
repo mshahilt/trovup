@@ -1,0 +1,177 @@
+<style>
+  /* Base styles for the section */
+.section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #f5f5f5;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* Container for the auth form and image */
+.auth_container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #fff;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    overflow: hidden;
+    max-width: 900px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.auth_img {
+    display: none; /* Initially hide the image on small screens */
+    flex: 1;
+    background-color: #e0e0e0; /* Add a background color for better appearance */
+}
+
+.auth_image {
+    width: 100%;
+    height: auto;
+}
+
+/* Styling for the form content */
+.auth_content {
+    flex: 1;
+    padding: 40px;
+}
+
+.auth_form {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.form_title {
+    font-size: 24px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.auth_p {
+    text-align: center;
+    color: #777;
+    margin-bottom: 30px;
+}
+
+.form_group {
+    margin-bottom: 20px;
+}
+
+.form_input {
+    width: 100%;
+    padding: 10px 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+.form_btn {
+    width: 100%;
+    padding: 10px 15px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.form_btn:hover {
+    background-color: #0056b3;
+}
+
+.form_auth_link {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.form_auth_link:hover {
+    text-decoration: underline;
+}
+
+/* Alert styles */
+.alert {
+    padding: 10px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+    text-align: center;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.alert-info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+/* Responsive design adjustments */
+@media (min-width: 768px) {
+    .auth_container {
+        flex-direction: row;
+    }
+
+    .auth_img {
+        display: block;
+    }
+
+    .auth_content {
+        padding: 60px;
+    }
+
+    .auth_form {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 767px) {
+    .auth_container {
+        flex-direction: column;
+    }
+
+    .auth_content {
+        padding: 30px;
+    }
+}
+
+</style>
+<section class="section">
+    <div class="auth_container">
+      <div class="auth_img">
+        <img src="/assets/images/login.png" alt="" class="auth_image" />
+      </div>
+      <div class="auth_content">
+        <form action="admin/login" method="POST" class="auth_form">
+          <h2 class="form_title">Login to your account</h2>
+          <p class="auth_p">Enter your details below</p>
+  
+          <!-- Display flash messages -->
+          <% if (messages.error) { %>
+            <div class="alert alert-danger"><%= messages.error %></div>
+          <% } %>
+          <% if (messages.info) { %>
+            <div class="alert alert-i nfo"><%= messages.info %></div>
+          <% } %>
+  
+          <div class="form_group">
+            <input type="email" name="email" placeholder="Email" class="form_input" required />
+          </div>
+          <div class="form_group form_pass">
+            <input type="password" name="password" placeholder="Password" class="form_input" required />
+          </div>
+          <div class="form_group">
+            <button type="submit" class="form_btn">Login</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+  

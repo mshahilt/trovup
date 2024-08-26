@@ -1,0 +1,93 @@
+<div class="col-12 grid-margin stretch-card w-100">
+    <div class="card stretch-card">
+        <div class="card-body">
+
+            <!-- Flash Messages -->
+            <% if (messages.success) { %>
+                <div class="alert alert-success">
+                    <%= messages.success %>
+                </div>
+            <% } %>
+            <% if (messages.error) { %>
+                <div class="alert alert-danger">
+                    <%= messages.error %>
+                </div>
+            <% } %>
+            <!-- End of Flash Messages -->
+
+            <h4 class="card-title">Brand Management</h4>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Brand Id</th>
+                            <th>Brand Name</th>
+                            <th>Categories</th>
+                            <th>Edit</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% brands.forEach((brand, index) => { %>
+                        <tr>
+                            <td>#<%= index + 1 %></td>
+                            <td><%= brand.brand_name %></td>
+                            <td>
+                                <ul>
+                                    <% brand.categories.forEach((category) => { %>
+                                        <li><%= category.category_name %></li>
+                                    <% }) %>
+                                </ul>
+                            </td>
+                            <td>
+                                <form action="/admin/edit-brand/<%= brand._id %>" method="GET">
+                                    <button type="submit" class="btn btn-warning">Edit</button>
+                                </form>
+                            </td>
+                            <td>
+                                <% if (brand.isDeleted) { %>
+                                    <!-- Restore Button -->
+                                    <form action="/admin/delete-brand/<%= brand._id %>" method="POST">
+                                        <button type="submit" class="btn btn-success">Restore</button>
+                                    </form>
+                                <% } else { %>
+                                    <!-- Delete Button -->
+                                    <form action="/admin/delete-brand/<%= brand._id %>" method="POST">
+                                        <button type="submit" class="btn btn-danger">Delete</button>
+                                    </form>
+                                <% } %>
+                            </td>
+                        </tr>
+                        <% }) %>
+                    </tbody>                    
+                </table>
+            </div>
+
+            <!-- Add New Brand Section -->
+            <div class="mt-4">
+                <h5>+ Add New Brand</h5>
+                <form action="/admin/add-brand" method="POST">
+                    <div class="form-group mb-3">
+                        <input type="text" name="brandName" class="form-control" placeholder="Brand Name" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label>Select Categories:</label>
+                        <div class="row">
+                            <% categories.forEach(category => { %>
+                                <div class="col-md-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="categories[]" value="<%= category._id %>" id="category_<%= category._id %>">
+                                        <label class="form-check-label" for="category_<%= category._id %>">
+                                            <%= category.category_name %>
+                                        </label>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-dark">Add Brand</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

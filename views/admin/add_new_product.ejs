@@ -1,0 +1,211 @@
+
+<div class="container mt-5">
+    <div class="col-12 grid-margin">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title">Product Information</h4>
+                <form class="form-sample" action="/admin/submit_product" method="POST" enctype="multipart/form-data">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group row">
+                                <label class="col-sm-3 col-form-label">Product Name</label>
+                                <div class="col-sm-9">
+                                    <input type="text" class="form-control" name="product_name" required />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group row">
+                                <label class="col-sm-3 col-form-label">Product Highlights</label>
+                                <div class="col-sm-9">
+                                    <input type="text" class="form-control" name="product_highlights" required />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group row">
+                                <label class="col-sm-3 col-form-label">Category</label>
+                                <div class="col-sm-9">
+                                    <select class="form-select" name="category_id" required>
+                                        <% categories.forEach((category) => { %>
+                                            <option value="<%= category._id %>"><%= category.category_name %></option>
+                                        <% }); %>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group row">
+                                <label class="col-sm-3 col-form-label">Brand</label>
+                                <div class="col-sm-9">
+                                    <select class="form-select" name="brand_id" required>
+                                        <% brands.forEach(function(brand) { %>
+                                            <option value="<%= brand._id %>"><%= brand.brand_name %></option>
+                                        <% }); %>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h5 class="card-description">Variants</h5>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <select class="form-select" name="storage_size" required>
+                                    <option value="">Storage Size</option>
+                                    <option value="32 GB">32 GB</option>
+                                    <option value="64 GB">64 GB</option>
+                                    <option value="128 GB">128 GB</option>
+                                    <option value="256 GB">256 GB</option>
+                                    <option value="512 GB">512 GB</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <select class="form-select" name="color" required>
+                                    <option value="">Color</option>
+                                    <option value="Red">Red</option>
+                                    <option value="Blue">Blue</option>
+                                    <option value="Black">Black</option>
+                                    <option value="Purple">Purple</option>
+                                    <option value="Green">Green</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <input type="text" class="form-control" placeholder="Price" name="price" required />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <input type="text" class="form-control" placeholder="Stock" name="stock" required />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label>Description</label>
+                                <textarea class="form-control" rows="4" name="product_description" required></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <label>Upload Images</label>
+                            <div class="form-group row">
+                                <% for (let i = 1; i <= 4; i++) { %>
+                                    <div class="col-sm-3">
+                                        <div class="image-placeholder">
+                                            <img src="/images/upload_image.jpg" alt="placeholder" class="img-fluid" id="image<%= i %>-preview">
+                                            <input type="file" class="form-control mt-2" name="image<%= i %>" id="image<%= i %>" onchange="previewImage(this, 'image<%= i %>-preview')">
+                                            <button type="button" class="btn btn-secondary mt-2" onclick="openCropperModal('image<%= i %>-preview', 'image<%= i %>')">Crop Image</button>
+                                        </div>
+                                    </div>
+                                <% } %>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <button type="submit" class="btn btn-primary">Submit</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Cropping -->
+    <div class="modal" id="cropperModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Crop Image</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <img id="image-to-crop" class="img-fluid">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="crop-btn">Crop</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<script>
+    let cropper;
+  let currentPreviewId = '';
+  let currentFileInputId = '';
+  
+  function previewImage(input, previewId) {
+      const preview = document.getElementById(previewId);
+      const file = input.files[0];
+      const reader = new FileReader();
+  
+      reader.onload = function(e) {
+          preview.src = e.target.result;
+      };
+  
+      reader.readAsDataURL(file);
+  }
+  
+  function openCropperModal(previewId, fileInputId) {
+      currentPreviewId = previewId;
+      currentFileInputId = fileInputId;
+      const modal = new bootstrap.Modal(document.getElementById('cropperModal'));
+      const imageToCrop = document.getElementById('image-to-crop');
+      const preview = document.getElementById(previewId);
+  
+      imageToCrop.src = preview.src;
+      modal.show();
+  
+      modal._element.addEventListener('shown.bs.modal', function () {
+          if (cropper) {
+              cropper.destroy();
+          }
+          cropper = new Cropper(imageToCrop, {
+              aspectRatio: 4 / 3,
+              viewMode: 1,
+          });
+      });
+  }
+  
+  document.getElementById('crop-btn').addEventListener('click', function () {
+      if (cropper) {
+          const croppedCanvas = cropper.getCroppedCanvas();
+          const preview = document.getElementById(currentPreviewId);
+  
+          // Update the preview image
+          preview.src = croppedCanvas.toDataURL('image/jpeg');
+  
+          // Convert the cropped image to Blob and update the file input
+          croppedCanvas.toBlob(function (blob) {
+              const fileInput = document.getElementById(currentFileInputId);
+              const dataTransfer = new DataTransfer();
+              dataTransfer.items.add(new File([blob], 'cropped_image.jpg', { type: 'image/jpeg' }));
+              fileInput.files = dataTransfer.files;
+          });
+  
+          // Hide the modal after cropping
+          const modal = bootstrap.Modal.getInstance(document.getElementById('cropperModal'));
+          modal.hide();
+      }
+  });
+  
+  
+  </script>

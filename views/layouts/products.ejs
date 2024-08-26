@@ -1,0 +1,66 @@
+ <!-- Header Partial -->
+ <%- include('../partials/header.ejs') %>
+
+ <div class="container">
+    <div class="row">
+        <% products.forEach((product) => { %>
+            <div class="col-md-4 col-sm-6 mb-4">
+                <div class="card h-100">
+                    <!-- Discount Badge -->
+                    <% if (product.discount) { %>
+                        <div class="position-absolute top-0 start-0 p-2 bg-dark text-white">
+                            -<%= product.discount %>%
+                        </div>
+                    <% } %>
+
+                    <!-- Product Image -->
+                    <img src="/<%= product.images[0].replace(/\\/g, '/') %>" class="card-img-top" alt="<%= product.product_name %>">
+
+                    <div class="card-body text-center">
+                        <!-- Product Name -->
+                        <h5 class="card-title"><%= product.product_name %></h5>
+
+                        <!-- Product Price and Discounted Price -->
+                        <p class="card-text">
+                            <% if (product.discount) { %>
+                                <span class="text-muted text-decoration-line-through">
+                                    $<%= product.variants[0].price %>
+                                </span>
+                                $<%= (product.variants[0].price * (1 - product.discount / 100)).toFixed(2) %>
+                            <% } else { %>
+                                $<%= product.variants[0].price %>
+                            <% } %>
+                        </p>
+
+                        <!-- Rating -->
+                        <div class="mb-2">
+                            <% for (let i = 0; i < 5; i++) { %>
+                                <% if (i < product.rating) { %>
+                                    <i class="fa fa-star text-warning"></i>
+                                <% } else { %>
+                                    <i class="fa fa-star text-muted"></i>
+                                <% } %>
+                            <% } %>
+                            <span>(<%= product.review_count %>)</span>
+                        </div>
+
+                        <!-- Add to Cart Button -->
+                        <a href="/cart/add/<%= product._id %>" class="btn btn-dark">
+                            <i class="fa fa-shopping-cart"></i> Add to Cart
+                        </a>
+                    </div>
+
+                    <!-- View Details Icon -->
+                    <div class="position-absolute top-0 end-0 p-2">
+                        <a href="/products/<%= product._id %>" class="text-muted">
+                            <i class="fa fa-eye"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        <% }) %>
+    </div>
+</div>
+
+
+<%- include('../partials/footer.ejs') %>

@@ -1,0 +1,118 @@
+<!-- Carousel Section -->
+<div id="carouselExampleCaptions" class="carousel slide">
+    <div class="carousel-inner" style="background-color: #e6e6e6;">
+        <!-- First Slide -->
+        <div class="carousel-item active">
+            <div class="d-flex align-items-center">
+                <div class="container">
+                    <div class="row justify-content-between align-items-center">
+                        <div class="col-xl-8 col-lg-8 col-md-8 col-sm-8 text-center text-lg-start">
+                            <div class="hero__caption">
+                                <h1 class="poppins-bold" style="font-size: 60px; color: #000;">Select Your New <br> Perfect Style</h1>
+                                <p class="poppins-thin" style="font-size: 22px; color: #333;">Handpicked watches that blend exceptional craftsmanship with timeless design. Each piece promises unmatched elegance and quality for every occasion.</p>
+                                <div class="hero__btn">
+                                    <a href="industries.html" class="btn btn-dark" style="font-size: 18px;">Shop Now</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xl-3 col-lg-3 col-md-4 col-sm-4 d-none d-sm-block">
+                            <div class="hero__img">
+                                <img src="/public/user/img/watch.png" alt="" class="img-fluid">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Second Slide -->
+        <div class="carousel-item">
+            <div class="d-flex align-items-center">
+                <div class="container">
+                    <div class="row justify-content-between align-items-center">
+                        <div class="col-xl-8 col-lg-8 col-md-8 col-sm-8 text-center text-lg-start">
+                            <div class="hero__caption">
+                                <h1 class="poppins-bold" style="font-size: 60px; color: #000;">Explore our finest collection <br> of watches</h1>
+                                <p class="poppins-thin" style="font-size: 22px; color: #333;">Experience the perfect fusion of artistry and precision. Every watch embodies refined style and enduring quality.</p>
+                                <div class="hero__btn">
+                                    <a href="industries.html" class="btn btn-dark" style="font-size: 18px;">Shop Now</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xl-3 col-lg-3 col-md-4 col-sm-4 d-none d-sm-block">
+                            <div class="hero__img">
+                                <img src="/public/user/img/watch3.png" alt="" class="img-fluid">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Carousel Controls -->
+    <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleCaptions" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Previous</span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleCaptions" data-bs-slide="next">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Next</span>
+    </button>
+</div>
+
+<!-- Brand Names Section -->
+<div class="container-fluid p-0">
+    <img src="/public/user/img/brand_names.jpg" class="img-fluid p-5" alt="">
+</div>
+
+<!-- Products Section -->
+<div class="container">
+    <div class="row">
+        <% products.forEach(element => { %>
+        <div class="col-lg-3 col-sm-6 mb-3 col-md-4">
+            <div class="card border-dark mx-3 mt-5 px-5" style="width: 28rem; background-color: #fff;">
+                <img src="/public/productImgs/<%= element.images[0] %>" class="card-img-top img-fluid mb-1" alt="<%= element.product_name %>">
+                <div class="card-body">
+                    <h3 class="card-title text-dark" style="font-size: 18px;"><%= element.product_name %></h3>
+                    <h3 class="py-3 text-dark">₹ <%= element.price %> | <strike style="color: #999;">₹ 25,000</strike></h3>
+                    <div class="star-rating">
+                        <i class="fas fa-star text-dark"></i>
+                        <i class="fas fa-star text-dark"></i>
+                        <i class="fas fa-star text-dark"></i>
+                        <i class="fas fa-star text-dark"></i>
+                        <i class="far fa-star text-dark"></i>
+                    </div>
+                    <a href="" class="btn btn-dark px-4 mt-2" style="font-size: 14px;">Add to cart</a>
+                </div>
+            </div>
+        </div>
+        <% }); %>
+    </div>
+</div>
+
+<!-- View More Button -->
+<div class="d-flex justify-content-center align-items-center">
+    <a href="" class="btn btn-dark px-5 py-2 fs-5 m-5">View More</a>
+</div>
+
+<!-- Services Section -->
+<section class="py-5">
+    <div class="container">
+        <div class="row text-center">
+            <div class="col-md-4">
+                <img src="../public/user/icons/service-1 (1).png" alt="FAST AND FREE DELIVERY" class="img-fluid mb-3" />
+                <h3 class="h5 text-dark">FAST AND FREE DELIVERY</h3>
+                <p class="text-muted">Lorem ipsum dolor sit amet consectetur.</p>
+            </div>
+            <div class="col-md-4">
+                <img src="../public/user/icons/service-2 (1).png" alt="24/7 SUPPORT" class="img-fluid mb-3" />
+                <h3 class="h5 text-dark">24/7 SUPPORT</h3>
+                <p class="text-muted">Lorem ipsum dolor sit amet consectetur.</p>
+            </div>
+            <div class="col-md-4">
+                <img src="../public/user/icons/service-3 (1).png" alt="MONEY BACK GUARANTY" class="img-fluid mb-3" />
+                <h3 class="h5 text-dark">MONEY BACK GUARANTY</h3>
+                <p class="text-muted">Lorem ipsum dolor sit amet consectetur.</p>
+            </div>
+        </div>
+    </div>
+</section>

@@ -1,0 +1,26 @@
+<div class="mt-4">
+    <h5>Edit Brand</h5>
+    <form action="/admin/edit-brand/<%= brand._id %>" method="POST">
+        <input type="hidden" name="brandId" value="<%= brand._id %>">
+        <div class="form-group mb-3">
+            <input type="text" name="brandName" class="form-control" value="<%= brand.brand_name %>" placeholder="Brand Name" required>
+        </div>
+        <div class="form-group mb-3">
+            <label>Select Categories:</label>
+            <div class="row">
+                <% categories.filter(category => !category.isDeleted).forEach(function(category) { %>
+                    <div class="col-md-3">
+                        <div class="form-check form-switch" style="margin-left: 75px;">
+                            <input class="form-check-input" type="checkbox" name="categories[]" value="<%= category._id %>" id="category_<%= category._id %>" 
+                            <% if (brand.categories.some(c => c._id.toString() === category._id.toString())) { %> checked <% } %> >
+                            <label class="form-check-label" for="category_<%= category._id %>">
+                                <%= category.category_name %>
+                            </label>
+                        </div>
+                    </div>
+                <% }); %>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-dark">Update Brand</button>
+    </form>
+</div>

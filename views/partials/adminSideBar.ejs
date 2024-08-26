@@ -1,0 +1,213 @@
+<style>
+    /* Base styles for larger screens */
+.container-scroller {
+    display: flex;
+    height: 100vh; /* Ensure full height */
+}
+
+.sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    position: relative; /* Ensure positioning context for z-index */
+    z-index: 999; /* Higher z-index to stay on top */
+    padding-top: 50px; /* Adjust if needed to avoid overlap with header */
+}
+
+.content-wrapper {
+    flex-grow: 1;
+    padding: 20px; /* Adjust padding as needed */
+    overflow-y: auto; /* Ensures scrolling if content is long */
+}
+
+.header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background-color: #fff; /* Or match your theme */
+    padding: 10px;
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: 240px 1fr; /* Sidebar 240px, content takes remaining space */
+    height: 100vh;
+}
+
+.sidebar {
+    grid-column: 1 / 2;
+}
+
+.content-wrapper {
+    grid-column: 2 / 3;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+/* Responsive styles for smaller screens */
+@media (max-width: 991px) {
+    .grid-container {
+        grid-template-columns: 1fr; /* Full width for content on smaller screens */
+    }
+
+    .sidebar {
+        width: 100%; /* Full width for sidebar on smaller screens */
+        position: absolute;
+        height: 100vh; /* Full height */
+        top: 0;
+        left: -100%; /* Hide sidebar initially */
+        transition: left 0.3s; /* Smooth transition */
+        padding-top: 0; /* Remove top padding */
+    }
+
+    .sidebar.active {
+        left: 0; /* Show sidebar */
+    }
+
+    .content-wrapper {
+        grid-column: 1 / 2; /* Full width for content on smaller screens */
+        padding: 10px; /* Adjust padding */
+    }
+}
+
+@media (max-width: 767px) {
+    .header {
+        padding: 5px; /* Adjust header padding */
+    }
+
+    .content-wrapper {
+        padding: 5px; /* Adjust content padding */
+    }
+}
+
+</style>
+<nav class="sidebar sidebar-offcanvas" id="sidebar">
+    <ul class="nav">
+      <nav class="sidebar sidebar-offcanvas" id="sidebar">
+        <ul class="nav">
+            <li class="nav-item">
+                <a class="nav-link" href="/admin/dashboard">
+                    <i class="mdi mdi-grid-large menu-icon"></i>
+                    <span class="menu-title">Dashboard</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/admin/user">
+                    <i class="mdi mdi-account menu-icon"></i>
+                    <span class="menu-title">User</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/admin/categories">
+                    <i class="mdi mdi-folder menu-icon"></i>
+                    <span class="menu-title">Categories</span>
+                </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/admin/brands">
+                <i class="mdi mdi-tag-outline menu-icon"></i>
+                  <span class="menu-title">Brands</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/admin/products">
+                <i class="mdi mdi-package-variant menu-icon"></i>
+                  <span class="menu-title">products</span>
+              </a>
+            </li>
+            <!-- More links -->
+        </ul>
+    </nav>
+    
+      <li class="nav-item nav-category">UI Elements</li>
+      <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="collapse" href="#ui-basic" aria-expanded="false" aria-controls="ui-basic">
+          <i class="menu-icon mdi mdi-floor-plan"></i>
+          <span class="menu-title">UI Elements</span>
+          <i class="menu-arrow"></i>
+        </a>
+        <div class="collapse" id="ui-basic">
+          <ul class="nav flex-column sub-menu">
+            <li class="nav-item"> <a class="nav-link" href="../pages/ui-features/buttons.html">Buttons</a></li>
+            <li class="nav-item"> <a class="nav-link" href="../pages/ui-features/dropdowns.html">Dropdowns</a></li>
+            <li class="nav-item"> <a class="nav-link" href="../pages/ui-features/typography.html">Typography</a></li>
+          </ul>
+        </div>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="collapse" href="#form-elements" aria-expanded="false" aria-controls="form-elements">
+          <i class="menu-icon mdi mdi-card-text-outline"></i>
+          <span class="menu-title">Form elements</span>
+          <i class="menu-arrow"></i>
+        </a>
+        <div class="collapse" id="form-elements">
+          <ul class="nav flex-column sub-menu">
+            <li class="nav-item"><a class="nav-link" href="../pages/forms/basic_elements.html">Basic Elements</a></li>
+          </ul>
+        </div>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="collapse" href="#charts" aria-expanded="false" aria-controls="charts">
+          <i class="menu-icon mdi mdi-chart-line"></i>
+          <span class="menu-title">Charts</span>
+          <i class="menu-arrow"></i>
+        </a>
+        <div class="collapse" id="charts">
+          <ul class="nav flex-column sub-menu">
+            <li class="nav-item"> <a class="nav-link" href="../pages/charts/chartjs.html">ChartJs</a></li>
+          </ul>
+        </div>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="collapse" href="#tables" aria-expanded="false" aria-controls="tables">
+          <i class="menu-icon mdi mdi-table"></i>
+          <span class="menu-title">Tables</span>
+          <i class="menu-arrow"></i>
+        </a>
+        <div class="collapse" id="tables">
+          <ul class="nav flex-column sub-menu">
+            <li class="nav-item"> <a class="nav-link" href="../pages/tables/basic-table.html">Basic table</a></li>
+          </ul>
+        </div>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="collapse" href="#icons" aria-expanded="false" aria-controls="icons">
+          <i class="menu-icon mdi mdi-layers-outline"></i>
+          <span class="menu-title">Icons</span>
+          <i class="menu-arrow"></i>
+        </a>
+        <div class="collapse" id="icons">
+          <ul class="nav flex-column sub-menu">
+            <li class="nav-item"> <a class="nav-link" href="../pages/icons/font-awesome.html">Font Awesome</a></li>
+          </ul>
+        </div>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="collapse" href="#auth" aria-expanded="false" aria-controls="auth">
+          <i class="menu-icon mdi mdi-account-circle-outline"></i>
+          <span class="menu-title">User Pages</span>
+          <i class="menu-arrow"></i>
+        </a>
+        <div class="collapse" id="auth">
+          <ul class="nav flex-column sub-menu">
+            <li class="nav-item"> <a class="nav-link" href="../pages/samples/blank-page.html"> Blank Page </a></li>
+            <li class="nav-item"> <a class="nav-link" href="../pages/samples/error-404.html"> 404 </a></li>
+            <li class="nav-item"> <a class="nav-link" href="../pages/samples/error-500.html"> 500 </a></li>
+            <li class="nav-item"> <a class="nav-link" href="../pages/samples/login.html"> Login </a></li>
+            <li class="nav-item"> <a class="nav-link" href="../pages/samples/register.html"> Register </a></li>
+          </ul>
+        </div>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="../docs/documentation.html">
+          <i class="menu-icon mdi mdi-file-document"></i>
+          <span class="menu-title">Documentation</span>
+        </a>
+      </li>
+    </ul>
+  </nav>
+
+<script>
+    function toggleSidebar() {
+        document.querySelector('.sidebar').classList.toggle('active');
+    }
+</script>

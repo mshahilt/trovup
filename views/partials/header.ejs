@@ -1,0 +1,61 @@
+<!-- Top Notification Banner -->
+<div class="bg-dark text-white text-center py-2">
+  <div class="container">
+    <p class="mb-0 poppins-thin" style="font-size: 12px;">
+      Summer Sale For All Swim Suits And Free Express Delivery - OFF 50%!  
+      <a href="#" class="btn btn-primary text-light">SHOP NOW</a>
+    </p>
+  </div>
+</div>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg" style="background-color: white;">
+  <div class="container">
+    <a class="navbar-brand ml-5" href="index.html" style="color: black;">
+      <span style="font-weight: bold; font-size: 24px;">Trovup</span>
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-5">
+        <li class="nav-item ms-5">
+          <a class="nav-link" href="/home" style="color: black;">Home</a>
+        </li>
+        <li class="nav-item ms-5">
+          <a class="nav-link" href="/home/shop" style="color: black;">Shop</a>
+        </li>
+        <li class="nav-item ms-5">
+          <a class="nav-link" href="#" style="color: black;">Contact</a>
+        </li>
+      </ul>
+      <form class="d-flex me-3">
+        <input class="form-control me-2" type="search" placeholder="Search here...." aria-label="Search" style="font-size: 13px;">
+        <button class="btn" type="submit">
+          <i class="fas fa-search" style="color: black;"></i>
+        </button>
+      </form>
+      <a href="#"><i class="far fa-heart me-3" style="font-size: 20px; color: black;"></i></a>
+      <a href="/cart">
+        <i class="fas fa-shopping-cart" style="font-size: 25px; color: black;"></i>
+      </a>
+      <a href="/profile" class="ms-2">
+        <i class="far fa-user" style="font-size: 22px; color: black;"></i>
+      </a>
+
+     <!-- Signup/Login Button -->
+<% if (isUserLoggedIn) { %>
+  <form action="/logout" method="post">
+    <button href="/logout" class="btn btn-outline-dark ms-3" style="font-size: 14px; color: black;">Logout</button>
+  </form>
+ 
+<% } else { %>
+  <a href="/login" class="btn btn-outline-dark ms-3" style="font-size: 14px; color: black;">Sign Up</a>
+<% } %>
+
+    </div>
+  </div>
+</nav>
+
+<!-- Include FontAwesome CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>

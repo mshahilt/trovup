@@ -1,0 +1,19 @@
+<div class="col-md-6 grid-margin stretch-card">
+    <div class="card">
+      <div class="card-body">
+        <h4 class="card-title">Edit category</h4>
+        <p class="card-description">Here you can edit category</p>
+        <div class="form-group row">
+          <form action="/admin/edit_category" method="post">
+            <!-- Include hidden input for categoryId -->
+            <input type="hidden" name="categoryId" value="<%= category._id %>">
+            <div class="col">
+              <label for="categoryName">Category Name</label>
+              <input class="typeahead" type="text" id="categoryName" name="new_category_name" value="<%= category.category_name %>">
+            </div>
+            <button type="submit" class="btn btn-dark">Update</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>

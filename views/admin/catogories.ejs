@@ -1,0 +1,68 @@
+<div class="col-12 grid-margin stretch-card w-100">
+    <div class="card stretch-card">
+        <div class="card-body">
+
+            <% if (messages.success) { %>
+                <div class="alert alert-success">
+                    <%= messages.success %>
+                </div>
+            <% } %>
+            <% if (messages.error) { %>
+                <div class="alert alert-danger">
+                    <%= messages.error %>
+                </div>
+            <% } %>
+
+            <h4 class="card-title">Category Management</h4>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Category Id</th>
+                            <th>Category Name</th>
+                            <th>Edit</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% categories.forEach((category, index) => { %>
+                        <tr>
+                            <td>#<%= index %></td>
+                            <td><%= category.category_name %></td>
+                            <td>
+                                <form action="/admin/edit-category/<%= category._id %>" method="GET">
+                                    <button type="submit" class="btn btn-warning">Edit</button>
+                                </form>
+                            </td>
+                            <td>
+                                <% if (category.isDeleted) { %>
+                                    <!-- If the category is deleted, show a restore button -->
+                                    <form action="/admin/delete-category/<%= category._id %>" method="POST">
+                                        <button type="submit" class="btn btn-success">Restore</button>
+                                    </form>
+                                <% } else { %>
+                                    <!-- If the category is not deleted, show a delete button -->
+                                    <form action="/admin/delete-category/<%= category._id %>" method="POST">
+                                        <button type="submit" class="btn btn-danger">Delete</button>
+                                    </form>
+                                <% } %>
+                            </td>
+                        </tr>
+                        <% }) %>
+                    </tbody>                    
+                </table>
+            </div>
+
+            <!-- Add New Category Section -->
+            <div class="mt-4">
+                <h5>+ Add New Category</h5>
+                <form action="/admin/add-category" method="POST" class="d-flex align-items-center">
+                    <input type="text" name="categoryName" class="form-control me-2" placeholder="Category Name" required>
+                    <button type="submit" class="btn btn-dark">Add Category</button>
+                </form>
+            </div>
+            <!-- End of Add New Category Section -->
+
+        </div>
+    </div>
+</div>

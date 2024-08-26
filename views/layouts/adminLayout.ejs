@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>Star Admin2</title>
+  <!-- plugins:css -->
+  <link rel="stylesheet" href="https://unpkg.com/cropperjs/dist/cropper.css" />
+  
+  <link rel="stylesheet" href="../../assets/vendors/feather/feather.css">
+  <link rel="stylesheet" href="../../assets/vendors/mdi/css/materialdesignicons.min.css">
+  <link rel="stylesheet" href="../../assets/vendors/ti-icons/css/themify-icons.css">
+  <link rel="stylesheet" href="../../assets/vendors/font-awesome/css/font-awesome.min.css">
+  <link rel="stylesheet" href="../../assets/vendors/typicons/typicons.css">
+  <link rel="stylesheet" href="../../assets/vendors/simple-line-icons/css/simple-line-icons.css">
+  <link rel="stylesheet" href="../../assets/vendors/css/vendor.bundle.base.css">
+  <link rel="stylesheet" href="../../assets/vendors/bootstrap-datepicker/bootstrap-datepicker.min.css">
+  <!-- endinject -->
+  <!-- inject:css -->
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <!-- endinject -->
+  <link rel="shortcut icon" href="../../assets/images/favicon.png" />
+  <style>
+    /* Ensure the container-scroller uses flexbox */
+    .container-scroller {
+      display: flex;
+      min-height: 100vh; /* Allow content to extend beyond viewport height */
+      flex-direction: column;
+    }
+
+    /* Sidebar should be fixed width and stay above the background */
+    .sidebar {
+      width: 240px;
+      flex-shrink: 0;
+      position: relative; /* Ensure positioning context for z-index */
+      z-index: 999; /* Higher z-index to stay on top */
+    }
+
+    /* Content wrapper takes the remaining space */
+    .content-wrapper {
+      flex-grow: 1;
+      padding: 20px; /* Adjust padding as needed */
+      overflow-y: auto; /* Ensures scrolling if content is long */
+    }
+
+    /* Header styling */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background-color: #fff; /* Or match your theme */
+      padding: 10px;
+    }
+
+    /* Define grid layout */
+    .grid-container {
+      display: flex; /* Use flexbox for layout */
+      min-height: 100%; /* Let the grid container grow with the content */
+    }
+
+    /* Sidebar styling */
+    .sidebar {
+      height: 100%; /* Sidebar takes full height */
+      flex-shrink: 0;
+    }
+
+    /* Content styling */
+    .content-wrapper {
+      flex-grow: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container-scroller">
+    <div class="grid-container w-100">
+      <div class="sidebar pt-5">
+        <%- include('../partials/adminSideBar.ejs') %> 
+      </div>
+      <div class="content-wrapper pt-5">
+        <%- include('../partials/adminHeader.ejs') %>
+        <div class="row pt-5">
+          <%- body %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- container-scroller -->
+  <!-- plugins:js -->
+  <script src="../../assets/vendors/js/vendor.bundle.base.js"></script>
+  <script src="../../assets/vendors/bootstrap-datepicker/bootstrap-datepicker.min.js"></script>
+  <!-- endinject -->
+  <!-- inject:js -->
+  <script src="https://unpkg.com/cropperjs"></script>
+  <script src="../../assets/js/off-canvas.js"></script>
+  <script src="../../assets/js/template.js"></script>
+  <script src="../../assets/js/settings.js"></script>
+  <script src="../../assets/js/hoverable-collapse.js"></script>
+  <script src="../../assets/js/todolist.js"></script>
+  <!-- endinject -->
+</body>
+</html>

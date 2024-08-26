@@ -1,0 +1,222 @@
+
+<div class="container mt-5">
+    <div class="col-12 grid-margin">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title">Edit Product Information</h4>
+                <form class="form-sample" action="/admin/update_product/<%= product._id %>" method="POST" enctype="multipart/form-data">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group row">
+                                <label class="col-sm-3 col-form-label">Product Name</label>
+                                <div class="col-sm-9">
+                                    <input type="text" class="form-control" name="product_name" value="<%= product.product_name %>" required />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group row">
+                                <label class="col-sm-3 col-form-label">Product Description</label>
+                                <div class="col-sm-9">
+                                    <input type="text" class="form-control" name="product_description" value="<%= product.product_description %>" required />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group row">
+                                <label class="col-sm-3 col-form-label">Category</label>
+                                <div class="col-sm-9">
+                                    <select class="form-select" name="category_id" required>
+                                        <option value="<%= product.category_id._id %>" selected><%= product.category_id.category_name %></option>
+                                        <% categories.forEach((category) => { %>
+                                            <option value="<%= category._id %>"><%= category.category_name %></option>
+                                        <% }); %>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group row">
+                                <label class="col-sm-3 col-form-label">Brand</label>
+                                <div class="col-sm-9">
+                                    <select class="form-select" name="brand_id" required>
+                                        <option value="<%= product.brand_id._id %>" selected><%= product.brand_id.brand_name %></option>
+                                        <% brands.forEach((brand) => { %>
+                                            <option value="<%= brand._id %>"><%= brand.brand_name %></option>
+                                        <% }); %>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Variants Section -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h5 class="card-description">Variants</h5>
+                        </div>
+                        <!-- Example with single variant handling -->
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <select class="form-select" name="storage_size" required>
+                                    <option value="">Storage Size</option>
+                                    <option value="32 GB" <%= product.variants[0].storage_size === "32 GB" ? "selected" : "" %>>32 GB</option>
+                                    <option value="64 GB" <%= product.variants[0].storage_size === "64 GB" ? "selected" : "" %>>64 GB</option>
+                                    <option value="128 GB" <%= product.variants[0].storage_size === "128 GB" ? "selected" : "" %>>128 GB</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <select class="form-select" name="color" required>
+                                    <option value="">Color</option>
+                                    <option value="Red" <%= product.variants[0].color === "Red" ? "selected" : "" %>>Red</option>
+                                    <option value="Blue" <%= product.variants[0].color === "Blue" ? "selected" : "" %>>Blue</option>
+                                    <option value="Black" <%= product.variants[0].color === "Black" ? "selected" : "" %>>Black</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <input type="text" class="form-control" placeholder="Price" name="price" value="<%= product.variants[0].price %>" required />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <input type="text" class="form-control" placeholder="Stock" name="stock" value="<%= product.variants[0].stock %>" required />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label>Description</label>
+                                <textarea class="form-control" rows="4" name="description" required><%= product.product_description %></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Image Upload Section -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <label>Upload Images</label>
+                            <div class="form-group row">
+                                <div class="col-sm-3">
+                                    <div class="image-placeholder">
+                                        <img src="/<%= product.images[0] %>" alt="placeholder" class="img-fluid" id="image1-preview">
+                                        <input type="file" class="form-control mt-2" name="image1" id="image1" onchange="handleImageUpload(this, 'image1-preview')">
+                                    </div>
+                                </div>
+                                <div class="col-sm-3">
+                                    <div class="image-placeholder">
+                                        <img src="/<%= product.images[1] %>" alt="placeholder" class="img-fluid" id="image2-preview">
+                                        <input type="file" class="form-control mt-2" name="image2" id="image2" onchange="handleImageUpload(this, 'image2-preview')">
+                                    </div>
+                                </div>
+                                <div class="col-sm-3">
+                                    <div class="image-placeholder">
+                                        <img src="/<%= product.images[2] %>" alt="placeholder" class="img-fluid" id="image2-preview">
+                                        <input type="file" class="form-control mt-2" name="image2" id="image2" onchange="handleImageUpload(this, 'image2-preview')">
+                                    </div>
+                                </div>
+                                <div class="col-sm-3">
+                                    <div class="image-placeholder">
+                                        <img src="/<%= product.images[3] %>" alt="placeholder" class="img-fluid" id="image2-preview">
+                                        <input type="file" class="form-control mt-2" name="image2" id="image2" onchange="handleImageUpload(this, 'image2-preview')">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <button type="submit" class="btn btn-primary">Update</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Cropping -->
+    <div class="modal" id="cropperModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Crop Image</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <img id="image-to-crop" class="img-fluid">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="crop-btn">Crop</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let cropper;
+    const cropBtn = document.getElementById('crop-btn');
+
+    function handleImageUpload(input, previewId) {
+        const modal = new bootstrap.Modal(document.getElementById('cropperModal'));
+        const imageToCrop = document.getElementById('image-to-crop');
+
+        const file = input.files[0];
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+            imageToCrop.src = e.target.result;
+            modal.show();
+
+            modal._element.addEventListener('shown.bs.modal', function () {
+                if (cropper) {
+                    cropper.destroy(); // destroy previous cropper instance
+                }
+                cropper = new Cropper(imageToCrop, {
+                    aspectRatio: 4 / 3,
+                    viewMode: 1,
+                });
+
+                // Set the previewId on the crop button
+                cropBtn.setAttribute('data-preview-id', previewId);
+            });
+        };
+
+        reader.readAsDataURL(file);
+    }
+
+    cropBtn.addEventListener('click', function () {
+        if (cropper) {
+            const croppedCanvas = cropper.getCroppedCanvas();
+            const previewId = cropBtn.getAttribute('data-preview-id');
+            const preview = document.getElementById(previewId);
+
+            // Update the preview image
+            preview.src = croppedCanvas.toDataURL('image/jpeg');
+
+            // Convert the cropped image to Blob and update the file input
+            croppedCanvas.toBlob(function (blob) {
+                const fileInput = new File([blob], 'cropped_image.jpg', { type: 'image/jpeg' });
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(fileInput);
+                document.getElementById(previewId.replace("-preview", "")).files = dataTransfer.files;
+            });
+
+            // Hide the modal after cropping
+            const modal = bootstrap.Modal.getInstance(document.getElementById('cropperModal'));
+            modal.hide();
+        }
+    });
+</script>

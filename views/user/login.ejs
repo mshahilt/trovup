@@ -1,0 +1,81 @@
+<div class="log_container container overflow-hidden vh-100 d-flex justify-content-center">
+    <div class="row w-100 ms-0 ms-lg-5">
+        <div class="col-sm-6 d-flex align-items-center justify-content-center">
+            <img class="log_img mb-5 d-none d-lg-block" src="assets/images/login.png" alt="">
+        </div>
+        <div class="col-sm-6 pt-3 ps-5 d-flex align-items-center">
+            <form class="loginForm" id="loginForm" action="/login" method="post">
+                <h2 class="mb-3 fw-bolder">Login to your account</h2>
+
+                <!-- Display flash messages -->
+                <% if (messages.error) { %>
+                    <div class="alert alert-danger">
+                        <%= messages.error %>
+                    </div>
+                <% } %>
+
+                <% if (messages.success) { %>
+                    <div class="alert alert-success">
+                        <%= messages.success %>
+                    </div>
+                <% } %>
+
+                <p>Enter your details below</p>
+                <div class="mb-4">
+                    <input type="text" name="email" class="form-control fs-0 rounded-0 border-0 border-bottom" id="email" placeholder="Email" required>
+                    <div class="invalid-feedback">Please enter a valid email address.</div>
+                </div>
+                <div class="mb-3">
+                    <input type="password" name="password" class="form-control rounded-0 border-0 border-bottom" id="password" placeholder="Password" required>
+                    <div class="invalid-feedback">Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, and one number.</div>
+                </div>
+
+                <div class="row pt-3">
+                    <div class="col-sm-6">
+                        <button type="submit" class="btn px-5" style="background-color: black; color: white;">Login</button>
+                    </div>
+                    <div class="col-sm-6 mt-1">
+                        <a href="" class="f-p text-danger text-decoration-none">Forget Password?</a>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-3 flex-column mt-3 mb-2">
+                    <a href="/auth/google" class="btn btn-lg btn-outline-dark">
+                        <span class="ms-2 fs-6 fw-bold">Sign in with Google</span>
+                    </a>
+                    <p>Don’t have an account? <a href="/register" class="fw-bold text-dark text-decoration-none">Sign up for free!</a></p>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+        let isValid = true;
+
+        // Email Validation
+        const email = document.getElementById('email');
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailPattern.test(email.value)) {
+            email.classList.add('is-invalid');
+            isValid = false;
+        } else {
+            email.classList.remove('is-invalid');
+        }
+
+        // Password Validation
+        const password = document.getElementById('password');
+        const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
+        if (!passwordPattern.test(password.value)) {
+            password.classList.add('is-invalid');
+            isValid = false;
+        } else {
+            password.classList.remove('is-invalid');
+        }
+
+        if (!isValid) {
+            e.preventDefault();
+        }
+    });
+</script>

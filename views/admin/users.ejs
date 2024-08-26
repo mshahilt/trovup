@@ -1,0 +1,55 @@
+<div class="col-12 grid-margin stretch-card w-100">
+    <div class="card stretch-card">
+        <div class="card-body">
+
+            <!-- Flash Messages -->
+            <% if (messages.success) { %>
+                <div class="alert alert-success">
+                    <%= messages.success %>
+                </div>
+            <% } %>
+            <% if (messages.error) { %>
+                <div class="alert alert-danger">
+                    <%= messages.error %>
+                </div>
+            <% } %>
+            <!-- End of Flash Messages -->
+
+            <h4 class="card-title">Hoverable Table</h4>
+            <p class="card-description"> Add class <code>.table-hover</code></p>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Si No</th>
+                            <th>User</th>
+                            <th>Email</th>
+                            <th>Contact</th>
+                            <th>Block or Unblock</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% users.forEach((user,index) => { %>
+                           
+                        <tr>
+                            <td><%= index+1 %></td>
+                            <td><%= user.username %></td>
+                            <td><%= user.email %></td>
+                            <td class="<%= user.phone_number > 50 ? 'text-success' : 'text-danger' %>">
+                                <%= user.phone_number %> <i class="<%= user.sale > 50 ? 'ti-arrow-up' : 'ti-arrow-down' %>"></i>
+                            </td>
+                            <td>
+                                <form action="/admin/user-block/<%= user._id %>" method="POST">
+                                    <button type="submit" class="btn btn-<%= user.isBlock ? 'danger' : 'success' %>">
+                                        <%= user.isBlock ? 'Unblock' : 'Block' %>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        <% }) %>
+                    </tbody>                    
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
