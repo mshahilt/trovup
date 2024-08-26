@@ -139,48 +139,37 @@ exports.getVerifyOTP = (req, res) => {
 // POST: Handle OTP verification
 exports.verifyOTP = async (req, res) => {
     const { otp1, otp2, otp3, otp4 } = req.body;
-    const otp = otp1 + otp2 + otp3 + otp4; // Concatenate the OTP parts
+    const otp = otp1 + otp2 + otp3 + otp4; 
     const userId = req.session.user.id;
 
     try {
-        // Retrieve OTP record from the database
         const otpRecord = await OTP.findOne({ userId });
 
         if (!otpRecord) {
-            req.flash('error', 'OTP not found.');
-            return res.redirect('/verifyOTP');
+            return res.status(404).json({ success: false, message: 'OTP not found.' });
         }
 
-        // Check if OTP has expired
         if (otpRecord.expiresAt < Date.now()) {
             await OTP.deleteOne({ userId });
-            req.flash('error', 'OTP has expired.');
-            return res.redirect('/verifyOTP');
+            return res.status(400).json({ success: false, message: 'OTP has expired.' });
         }
-
-        // Debugging: Log the stored OTP and the input OTP for comparison
-        console.log('Stored OTP:', otpRecord.otp);
-        console.log('Input OTP:', otp);
 
         // Compare the stored OTP with the input OTP
         if (otpRecord.otp !== otp) {
-            req.flash('error', 'Invalid OTP.');
-            return res.redirect('/verifyOTP');
+            return res.status(400).json({ success: false, message: 'Invalid OTP.' });
         }
 
-        // OTP is correct, proceed with verification
-        await OTP.deleteOne({ _id: otpRecord._id }); // Remove OTP record after successful verification
-        await User.findByIdAndUpdate(userId, { is_verify: true }); // Mark user as verified
+        await OTP.deleteOne({ _id: otpRecord._id }); 
+        await User.findByIdAndUpdate(userId, { is_verify: true }); 
 
-        req.flash('success', 'OTP verified successfully');
-        res.redirect('/'); // Redirect to the homepage or dashboard after verification
+        return res.status(200).json({ success: true, message: 'OTP verified successfully.' });
 
     } catch (error) {
         console.error('Error during OTP verification:', error);
-        req.flash('error', 'Server Error. Please try again later.');
-        res.redirect('/register'); // Redirect to the registration page in case of an error
+        return res.status(500).json({ success: false, message: 'Server error. Please try again later.' });
     }
 };
+
 
 exports.resendOTP = async (req,res) => {
     const userId = req.session.user.id;

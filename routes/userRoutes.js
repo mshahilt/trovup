@@ -20,7 +20,6 @@ router.get('/products', userController.productPageGET);
 router.get('/product/:id', userController.viewProductGET);
 
 
-
 router.post('/verifyOTP', userController.verifyOTP);
 router.get('/verifyOTP',userController.getVerifyOTP)
 
