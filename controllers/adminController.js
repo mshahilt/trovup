@@ -262,7 +262,6 @@ exports.add_productGET = async (req, res) => {
         res.redirect('/admin/add_new_product');
     }
 }
-
 exports.submit_productPOST = async (req, res) => {
     try {
         // Access form fields
@@ -272,52 +271,84 @@ exports.submit_productPOST = async (req, res) => {
             product_highlights,
             category_id,
             brand_id,
-            price,
-            color,
-            stock,
-            storage_size
+            variant_count
         } = req.body;
-
-        // Remove commas from the price string and convert it to a number
-        const numericPrice = Number(price.replace(/,/g, ''));
 
         // Access uploaded images
         const images = req.files;
-        const imagePaths = [];
-        
-        if (images.image1) imagePaths.push(images.image1[0].path);
-        if (images.image2) imagePaths.push(images.image2[0].path);
-        if (images.image3) imagePaths.push(images.image3[0].path);
-        if (images.image4) imagePaths.push(images.image4[0].path);
+        console.log('req.body',req.body)
+        console.log('req.files:', images);
 
-        // Create new product with uploaded image paths and other details
+        // Initialize an array to store variant details
+        const variantDetails = [];
+
+        // Loop through the variants dynamically
+        console.log('variant count from body:', variant_count);
+        for (let i = 0; i < variant_count; i++) {
+            console.log('Processing variant:', i);
+
+            // Access the variant data as arrays
+            const price = req.body.price[i]; // Adjusted for array access
+            const storage_size = req.body.storage_size[i]; // Adjusted for array access
+            const stock = req.body.stock[i]; // Adjusted for array access
+            const color = req.body.color[i]; // Adjusted for array access
+
+            // Check if the price is valid and proceed
+            if (price !== undefined) {
+                // Remove commas from the price string and convert it to a number
+                const numericPrice = Number(price.replace(/,/g, ''));
+
+                // Handle images specific to each variant
+                const variantImages = [];
+
+                // Find the images corresponding to this variant
+                if (images) {
+                    images.forEach(image => {
+                        if (image.fieldname.startsWith(`variant_images_${i + 1}`)) {
+                            variantImages.push(image.path);
+                        }
+                    });
+                }
+
+                console.log('Variant images:', variantImages);
+
+                // Add the variant's details to the array
+                variantDetails.push({
+                    price: numericPrice,
+                    storage_size,
+                    stock: Number(stock),
+                    color,
+                    images: variantImages
+                });
+            } else {
+                console.error(`Price for variant ${i} is undefined.`);
+            }
+        }
+
+        // Create a new product with variant details
         const product = new Product({
             product_name,
             product_description,
             product_highlights,
             category_id,
             brand_id,
-            images: imagePaths,
-            variants: [
-                {
-                    price: numericPrice,
-                    storage_size,
-                    stock: Number(stock),
-                    color 
-                }
-            ]
+            variants: variantDetails
         });
 
+        // Save the product to the database
         await product.save();
-        console.log(product)
+        console.log('Product saved:', product);
 
         // Redirect or respond after saving
-        res.redirect('/admin/products'); // Adjust to your success page
+        res.send('success'); // Adjust to your success page
     } catch (error) {
-        console.error(error);
+        console.error('Error submitting product:', error);
         res.status(500).send('Error submitting product');
     }
 };
+
+
+
 
 exports.edit_productGET = async (req, res) => {
     try {

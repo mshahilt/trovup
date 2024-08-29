@@ -1,11 +1,15 @@
-
 <div class="container mt-5">
     <div class="col-12 grid-margin">
         <div class="card">
             <div class="card-body">
                 <h4 class="card-title">Product Information</h4>
                 <form class="form-sample" action="/admin/submit_product" method="POST" enctype="multipart/form-data">
+                    <!-- Hidden input for variant count -->
+                    <input type="hidden" id="variant_count" name="variant_count" value="1">
+
+                    <!-- Product Name and Highlights -->
                     <div class="row">
+                        <!-- Product Name -->
                         <div class="col-md-6">
                             <div class="form-group row">
                                 <label class="col-sm-3 col-form-label">Product Name</label>
@@ -14,6 +18,7 @@
                                 </div>
                             </div>
                         </div>
+                        <!-- Product Highlights -->
                         <div class="col-md-6">
                             <div class="form-group row">
                                 <label class="col-sm-3 col-form-label">Product Highlights</label>
@@ -24,7 +29,9 @@
                         </div>
                     </div>
 
+                    <!-- Category and Brand Selection -->
                     <div class="row">
+                        <!-- Category Selection -->
                         <div class="col-md-6">
                             <div class="form-group row">
                                 <label class="col-sm-3 col-form-label">Category</label>
@@ -37,6 +44,7 @@
                                 </div>
                             </div>
                         </div>
+                        <!-- Brand Selection -->
                         <div class="col-md-6">
                             <div class="form-group row">
                                 <label class="col-sm-3 col-form-label">Brand</label>
@@ -51,47 +59,74 @@
                         </div>
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-12">
-                            <h5 class="card-description">Variants</h5>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <select class="form-select" name="storage_size" required>
-                                    <option value="">Storage Size</option>
-                                    <option value="32 GB">32 GB</option>
-                                    <option value="64 GB">64 GB</option>
-                                    <option value="128 GB">128 GB</option>
-                                    <option value="256 GB">256 GB</option>
-                                    <option value="512 GB">512 GB</option>
-                                </select>
+                    <!-- Variants Section -->
+                    <div id="variants-section">
+                        <div class="row variant-row">
+                            <div class="col-md-12">
+                                <h5 class="card-description">Variants</h5>
                             </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <select class="form-select" name="color" required>
-                                    <option value="">Color</option>
-                                    <option value="Red">Red</option>
-                                    <option value="Blue">Blue</option>
-                                    <option value="Black">Black</option>
-                                    <option value="Purple">Purple</option>
-                                    <option value="Green">Green</option>
-                                </select>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <select class="form-select" name="storage_size[]" required>
+                                        <option value="">Storage Size</option>
+                                        <option value="32 GB">32 GB</option>
+                                        <option value="64 GB">64 GB</option>
+                                        <option value="128 GB">128 GB</option>
+                                        <option value="256 GB">256 GB</option>
+                                        <option value="512 GB">512 GB</option>
+                                    </select>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <input type="text" class="form-control" placeholder="Price" name="price" required />
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <select class="form-select" name="color[]" required>
+                                        <option value="">Color</option>
+                                        <option value="Red">Red</option>
+                                        <option value="Blue">Blue</option>
+                                        <option value="Black">Black</option>
+                                        <option value="Purple">Purple</option>
+                                        <option value="Green">Green</option>
+                                    </select>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <input type="text" class="form-control" placeholder="Stock" name="stock" required />
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <input type="text" class="form-control" placeholder="Price" name="price[]" required />
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <input type="text" class="form-control" placeholder="Stock" name="stock[]" required />
+                                </div>
+                            </div>
+                            <div class="col-md-12">
+                                <div class="form-group row">
+                                    <% for (let i = 1; i <= 4; i++) { %>
+                                        <div class="col-sm-3">
+                                            <div class="image-placeholder">
+                                                <img src="/images/upload_image.jpg" alt="placeholder" class="img-fluid" id="variant1-image<%= i %>-preview">
+                                                <input type="file" class="form-control mt-2" name="variant_images_1[]" id="variant1-image<%= i %>" onchange="previewImage(this, 'variant1-image<%= i %>-preview')">
+                                                <button type="button" class="btn btn-secondary mt-2" onclick="openCropperModal('variant1-image<%= i %>-preview', 'variant1-image<%= i %>')">Crop Image</button>
+                                            </div>
+                                        </div>
+                                    <% } %>
+                                </div>
+                            </div>
+                            <div class="col-md-12 text-end">
+                                <button type="button" class="btn btn-danger remove-variant">x</button>
                             </div>
                         </div>
                     </div>
 
-                    <div class="row">
+                    <!-- Add Variant Button -->
+                    <div class="row mt-3">
+                        <div class="col-md-12 text-end">
+                            <button type="button" class="btn btn-secondary" id="add-variant-btn">Add Variant</button>
+                        </div>
+                    </div>
+
+                    <!-- Product Description and Submit -->
+                    <div class="row mt-3">
                         <div class="col-md-12">
                             <div class="form-group">
                                 <label>Description</label>
@@ -99,25 +134,8 @@
                             </div>
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-md-12">
-                            <label>Upload Images</label>
-                            <div class="form-group row">
-                                <% for (let i = 1; i <= 4; i++) { %>
-                                    <div class="col-sm-3">
-                                        <div class="image-placeholder">
-                                            <img src="/images/upload_image.jpg" alt="placeholder" class="img-fluid" id="image<%= i %>-preview">
-                                            <input type="file" class="form-control mt-2" name="image<%= i %>" id="image<%= i %>" onchange="previewImage(this, 'image<%= i %>-preview')">
-                                            <button type="button" class="btn btn-secondary mt-2" onclick="openCropperModal('image<%= i %>-preview', 'image<%= i %>')">Crop Image</button>
-                                        </div>
-                                    </div>
-                                <% } %>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-12">
+                    <div class="row mt-3">
+                        <div class="col-md-12 text-end">
                             <button type="submit" class="btn btn-primary">Submit</button>
                         </div>
                     </div>
@@ -145,67 +163,148 @@
         </div>
     </div>
 </div>
-</div>
 
 <script>
     let cropper;
-  let currentPreviewId = '';
-  let currentFileInputId = '';
-  
-  function previewImage(input, previewId) {
-      const preview = document.getElementById(previewId);
-      const file = input.files[0];
-      const reader = new FileReader();
-  
-      reader.onload = function(e) {
-          preview.src = e.target.result;
-      };
-  
-      reader.readAsDataURL(file);
-  }
-  
-  function openCropperModal(previewId, fileInputId) {
-      currentPreviewId = previewId;
-      currentFileInputId = fileInputId;
-      const modal = new bootstrap.Modal(document.getElementById('cropperModal'));
-      const imageToCrop = document.getElementById('image-to-crop');
-      const preview = document.getElementById(previewId);
-  
-      imageToCrop.src = preview.src;
-      modal.show();
-  
-      modal._element.addEventListener('shown.bs.modal', function () {
-          if (cropper) {
-              cropper.destroy();
-          }
-          cropper = new Cropper(imageToCrop, {
-              aspectRatio: 4 / 3,
-              viewMode: 1,
-          });
-      });
-  }
-  
-  document.getElementById('crop-btn').addEventListener('click', function () {
-      if (cropper) {
-          const croppedCanvas = cropper.getCroppedCanvas();
-          const preview = document.getElementById(currentPreviewId);
-  
-          // Update the preview image
-          preview.src = croppedCanvas.toDataURL('image/jpeg');
-  
-          // Convert the cropped image to Blob and update the file input
-          croppedCanvas.toBlob(function (blob) {
-              const fileInput = document.getElementById(currentFileInputId);
-              const dataTransfer = new DataTransfer();
-              dataTransfer.items.add(new File([blob], 'cropped_image.jpg', { type: 'image/jpeg' }));
-              fileInput.files = dataTransfer.files;
-          });
-  
-          // Hide the modal after cropping
-          const modal = bootstrap.Modal.getInstance(document.getElementById('cropperModal'));
-          modal.hide();
-      }
-  });
-  
-  
-  </script>
+    let currentPreviewId = '';
+    let currentFileInputId = '';
+    let variantIndex = 1; // Initialize variantIndex to track variants
+    console.log(variantIndex);
+
+    function previewImage(input, previewId) {
+        const preview = document.getElementById(previewId);
+        const file = input.files[0];
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            preview.src = e.target.result;
+        };
+
+        reader.readAsDataURL(file);
+    }
+
+    function openCropperModal(previewId, fileInputId) {
+        currentPreviewId = previewId;
+        currentFileInputId = fileInputId;
+        const modal = new bootstrap.Modal(document.getElementById('cropperModal'));
+        const imageToCrop = document.getElementById('image-to-crop');
+        const preview = document.getElementById(previewId);
+
+        imageToCrop.src = preview.src;
+        modal.show();
+
+        modal._element.addEventListener('shown.bs.modal', function () {
+            if (cropper) {
+                cropper.destroy();
+            }
+            cropper = new Cropper(imageToCrop, {
+                aspectRatio: 4 / 3,
+                viewMode: 1,
+            });
+        });
+    }
+
+    document.getElementById('crop-btn').addEventListener('click', function () {
+        if (cropper) {
+            const croppedCanvas = cropper.getCroppedCanvas();
+            const preview = document.getElementById(currentPreviewId);
+
+            // Update the preview image
+            preview.src = croppedCanvas.toDataURL('image/jpeg');
+
+            // Convert the cropped image to Blob and update the file input
+            croppedCanvas.toBlob(function (blob) {
+                const fileInput = document.getElementById(currentFileInputId);
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(new File([blob], 'cropped_image.jpg', { type: 'image/jpeg' }));
+                fileInput.files = dataTransfer.files;
+            });
+
+            // Hide the modal after cropping
+            const modal = bootstrap.Modal.getInstance(document.getElementById('cropperModal'));
+            modal.hide();
+        }
+    });
+
+    document.getElementById('add-variant-btn').addEventListener('click', function() {
+        const variantSection = document.getElementById('variants-section');
+        const newVariantIndex = ++variantIndex;
+        document.getElementById('variant_count').value = newVariantIndex; // Update the hidden variant count field
+
+        const newVariantRow = document.createElement('div');
+        newVariantRow.classList.add('row', 'variant-row');
+        newVariantRow.innerHTML = `
+            <div class="col-md-12">
+                <h5 class="card-description">Variant ${newVariantIndex}</h5>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <select class="form-select" name="storage_size[]" required>
+                        <option value="">Storage Size</option>
+                        <option value="32 GB">32 GB</option>
+                        <option value="64 GB">64 GB</option>
+                        <option value="128 GB">128 GB</option>
+                        <option value="256 GB">256 GB</option>
+                        <option value="512 GB">512 GB</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <select class="form-select" name="color[]" required>
+                        <option value="">Color</option>
+                        <option value="Red">Red</option>
+                        <option value="Blue">Blue</option>
+                        <option value="Black">Black</option>
+                        <option value="Purple">Purple</option>
+                        <option value="Green">Green</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <input type="text" class="form-control" placeholder="Price" name="price[]" required />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <input type="text" class="form-control" placeholder="Stock" name="stock[]" required />
+                </div>
+            </div>
+            <div class="col-md-12">
+                <div class="form-group row">
+                    ${Array.from({ length: 4 }, (_, i) => `
+                        <div class="col-sm-3">
+                            <div class="image-placeholder">
+                                <img src="/images/upload_image.jpg" alt="placeholder" class="img-fluid" id="variant${newVariantIndex}-image${i+1}-preview">
+                                <input type="file" class="form-control mt-2" name="variant_images_${newVariantIndex}[]" id="variant${newVariantIndex}-image${i+1}" onchange="previewImage(this, 'variant${newVariantIndex}-image${i+1}-preview')">
+                                <button type="button" class="btn btn-secondary mt-2" onclick="openCropperModal('variant${newVariantIndex}-image${i+1}-preview', 'variant${newVariantIndex}-image${i+1}')">Crop Image</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            <div class="col-md-12 text-end">
+                <button type="button" class="btn btn-danger remove-variant">x</button>
+            </div>
+        `;
+
+        // Add event listener for the new remove button
+        newVariantRow.querySelector('.remove-variant').addEventListener('click', function() {
+            newVariantRow.remove();
+            variantIndex--;
+            document.getElementById('variant_count').value = variantIndex; // Update the hidden variant count field
+        });
+
+        variantSection.appendChild(newVariantRow);
+    });
+
+    // Initial Remove Variant functionality
+    document.querySelectorAll('.remove-variant').forEach(button => {
+        button.addEventListener('click', function() {
+            button.closest('.variant-row').remove();
+            variantIndex--;
+            document.getElementById('variant_count').value = variantIndex; // Update the hidden variant count field
+        });
+    });
+</script>

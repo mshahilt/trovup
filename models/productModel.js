@@ -50,7 +50,7 @@ const productSchema = new mongoose.Schema({
             type: String,
             required: true
         },
-        variant_images: [{ // Array to handle multiple images
+        images: [{ // Array to handle multiple images for each variant
             type: String,
             required: false
         }]
