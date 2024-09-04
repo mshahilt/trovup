@@ -39,21 +39,22 @@
                     <tbody>
                         <% products.forEach((product) => { %>
                         <tr>
-                            <!-- Display the first image from the product's images array -->
+                            <!-- Display the first image from the product's first variant images array, if available -->
                             <td>
-                                <img src="/<%= product.images[0].replace(/\\/g, '/') %>" alt="Product Image" class="img-thumbnail" style="width: 50px; height: 50px;">
+                                <% if (product.variants.length > 0 && product.variants[0].images.length > 0) { %>
+                                    <img src="/<%= product.variants[0].images[0].replace(/\\/g, '/') %>" alt="Product Image" class="img-thumbnail" style="width: 50px; height: 50px;">
+                                <% } else { %>
+                                    <span>No Image</span>
+                                <% } %>
                             </td>
                             <td><%= product.product_name %></td>
                             <td>
                                 <% if (product.isDelete) { %>
-                                    <!-- Display a status bar or button indicating that the product is deleted -->
                                     <span class="badge bg-danger">Deleted</span>
                                 <% } else { %>
-                                    <!-- Display a status bar or button indicating that the product is not deleted -->
                                     <span class="badge bg-success">Active</span>
                                 <% } %>
                             </td>
-                            
                             <td><%= product.category_id.category_name %></td>
                             <td><%= product.brand_id.brand_name %></td>
                             <td class="<%= product.variants[0].stock > 0 ? 'text-success' : 'text-danger' %>">
@@ -74,6 +75,43 @@
                                         <button type="submit" class="btn btn-danger">Delete</button>
                                     </form>
                                 <% } %>
+                                <!-- Show Variants Button -->
+                                <button type="button" class="btn btn-info" data-bs-toggle="collapse" data-bs-target="#variants-<%= product._id %>">
+                                    Show Variants
+                                </button>
+                            </td>
+                        </tr>
+                        <!-- Variant Information -->
+                        <tr class="collapse" id="variants-<%= product._id %>">
+                            <td colspan="8">
+                                <div>
+                                    <h5>Variants:</h5>
+                                    <div class="row">
+                                        <% product.variants.forEach((variant, index) => { %>
+                                        <div class="col-md-6">
+                                            <div class="card mb-3">
+                                                <div class="card-body">
+                                                    <p><strong>Price:</strong> <%= variant.price %></p>
+                                                    <p><strong>Storage Size:</strong> <%= variant.storage_size %></p>
+                                                    <p><strong>Stock:</strong> <%= variant.stock %></p>
+                                                    <p><strong>Color:</strong> <%= variant.color %></p>
+                                                    <% if (variant.images && variant.images.length > 0) { %>
+                                                        <div class="row">
+                                                            <% variant.images.forEach((image) => { %>
+                                                            <div class="col-3">
+                                                                <img src="/<%= image.replace(/\\/g, '/') %>" alt="Variant Image" class="img-thumbnail" style="width: 50px; height: 50px;">
+                                                            </div>
+                                                            <% }) %>
+                                                        </div>
+                                                    <% } else { %>
+                                                        <p>No images available</p>
+                                                    <% } %>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <% }) %>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                         <% }) %>
@@ -91,3 +129,8 @@
         </div>
     </div>
 </div>
+
+<!-- Include Bootstrap JS and Dependencies -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js"></script>

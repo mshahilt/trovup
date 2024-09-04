@@ -1,0 +1,190 @@
+<section>
+    <div class="container mt-5">
+        <h2 class="mb-4 text-center">Your Cart</h2>
+        <div class="row justify-content-center">
+            <div class="col-12 mb-4">
+                <table class="table table-borderless text-white">
+                    <thead>
+                        <tr class="text-uppercase text-muted">
+                            <th scope="col">Items</th>
+                            <th scope="col">Titles</th>
+                            <th scope="col" class="text-center">Quantity</th>
+                            <th scope="col" class="text-end">Sub.total</th>
+                            <th scope="col" class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cartItems">
+                        <% if(cart && cart.items.length > 0) { %>
+                            <% cart.items.forEach((item) => { %>
+                                <tr class="align-middle">
+                                    <td class="text-center">
+                                        <% const variant = item.product.variants.find(variant => variant._id.toString() === item.variantId); %>
+                                        <% const imageUrl = variant ? variant.images[0] : '/path/to/default-image.jpg'; %>
+                                        <img src="/<%= imageUrl %>" alt="Product Image" style="width: 80px; height: auto;">
+                                    </td>
+                                    <td>
+                                        <h6 class="mb-1 text-dark"><%= item.product.product_name %></h6>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="d-flex justify-content-center align-items-center">
+                                            <button class="btn btn-outline-light text-dark btn-sm" type="button" onclick="minus('<%= item._id %>', <%= item.price %>, <%= variant.stock %>)">-</button>
+                                            <input type="number" name="quantity" class="form-control text-center mx-2" value="<%= item.quantity %>" style="width: 50px; background-color: #333; color: white;" id="quantity_<%= item._id %>" readonly>
+                                            <button class="btn btn-outline-light text-dark btn-sm" type="button" onclick="plus('<%= item._id %>', <%= item.price %>, <%= variant.stock %>)">+</button>
+                                        </div>
+                                    </td>
+                                    <td class="text-end" id="price_<%= item._id %>">
+                                        <p class="text-dark">
+                                        <% const subtotal = item.quantity * item.price; %>
+                                        <%= subtotal.toFixed(2) %> USD
+                                        </p>
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-outline-danger btn-sm" onclick="deleteCart('<%= item._id %>')">Remove</button>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        <% } else { %>
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">Your cart is empty.</td>
+                            </tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+            <div class="col-12">
+                <div class="cart-total-box p-3 border rounded w-25">
+                    <h5 class="mb-4">Cart Total</h5>
+                    <div class="d-flex justify-content-between">
+                        <p class="text-dark mb-2">Subtotal:</p>
+                        <p class="text-dark mb-2" id="cartSubtotal">$0.00</p>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <p class="text-dark mb-2">Shipping:</p>
+                        <p class="text-dark mb-2">Free</p>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <p class="text-dark font-weight-bold">Total:</p>
+                        <p class="text-dark font-weight-bold" id="cartTotal">$0.00</p>
+                    </div>
+                    <a href="/cart/checkout"><button class="btn btn-dark btn-block mt-3">Proceed to checkout</button></a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+function deleteCart(id) {
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "Do you want to delete this item?",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'No, cancel!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/deleteCart/${id}`, {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" }
+            }).then((res) => {
+                if (res.ok) {
+                    Swal.fire('Deleted!', 'The item has been deleted.', 'success').then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire('Error!', 'There was a problem deleting the item.', 'error');
+                }
+            }).catch(err => {
+                console.error('Error:', err);
+                Swal.fire('Error!', 'There was a problem processing your request.', 'error');
+            });
+        } else if (result.dismiss === Swal.DismissReason.cancel) {
+            Swal.fire('Cancelled', 'Your item was not deleted.', 'error');
+        }
+    });
+}
+
+function updateCart(id, quantity) {
+    fetch(`/cart/updateCart/${id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log('Cart updated successfully');
+        } else {
+            console.error('Error updating cart:', data.message);
+        }
+    })
+    .catch(err => {
+        console.error('Error:', err);
+    });
+    calculateCartTotal();
+}
+
+function plus(id, price, stock) {
+    let quantity = parseInt(document.getElementById(`quantity_${id}`).value);
+    if (quantity < stock) {
+        if (quantity < 5) {
+            quantity++;
+            document.getElementById(`quantity_${id}`).value = quantity;
+            document.getElementById(`price_${id}`).innerHTML = `<p class="text-dark">${(quantity * price).toFixed(2)} USD</p>`;
+            updateCart(id, quantity);  // Update quantity in the database
+        } else {
+            Swal.fire({
+                title: 'Maximum Quantity Reached',
+                text: 'You can only add up to 5 items of this product.',
+                icon: 'info',
+                confirmButtonText: 'OK'
+            });
+        }
+    } else {
+        Swal.fire({
+            title: 'Out of Stock',
+            text: 'This item is no longer available.',
+            icon: 'warning',
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+function minus(id, price, stock) {
+    let quantity = parseInt(document.getElementById(`quantity_${id}`).value);
+    if (quantity > 1) {
+        quantity--;
+        document.getElementById(`quantity_${id}`).value = quantity;
+        document.getElementById(`price_${id}`).innerHTML = `<p class="text-dark">${(quantity * price).toFixed(2)} USD</p>`;
+        updateCart(id, quantity);  // Update quantity in the database
+    }
+}
+
+function calculateCartTotal() {
+    let cartItems = document.querySelectorAll('#cartItems tr');
+    let subtotal = 0;
+
+    cartItems.forEach(item => {
+        const priceElement = item.querySelector('[id^=price_]');
+        const priceText = priceElement.textContent.trim();
+        const price = parseFloat(priceText.replace('USD', '').trim());
+
+        subtotal += price;
+    });
+
+    const total = subtotal; // Since shipping is free
+
+    document.getElementById('cartSubtotal').textContent = `${subtotal.toFixed(2)} USD`;
+    document.getElementById('cartTotal').textContent = `${total.toFixed(2)} USD`;
+}
+
+// Call the function to calculate and display the totals on page load
+document.addEventListener('DOMContentLoaded', calculateCartTotal);
+
+</script>

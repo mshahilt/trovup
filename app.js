@@ -2,6 +2,7 @@ const express = require('express');
 const connectDB = require('./config/db');
 const userRoutes = require('./routes/userRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const userCartRoutes = require('./routes/userCartRoutes')
 const googleAuth = require('./routes/googleRoutes');
 const expressLayouts = require('express-ejs-layouts');
 const session = require('express-session');
@@ -60,7 +61,8 @@ app.use((req, res, next) => {
 // Routes
 app.use('/', userRoutes);
 app.use('/admin', adminRoutes);
-app.use('/auth/google', googleAuth);
+app.use('/cart', userCartRoutes);
+app.use('/auth/google',googleAuth)
 
 // Start the server
 const PORT = process.env.PORT || 5000;

@@ -6,8 +6,7 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: function() {
             return !this.googleId;
-        },
-        unique: true,
+        }
     },
     email: {
         type: String,
@@ -59,7 +58,7 @@ const userSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-// Pre-save hook to hash password
+
 
 
 const User = mongoose.model('User', userSchema);

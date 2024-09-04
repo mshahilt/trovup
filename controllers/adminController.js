@@ -16,6 +16,8 @@ exports.adminLoginGET = async (req, res) => {
 exports.adminLoginPOST = async (req, res) => {
     const { emailOrPhone, password } = req.body;
 
+    console.log('admin post');
+    
     if (emailOrPhone && password) {
         try {
             let admin;
@@ -231,8 +233,8 @@ exports.adminProductsGET = async (req, res) => {
     try {
         // Populate category_id and brand_id with the actual data
         const products = await Product.find()
-            .populate('category_id', 'category_name') // Fetch only the category_name field
-            .populate('brand_id', 'brand_name'); // Fetch only the brand_name field
+            .populate('category_id', 'category_name')
+            .populate('brand_id', 'brand_name'); 
 
         console.log(products);
 
@@ -340,7 +342,7 @@ exports.submit_productPOST = async (req, res) => {
         console.log('Product saved:', product);
 
         // Redirect or respond after saving
-        res.send('success'); // Adjust to your success page
+        res.redirect('/admin/products'); // Adjust to your success page
     } catch (error) {
         console.error('Error submitting product:', error);
         res.status(500).send('Error submitting product');

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order History</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+    font-family: Arial, sans-serif;
+    background-color: #f9f9f9;
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    background-color: #fff;
+    padding: 20px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+nav {
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+nav a {
+    text-decoration: none;
+    color: #333;
+}
+
+nav span {
+    color: #999;
+}
+
+.order-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.order-table th, .order-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.order-table th {
+    background-color: #f0f0f0;
+}
+
+.order-table .order-item {
+    display: flex;
+    align-items: center;
+}
+
+.order-table .order-item img {
+    width: 50px;
+    height: 50px;
+    margin-right: 10px;
+}
+
+.status {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.status.done {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+select {
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+select:focus {
+    outline: none;
+    border-color: #333;
+}
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav>
+            <a href="#">Home</a> / <a href="#">Account</a> / <span>Order History</span>
+        </nav>
+
+        <table class="order-table">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Orders</th>
+                    <th>Status</th>
+                    <th>Quantity</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>#1234556</td>
+                    <td class="order-item">
+                        <img src="lcd-monitor.png" alt="LCD Monitor">
+                        <span>LCD Monitor</span>
+                    </td>
+                    <td><span class="status done">Done</span></td>
+                    <td>
+                        <select>
+                            <option>01</option>
+                            <option>02</option>
+                            <option>03</option>
+                            <option>04</option>
+                            <option>05</option>
+                        </select>
+                    </td>
+                    <td>₹450</td>
+                </tr>
+                <tr>
+                    <td>#1234556</td>
+                    <td class="order-item">
+                        <img src="lcd-monitor.png" alt="LCD Monitor">
+                        <span>LCD Monitor</span>
+                    </td>
+                    <td><span class="status done">Done</span></td>
+                    <td>
+                        <select>
+                            <option>01</option>
+                            <option>02</option>
+                            <option>03</option>
+                            <option>04</option>
+                            <option>05</option>
+                        </select>
+                    </td>
+                    <td>₹450</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <script>
+        document.querySelectorAll('select').forEach(select => {
+    select.addEventListener('change', (event) => {
+        const quantity = event.target.value;
+        console.log(`Quantity changed to: ${quantity}`);
+        // Update quantity in the database or perform any action
+    });
+});
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout Page</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f4f4f4;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .container {
+            margin-top: 40px;
+        }
+
+        .billing-details,
+        .order-summary {
+            background-color: #fff;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        .billing-details {
+            margin-bottom: 20px;
+        }
+
+        .order-summary .product-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .order-summary .product-item img {
+            width: 60px;
+            height: auto;
+            margin-right: 10px;
+        }
+
+        .order-summary .total {
+            font-weight: bold;
+            font-size: 20px;
+        }
+
+        .order-summary .payment-methods {
+            margin-top: 25px;
+        }
+
+        .order-summary .payment-methods label {
+            margin-right: 15px;
+            font-weight: 500;
+        }
+
+        .order-summary .place-order-btn {
+            width: 100%;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-7">
+                <div class="billing-details">
+                    <h4>Billing Details</h4>
+                    <form id="billing-form">
+                        <div class="form-group">
+                            <label for="savedAddresses">Select a saved address</label>
+                            <select id="savedAddresses" class="form-control">
+                                <option value="">Select a saved address</option>
+                                <% if (addresses && addresses.length > 0) { %>
+                                    <% addresses.forEach(function(address) { %>
+                                        <option value="<%= address._id %>">
+                                            <%= address.fullName %> - <%= address.streetAddress %>, <%= address.city %>
+                                        </option>
+                                    <% }); %>
+                                <% } else { %>
+                                    <option value="">No saved addresses available</option>
+                                <% } %>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="firstName">Full Name*</label>
+                            <input type="text" id="firstName" class="form-control" placeholder="Full Name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="streetAddress">Street Address*</label>
+                            <input type="text" id="streetAddress" class="form-control" placeholder="Street Address"
+                                required>
+                        </div>
+                        <div class="form-group">
+                            <label for="apartment">Apartment, Floor, etc. (optional)</label>
+                            <input type="text" id="apartment" class="form-control"
+                                placeholder="Apartment, Floor, etc.">
+                        </div>
+                        <div class="form-group">
+                            <label for="city">City*</label>
+                            <input type="text" id="city" class="form-control" placeholder="City" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="phoneNumber">Phone Number*</label>
+                            <input type="text" id="phoneNumber" class="form-control" placeholder="Phone Number"
+                                required>
+                        </div>
+                        <div class="form-group">
+                            <label for="emailAddress">Email Address*</label>
+                            <input type="email" id="emailAddress" class="form-control" placeholder="Email Address"
+                                required>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" id="saveInfo" class="form-check-input">
+                            <label for="saveInfo" class="form-check-label">Save this information for faster checkout
+                                next time</label>
+                        </div>
+                        <button type="button" id="saveAddressBtn" class="btn btn-primary mt-2">Save Address</button>
+                    </form>
+                </div>
+            </div>
+            <div class="col-md-5">
+                <div class="order-summary">
+                    <h4>Order Summary</h4>
+
+                    <% if (cart && cart.items.length > 0) { %>
+                    <% let subtotal = 0; %>
+                    <% cart.items.forEach(item => { %>
+                    <div class="product-item">
+                        <div class="d-flex align-items-center">
+                            <% const variant = item.product.variants.find(variant => variant._id.toString() ===
+                                item.variantId); %>
+                            <% const imageUrl = variant ? variant.images[0] : '/path/to/default-image.jpg'; %>
+                            <img src="/<%= imageUrl %>" alt="<%= item.product.product_name %>">
+                            <div>
+                                <span><%= item.product.product_name %></span><br>
+                                <small>Color: <%= variant ? variant.color : 'N/A' %></small>
+                            </div>
+                        </div>
+                        <span>$<%= (item.price * item.quantity).toFixed(2) %></span>
+                    </div>
+                    <% subtotal += item.price * item.quantity; %>
+                    <% }); %>
+                    <hr>
+                    <div class="product-item">
+                        <span>Subtotal:</span>
+                        <span>$<%= subtotal.toFixed(2) %></span>
+                    </div>
+                    <div class="product-item">
+                        <span>Shipping:</span>
+                        <span>Free</span>
+                    </div>
+                    <div class="product-item total">
+                        <span>Total:</span>
+                        <span>$<%= subtotal.toFixed(2) %></span>
+                    </div>
+                    <% } else { %>
+                    <p>Your cart is empty.</p>
+                    <% } %>
+
+                    <div class="payment-methods">
+                        <h5>Payment Method</h5>
+                        <div class="form-check">
+                            <input type="radio" id="bank" name="paymentMethod" class="form-check-input">
+                            <label for="bank" class="form-check-label">Bank Transfer <i
+                                    class="bi bi-credit-card"></i></label>
+                        </div>
+                        <div class="form-check">
+                            <input type="radio" id="cod" name="paymentMethod" class="form-check-input" checked>
+                            <label for="cod" class="form-check-label">Cash on Delivery <i
+                                    class="bi bi-cash"></i></label>
+                        </div>
+                    </div>
+
+                    <div class="form-group mt-3">
+                        <input type="text" class="form-control" placeholder="Coupon Code">
+                        <button class="btn btn-dark mt-2">Apply Coupon</button>
+                    </div>
+                    <button type="button" class="btn btn-dark place-order-btn">Place Order</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        $(document).ready(function () {
+            $('#saveAddressBtn').click(function () {
+                // Validate form fields
+                const firstName = $('#firstName').val().trim();
+                const streetAddress = $('#streetAddress').val().trim();
+                const city = $('#city').val().trim();
+                const phoneNumber = $('#phoneNumber').val().trim();
+                const emailAddress = $('#emailAddress').val().trim();
+
+                if (!firstName) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Missing Information',
+                        text: 'Please enter your full name.',
+                        confirmButtonText: 'OK'
+                    });
+                    return;
+                }
+
+                if (!streetAddress) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Missing Information',
+                        text: 'Please enter your street address.',
+                        confirmButtonText: 'OK'
+                    });
+                    return;
+                }
+
+                if (!city) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Missing Information',
+                        text: 'Please enter your city.',
+                        confirmButtonText: 'OK'
+                    });
+                    return;
+                }
+
+                if (!phoneNumber) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Missing Information',
+                        text: 'Please enter your phone number.',
+                        confirmButtonText: 'OK'
+                    });
+                    return;
+                }
+
+                if (!emailAddress || !validateEmail(emailAddress)) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Invalid Email',
+                        text: 'Please enter a valid email address.',
+                        confirmButtonText: 'OK'
+                    });
+                    return;
+                }
+
+                // Proceed with AJAX request if validation passes
+                const formData = {
+                    firstName,
+                    streetAddress,
+                    apartment: $('#apartment').val().trim(),
+                    city,
+                    phoneNumber,
+                    emailAddress,
+                    saveInfo: $('#saveInfo').is(':checked')
+                };
+
+                $.ajax({
+                    url: '/cart/save_address',  
+                    method: 'POST',
+                    data: formData,
+                    success: function (response) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Address Saved',
+                            text: 'Your address has been saved successfully.',
+                            confirmButtonText: 'OK'
+                        }).then(() => {
+                            window.location.href = '/cart/checkout'; // Redirect to the next page
+                        });
+                    },
+                    error: function (error) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'There was an error saving your address. Please try again later.',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                });
+            });
+
+            function validateEmail(email) {
+                const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@(([^<>()[\]\\.,;:\s@"]+\.)+[^<>()[\]\\.,;:\s@"]{2,})$/i;
+                return re.test(String(email).toLowerCase());
+            }
+        });
+    </script>
+</body>
+
+</html>

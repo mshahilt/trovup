@@ -97,10 +97,6 @@ exports.registerUser = async (req, res) => {
         // Save user details to the session
         req.session.user = {
             id: newUser._id,
-            username: newUser.username,
-            email: newUser.email,
-            phone_number: newUser.phone_number,
-            is_verify: newUser.is_verify
         };
 
         req.flash('success', 'OTP sent to your email');
@@ -162,6 +158,16 @@ exports.verifyOTP = async (req, res) => {
         await OTP.deleteOne({ _id: otpRecord._id }); 
         await User.findByIdAndUpdate(userId, { is_verify: true }); 
 
+        const newUser = await User.findById(req.session.user.id);
+
+         req.session.user = {
+            username: newUser.username,
+            email: newUser.email,
+            phone_number: newUser.phone_number,
+            is_verify: newUser.is_verify
+        };
+
+        console.log('data stored to session',req.session.user);
         return res.status(200).json({ success: true, message: 'OTP verified successfully.' });
 
     } catch (error) {
@@ -171,7 +177,7 @@ exports.verifyOTP = async (req, res) => {
 };
 
 
-exports.resendOTP = async (req,res) => {
+exports.resendOTP = async (req, res) => {
     const userId = req.session.user.id;
 
     try {
@@ -228,11 +234,34 @@ exports.loginUser = async (req, res) => {
                 req.flash('error', 'Sorry, user is blocked by Admin!');
                 return res.redirect('/login');
             }
-
             if (match) {
                 console.log('ok');
+                if(user.is_verify == false){
+                    const userId = user._id;
+                    req.session.user = { id: userId };
+                       // Generate OTP and send email
+                    const otp = Math.floor(1000 + Math.random() * 9000);
+                    const otpExpiresAt = Date.now() + 180000; // OTP expires in 3 minutes
+                    await OTP.findOneAndUpdate(
+                        { userId: userId },
+                        { otp: otp, expiresAt: otpExpiresAt },
+                        { upsert: true }
+                    );
+            
+            
+                    await sendMail(transporter, {
+                        ...mailOptions,
+                        to: user.email,
+                        text: `Your new OTP is ${otp}`
+                    });
+            
+                    req.flash('success', 'A new OTP has been sent to your email.');
+                    res.redirect('/verifyOTP')
+
+                }else{
                 req.session.user = user._id;
                 return res.redirect('/');
+            }
             } else {
                 req.flash('error', 'Incorrect password!');
                 return res.redirect('/login');
@@ -264,14 +293,12 @@ exports.getHomePagePOST = async (req, res) => {
         const products = await Products.find({ isDelete: false });
         const categories = await Category.find({ isDeleted: false });
 
-        // Check if the user is logged in (assuming user information is stored in the session)
         const isUserLoggedIn = req.session.user ? true : false;
-
         res.render('user/home', {
             title: 'Home',
             products,
             categories,
-            isUserLoggedIn, // Pass the user status to the frontend
+            isUserLoggedIn, 
             layout: 'layouts/homeLayout'
         });
     } catch (error) {
@@ -318,8 +345,12 @@ exports.viewProductGET = async (req, res) => {
         const relatedProducts = await Products.find({ category_id: relatedCategory, isDelete: false });
         const isUserLoggedIn = req.session.user ? true : false;
 
+        // Set the default selectedVariant as the first variant
+        const selectedVariant = product.variants[0];
+
         res.render('user/product', {
             product,
+            selectedVariant,
             title: product.product_name,
             layout: 'layouts/homeLayout',
             related_products: relatedProducts,
@@ -330,6 +361,7 @@ exports.viewProductGET = async (req, res) => {
         res.status(500).send('Server error');
     }
 };
+
 
 // GET: Retrieve user profile
 exports.getUserProfile = async (req, res) => {
