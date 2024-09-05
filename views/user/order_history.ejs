@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order History</title>
+    <link rel="stylesheet" href="your-style.css">
+    <style>
+        .order-history-container {
+            margin: 20px auto;
+            width: 80%;
+            border-collapse: collapse;
+        }
+
+        table {
+            width: 100%;
+            border-spacing: 0;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f0f0f0;
+        }
+
+        .status {
+            color: green;
+            border: 1px solid green;
+            padding: 5px 10px;
+            border-radius: 5px;
+            display: inline-block;
+            background-color: #f0fdf0;
+        }
+
+        .order-item {
+            display: flex;
+            align-items: center;
+        }
+
+        .order-item img {
+            width: 80px;
+            margin-right: 10px;
+        }
+
+        .quantity-select {
+            padding: 5px;
+            border: 1px solid #ddd;
+            width: 60px;
+        }
+
+        .price {
+            font-weight: bold;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="order-history-container">
+        <h2>Order History</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Orders</th>
+                    <th>Status</th>
+                    <th>Quantity</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% order_history.forEach(order => { %>
+                    <% order.items.forEach(item => { %>
+                    <tr>
+                        <td>#<%= order._id %></td>
+                        <td class="order-item">
+                            <img src="/<%= item.product.variants[0].images[0] || 'default-image.jpg' %>" alt="<%= item.product.product_name %>">
+                            <span><%= item.product.product_name %></span>
+                        </td>
+                        <td><span class="status"><%= order.orderStatus %></span></td>
+                        <td>
+                            <select class="quantity-select" disabled>
+                                <option value="<%= item.quantity %>" selected><%= item.quantity %></option>
+                            </select>
+                        </td>
+                        <td class="price">₹<%= item.price %></td>
+                    </tr>
+                    <% }) %>
+                <% }) %>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

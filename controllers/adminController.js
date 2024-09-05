@@ -5,6 +5,7 @@ const Product = require('../models/productModel');
 const Brand = require('../models/brandModel');
 const flash = require('connect-flash');
 const Products = require('../models/productModel');
+const Orders = require('../models/orderModel');
 
 // Get All Users (Admin only)
 exports.adminLoginGET = async (req, res) => {
@@ -208,18 +209,15 @@ exports.delete_categoryPOST = async (req, res) => {
         }
 
         if (category.isDeleted) {
-            // Restore the category and related products
             await Category.findByIdAndUpdate(categoryId, { isDeleted: false });
             await Products.updateMany({ category_id: categoryId, isDelete: true }, { isDelete: false });
             req.flash('success', 'Category restored successfully');
         } else {
-            // Soft delete the category and related products
             await Category.findByIdAndUpdate(categoryId, { isDeleted: true });
             await Products.updateMany({ category_id: categoryId }, { isDelete: true });
             req.flash('success', 'Category deleted successfully');
         }
 
-        // Redirect to the categories list
         res.redirect('/admin/categories');
     } catch (error) {
         console.log('An error occurred while toggling the category status:', error);
@@ -266,7 +264,6 @@ exports.add_productGET = async (req, res) => {
 }
 exports.submit_productPOST = async (req, res) => {
     try {
-        // Access form fields
         const {
             product_name,
             product_description,
@@ -276,34 +273,29 @@ exports.submit_productPOST = async (req, res) => {
             variant_count
         } = req.body;
 
-        // Access uploaded images
         const images = req.files;
         console.log('req.body',req.body)
         console.log('req.files:', images);
 
-        // Initialize an array to store variant details
         const variantDetails = [];
 
-        // Loop through the variants dynamically
+
         console.log('variant count from body:', variant_count);
         for (let i = 0; i < variant_count; i++) {
             console.log('Processing variant:', i);
 
-            // Access the variant data as arrays
-            const price = req.body.price[i]; // Adjusted for array access
-            const storage_size = req.body.storage_size[i]; // Adjusted for array access
-            const stock = req.body.stock[i]; // Adjusted for array access
-            const color = req.body.color[i]; // Adjusted for array access
+            const price = req.body.price[i];
+            const storage_size = req.body.storage_size[i]; 
+            const stock = req.body.stock[i]; 
+            const color = req.body.color[i]; 
 
-            // Check if the price is valid and proceed
+     
             if (price !== undefined) {
-                // Remove commas from the price string and convert it to a number
+
                 const numericPrice = Number(price.replace(/,/g, ''));
 
-                // Handle images specific to each variant
                 const variantImages = [];
 
-                // Find the images corresponding to this variant
                 if (images) {
                     images.forEach(image => {
                         if (image.fieldname.startsWith(`variant_images_${i + 1}`)) {
@@ -314,7 +306,6 @@ exports.submit_productPOST = async (req, res) => {
 
                 console.log('Variant images:', variantImages);
 
-                // Add the variant's details to the array
                 variantDetails.push({
                     price: numericPrice,
                     storage_size,
@@ -327,7 +318,6 @@ exports.submit_productPOST = async (req, res) => {
             }
         }
 
-        // Create a new product with variant details
         const product = new Product({
             product_name,
             product_description,
@@ -337,12 +327,10 @@ exports.submit_productPOST = async (req, res) => {
             variants: variantDetails
         });
 
-        // Save the product to the database
         await product.save();
         console.log('Product saved:', product);
 
-        // Redirect or respond after saving
-        res.redirect('/admin/products'); // Adjust to your success page
+        res.redirect('/admin/products');
     } catch (error) {
         console.error('Error submitting product:', error);
         res.status(500).send('Error submitting product');
@@ -544,3 +532,30 @@ exports.deleteUser = async (req, res) => {
         res.status(404).json({ error: 'User not found' });
     }
 };
+
+exports.orderGET = async (req, res) => {
+    try{
+        
+      const order_details = await Orders.find().populate('items.product');
+  
+      // Step 2: Manually filter variants for each item in the order
+      const orders = order_details.map(order => {
+        order.items = order.items.map(item => {
+          // Find the variant that matches the item.variantId
+          const selectedVariant = item.product.variants.find(variant => variant._id.toString() === item.variantId.toString());
+  
+          // Replace the full variants array with only the matching variant
+          if (selectedVariant) {
+            item.product.variants = [selectedVariant];
+          }
+  
+          return item;
+        });
+        return order;
+      });
+
+      res.render('admin/orders',{orders,layout:'layouts/adminLayout',title:'Orders'});
+    }catch(error){
+        console.log('error occured while loading order detials at admin side',)
+    }
+}

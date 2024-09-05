@@ -1,0 +1,45 @@
+<div class="grid-margin stretch-card">
+    <div class="card">
+      <div class="card-body">
+        <h4 class="card-title">Hoverable Table</h4>
+        <p class="card-description"> Add class <code>.table-hover</code>
+        </p>
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Order Id</th>
+                <th>User Id</th>
+                <th>Items</th>
+                <th>Payment Type</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% orders.forEach(order => { %>
+                <tr>
+                  <td><%= order._id %></td>
+                  <td><%= order.user %></td>
+                  <td>
+                    <% order.items.forEach(item => { %>
+                      <div>
+                        <img src="/<%= item.product.variants.find(v => v._id.toString() === item.variantId.toString()).images[0] %>" alt="Product Image" width="50px">
+                        <p><%= item.product.product_name %></p>
+                        <p>Color: <%= item.product.variants.find(v => v._id.toString() === item.variantId.toString()).color %></p>
+                        <p>Storage: <%= item.product.variants.find(v => v._id.toString() === item.variantId.toString()).storage_size %></p>
+                      </div>
+                    <% }) %>
+                  </td>
+                  <td><%= order.paymentMethod %></td>
+                  <td><label class="badge badge-warning"><%= order.orderStatus %></label></td>
+                  <td><button class="btn btn-danger">Cancel</button></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  

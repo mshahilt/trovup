@@ -178,13 +178,13 @@ function calculateCartTotal() {
         subtotal += price;
     });
 
-    const total = subtotal; // Since shipping is free
+    const total = subtotal; 
 
     document.getElementById('cartSubtotal').textContent = `${subtotal.toFixed(2)} USD`;
     document.getElementById('cartTotal').textContent = `${total.toFixed(2)} USD`;
 }
 
-// Call the function to calculate and display the totals on page load
+
 document.addEventListener('DOMContentLoaded', calculateCartTotal);
 
 </script>

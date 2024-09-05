@@ -30,7 +30,8 @@ router.get('/edit-brand/:id', isAuthenticatedAdmin, adminControllers.edit_brandG
 router.post('/delete-product/:id', isAuthenticatedAdmin, adminControllers.delete_productPOST);
 router.post('/delete-brand/:id', isAuthenticatedAdmin, adminControllers.delete_brandPOST);
 
-// Route for submitting the product with dynamic variant images
+router.get('/orders', isAuthenticatedAdmin, adminControllers.orderGET);
+
 router.post('/submit_product', isAuthenticatedAdmin, upload.any(), adminControllers.submit_productPOST);
 
 module.exports = router;

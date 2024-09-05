@@ -1,16 +1,18 @@
 const User = require('../models/userModel');
 const Category = require('../models/catogeryModel');
 const Brand = require('../models/brandModel');
-const Cart = require('../models/cartModel')
+const Cart = require('../models/cartModel');
 const flash = require('connect-flash');
 const Products = require('../models/productModel');
 const Addresses = require('../models/addressModel');
 const { isLoggedIn } = require('../middleware/userAuth');
+const { storeUserSession } = require('../utility/sessionUtil');
 
+// GET: Add to Cart Page
 exports.addToCartGET = async (req, res) => {
     try {
         if (req.session.user) {
-            const userId = req.session.user;
+            const userId = req.session.user.user;
             const cart = await Cart.findOne({ user: userId }).populate('items.product');
 
             if (cart && cart.items.length > 0) {
@@ -23,7 +25,6 @@ exports.addToCartGET = async (req, res) => {
             }
 
             const isUserLoggedIn = req.session.user;
-
             res.render('user/cart', { cart, title: 'Cart', isUserLoggedIn, layout: 'layouts/homeLayout' });
         } else {
             req.flash('error', 'You need to log in to access the cart.');
@@ -35,13 +36,16 @@ exports.addToCartGET = async (req, res) => {
     }
 };
 
+// POST: Add Product Variant to Cart
 exports.addToCartPost = async (req, res) => {
     try {
         const product_Id = req.params.id;
-        const user_Id = req.session.user;
+        const userSession = req.session.user
+        const user_Id = req.session.user.user;
+        console.log(req.session.user);
         const { variantId } = req.body;
 
-        if (!user_Id) {
+        if (!userSession) {
             console.log('User not logged in');
             return res.status(401).json({ success: false, message: 'User not logged in' });
         }
@@ -60,33 +64,21 @@ exports.addToCartPost = async (req, res) => {
 
         let cart = await Cart.findOne({ user: user_Id });
         if (!cart) {
-            cart = new Cart({
-                user: user_Id,
-                items: []
-            });
+            cart = new Cart({ user: user_Id, items: [], total_price: 0 });
             console.log('New cart created');
         }
 
-        // Check if the exact product variant is already in the cart
-        const existingItemIndex = cart.items.findIndex(item => 
-            item.product.toString() === product_Id && item.variantId === variantId
-        );
-        
+        const existingItemIndex = cart.items.findIndex(item => item.product.toString() === product_Id && item.variantId === variantId);
+
         if (existingItemIndex > -1) {
             cart.items[existingItemIndex].quantity += 1;
-            console.log('Product variant quantity increased');
+            cart.items[existingItemIndex].price += variant.price;
         } else {
-            cart.items.push({
-                product: product_Id,
-                variantId: variantId,
-                quantity: 1,
-                price: variant.price  
-            });
-            console.log('Product variant added to cart');
+            cart.items.push({ product: product_Id, variantId, quantity: 1, price: variant.price });
         }
 
+        cart.total_price = cart.items.reduce((total, item) => total + item.price, 0);
         await cart.save();
-        console.log('Cart saved successfully');
 
         res.json({ success: true, message: 'Product variant added to cart', redirectUrl: '/' });
     } catch (error) {
@@ -95,13 +87,13 @@ exports.addToCartPost = async (req, res) => {
     }
 };
 
+// PUT: Update Cart Quantity
 exports.updateCartQuantity = async (req, res) => {
     try {
         const { id } = req.params;
         const { quantity } = req.body;
 
         const cart = await Cart.findOne({ 'items._id': id });
-
         if (!cart) {
             return res.status(404).json({ success: false, message: 'Cart item not found' });
         }
@@ -120,29 +112,30 @@ exports.updateCartQuantity = async (req, res) => {
     }
 };
 
+// GET: Proceed to Checkout Page
 exports.cartCheckout = async (req, res) => {
     try {
-        const userId = req.session.user;
+        const userId = req.session.user.user;
         const cart = await Cart.findOne({ user: userId }).populate('items.product');
-        console.log('session',userId)
-        const addresses = await Addresses.find({ userId: userId });
-        console.log('address data for checkout:', addresses);
-        const isUserLoggedIn = req.session.user ? true : false;
-        res.render('user/checkout', { 
-            title: 'Checkout', 
-            isUserLoggedIn, 
-            cart, 
+        const addresses = await Addresses.find({ userId });
+        const isUserLoggedIn = !!req.session.user;
+
+        res.render('user/checkout', {
+            title: 'Checkout',
+            isUserLoggedIn,
+            cart,
             addresses,
-            layout:'layouts/homeLayout'
+            layout: 'layouts/homeLayout',
         });
     } catch (error) {
-        console.log('Error occurred while loading proceed to checkout page', error);
+        console.log('Error occurred while loading proceed to checkout page:', error);
     }
 };
 
+// POST: Save Address for Checkout
 exports.save_addressPOST = async (req, res) => {
     try {
-        const userId = req.session.user;
+        const userId = req.session.user.user;
 
         if (!userId) {
             return res.status(401).json({ error: 'Unauthorized' });
@@ -151,18 +144,17 @@ exports.save_addressPOST = async (req, res) => {
         const { firstName, streetAddress, apartment, city, phoneNumber, emailAddress, saveInfo } = req.body;
 
         const newAddress = new Addresses({
-            userId: userId,
+            userId,
             fullName: firstName,
-            streetAddress: streetAddress,
-            apartment: apartment,
-            city: city,
-            phoneNumber: phoneNumber,
-            emailAddress: emailAddress,
-            saveInfo: saveInfo
+            streetAddress,
+            apartment,
+            city,
+            phoneNumber,
+            emailAddress,
+            saveInfo
         });
 
         await newAddress.save();
-
         res.status(200).json({ message: 'Address saved successfully' });
     } catch (error) {
         console.error('Error occurred while posting address:', error);
@@ -170,16 +162,15 @@ exports.save_addressPOST = async (req, res) => {
     }
 };
 
-
+// POST: Place an Order
 exports.place_orderPOST = async (req, res) => {
     try {
-        const userId = req.session.user;
+        const userId = req.session.user.user;
         const { firstName, streetAddress, apartment, city, phoneNumber, emailAddress, paymentMethod } = req.body;
-        
+
         if (!userId) {
             return res.status(400).json({ message: 'User not authenticated' });
         }
-
 
         const newAddress = new Addresses({
             fullName: firstName,
@@ -193,19 +184,11 @@ exports.place_orderPOST = async (req, res) => {
             user: userId
         });
 
-
         await newAddress.save();
-
-
         console.log('Order and address saved successfully');
-
-
         return res.status(200).json({ message: 'Order placed successfully!' });
     } catch (error) {
         console.log('Error occurred while placing the order:', error);
-
-        // Send an error response if something goes wrong
         return res.status(500).json({ message: 'Failed to place order' });
     }
 };
-

@@ -22,7 +22,7 @@ const mailOptions = {
         address: process.env.USER
     },
     subject: "Verification code of Trovup",
-    text: "", // This will be filled dynamically
+    text: "",
 };
 
 // GET: Render registration page
@@ -91,12 +91,13 @@ exports.registerUser = async (req, res) => {
             expiresAt: otpExpiresAt
         });
 
-        await newUser.save(); // Save the new user to the database
-        await newOTP.save();  // Save the OTP to the database
+        await newUser.save(); 
+        await newOTP.save();
 
         // Save user details to the session
         req.session.user = {
-            id: newUser._id,
+            user: newUser._id,
+            is_verify: newUser.is_verify
         };
 
         req.flash('success', 'OTP sent to your email');
@@ -136,7 +137,9 @@ exports.getVerifyOTP = (req, res) => {
 exports.verifyOTP = async (req, res) => {
     const { otp1, otp2, otp3, otp4 } = req.body;
     const otp = otp1 + otp2 + otp3 + otp4; 
-    const userId = req.session.user.id;
+    console.log('otp has reached', otp);
+
+    const userId = req.session.user.user;
 
     try {
         const otpRecord = await OTP.findOne({ userId });
@@ -158,9 +161,10 @@ exports.verifyOTP = async (req, res) => {
         await OTP.deleteOne({ _id: otpRecord._id }); 
         await User.findByIdAndUpdate(userId, { is_verify: true }); 
 
-        const newUser = await User.findById(req.session.user.id);
+        const newUser = await User.findById(req.session.user.user);
 
          req.session.user = {
+            user:newUser._id,
             username: newUser.username,
             email: newUser.email,
             phone_number: newUser.phone_number,
@@ -178,8 +182,7 @@ exports.verifyOTP = async (req, res) => {
 
 
 exports.resendOTP = async (req, res) => {
-    const userId = req.session.user.id;
-
+    const userId = req.session.user.user;
     try {
         const user = await User.findById(userId);
 
@@ -204,6 +207,8 @@ exports.resendOTP = async (req, res) => {
             text: `Your new OTP is ${otp}`
         });
 
+
+        console.log('new otp sented')
         req.flash('success', 'A new OTP has been sent to your email.');
         res.redirect('/verifyOTP');
         
@@ -224,7 +229,6 @@ exports.loginUser = async (req, res) => {
         const user = await User.findOne({ $and: [{ email: email }, { googleId: null }] });
 
         if (user) {
-            console.log(password, user.password);
 
             // Compare passwords
             const match = await bcrypt.compare(password, user.password);
@@ -234,34 +238,35 @@ exports.loginUser = async (req, res) => {
                 req.flash('error', 'Sorry, user is blocked by Admin!');
                 return res.redirect('/login');
             }
+
             if (match) {
-                console.log('ok');
-                if(user.is_verify == false){
+                if (!user.is_verify) {
                     const userId = user._id;
-                    req.session.user = { id: userId };
-                       // Generate OTP and send email
+                    req.session.user = { user: { user: userId } };  // Store user ID under `user` object in session
+                    
+                    // Generate OTP and send email
                     const otp = Math.floor(1000 + Math.random() * 9000);
                     const otpExpiresAt = Date.now() + 180000; // OTP expires in 3 minutes
+
                     await OTP.findOneAndUpdate(
                         { userId: userId },
                         { otp: otp, expiresAt: otpExpiresAt },
                         { upsert: true }
                     );
             
-            
                     await sendMail(transporter, {
                         ...mailOptions,
                         to: user.email,
                         text: `Your new OTP is ${otp}`
                     });
-            
-                    req.flash('success', 'A new OTP has been sent to your email.');
-                    res.redirect('/verifyOTP')
 
-                }else{
-                req.session.user = user._id;
-                return res.redirect('/');
-            }
+                    req.flash('success', 'A new OTP has been sent to your email.');
+                    return res.redirect('/verifyOTP');
+
+                } else {
+                    req.session.user = { user: user._id };  // Store user ID under `user` object in session
+                    return res.redirect('/');
+                }
             } else {
                 req.flash('error', 'Incorrect password!');
                 return res.redirect('/login');
@@ -277,6 +282,7 @@ exports.loginUser = async (req, res) => {
         return res.redirect('/login');
     }
 };
+
 
 
 // GET: Render login page

@@ -227,9 +227,9 @@
             method: 'POST',
             success: function(response) {
                 showMessage(response.message, 'success');
-                timeLeft = 120; // Reset the timer
+                timeLeft = 120;
                 clearInterval(timerInterval);
-                setInterval(timerInterval, 1000); // Restart the timer
+                setInterval(timerInterval, 1000);
             },
             error: function(xhr) {
                 const errorMessage = xhr.responseJSON ? xhr.responseJSON.message : 'An error occurred. Please try again later.';
