@@ -34,4 +34,6 @@ router.get('/orders', isAuthenticatedAdmin, adminControllers.orderGET);
 
 router.post('/submit_product', isAuthenticatedAdmin, upload.any(), adminControllers.submit_productPOST);
 
+router.post('/cancel-order',isAuthenticatedAdmin,adminControllers.cancel_orderPOST)
+
 module.exports = router;

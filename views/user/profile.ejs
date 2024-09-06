@@ -1,6 +1,273 @@
-<%- include('../partials/header') %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile Edit Form</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+    }
 
-<h1>User Profile</h1>
-<p>View and update your profile information here.</p>
+    .profile-container {
+      max-width: 900px;
+      margin: 50px auto;
+      background-color: #fff;
+      padding: 40px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
 
-<%- include('../partials/footer') %>
+    .section-title {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .form-control {
+      font-size: 14px;
+    }
+
+    .sidebar {
+      margin-top: 20px;
+    }
+
+    .sidebar a {
+      text-decoration: none;
+      color: #000;
+      display: block;
+      padding: 10px 0;
+    }
+
+    .sidebar a:hover {
+      text-decoration: underline;
+    }
+
+    .btn-custom {
+      background-color: #333;
+      color: white;
+    }
+
+    .btn-custom:hover {
+      background-color: #555;
+    }
+
+    .cancel-btn {
+      color: #555;
+      text-decoration: underline;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+
+    .edit-icon {
+      cursor: pointer;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="#">Home</a></li>
+        <li class="breadcrumb-item active" aria-current="page">My Account</li>
+      </ol>
+    </nav>
+
+    <!-- Welcome Message -->
+    <div class="text-end">
+      <p class="fw-bold">Welcome! <%= user.username %></p>
+    </div>
+
+    <div class="row">
+      <!-- Sidebar -->
+      <div class="col-md-3">
+        <div class="sidebar">
+          <p class="fw-bold">Manage My Account</p>
+          <a href="#">My Profile</a>
+          <a href="#">Address Book</a>
+          <a href="#">Change Password</a>
+          <p class="fw-bold mt-4">My Orders</p>
+          <a href="/order/order_history">Orders</a>
+          <a href="#">My Cancellations</a>
+          <p class="fw-bold mt-4">My Wishlist</p>
+        </div>
+      </div>
+
+      <!-- Form Section -->
+      <div class="col-md-9">
+        <div class="profile-container">
+          <h2 class="section-title">Edit Your Profile</h2>
+          <form id="profileForm">
+            <div class="row mb-3">
+              <div class="col-md-12">
+                <label for="firstName" class="form-label">Full Name</label>
+                <input type="text" class="form-control editable" id="firstName" value="<%= user.username %>" readonly>
+                <span class="edit-icon" onclick="enableEdit('firstName')">&#9998;</span>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" class="form-control" id="email" value="<%= user.email %>" readonly>
+              </div>
+              <div class="col-md-6">
+                <label for="phone" class="form-label">Phone</label>
+                <input type="text" class="form-control editable" id="phone" value="<%= user.phone_number %>" readonly>
+                <span class="edit-icon" onclick="enableEdit('phone')">&#9998;</span>
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+              <button type="button" class="cancel-btn">Cancel</button>
+              <button type="submit" class="btn btn-custom">Save Changes</button>
+            </div>
+          </form>
+
+          <!-- Change Password Section -->
+          <div class="mt-4">
+            <h3 class="section-title">Change Password</h3>
+            <form id="changePasswordForm">
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="oldPassword" class="form-label">Old Password</label>
+                  <input type="password" class="form-control" id="oldPassword" placeholder="Enter old password">
+                </div>
+                <div class="col-md-6">
+                  <label for="newPassword" class="form-label">New Password</label>
+                  <input type="password" class="form-control" id="newPassword" placeholder="Enter new password">
+                </div>
+              </div>
+
+              <div class="d-flex justify-content-between">
+                <button type="submit" class="btn btn-custom">Update Password</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Forgot Password Button -->
+          <div class="mt-4">
+            <button id="forgotPasswordBtn" class="btn btn-warning">Forgot Password?</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+  <script>
+    // Enable edit on field
+    function enableEdit(fieldId) {
+      document.getElementById(fieldId).removeAttribute('readonly');
+      document.getElementById(fieldId).focus();
+    }
+
+    // Handle profile update form submission with AJAX
+    $('#profileForm').on('submit', function(e) {
+      e.preventDefault();
+
+      const firstName = $('#firstName').val();
+      const phone = $('#phone').val();
+
+      $.ajax({
+        url: '/profile/profile-edit',
+        method: 'POST',
+        data: { firstName, phone },
+        success: function(response) {
+          if (response.success) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Profile Updated',
+              text: response.message
+            });
+          }
+        },
+        error: function(err) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'An error occurred while updating the profile.'
+          });
+        }
+      });
+    });
+
+    // Handle change password form submission with AJAX
+    $('#changePasswordForm').on('submit', function(e) {
+      e.preventDefault();
+
+      const oldPassword = $('#oldPassword').val();
+      const newPassword = $('#newPassword').val();
+
+      $.ajax({
+        url: '/profile/change-password',
+        method: 'POST',
+        data: { oldPassword, newPassword },
+        success: function(response) {
+          if (response.success) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Password Changed',
+              text: response.message
+            });
+            $('#oldPassword').val('');
+            $('#newPassword').val('');
+          }
+        },
+        error: function(err) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Unable to change password.'
+          });
+        }
+      });
+    });
+
+    // Handle forgot password button click
+    $('#forgotPasswordBtn').on('click', function() {
+      Swal.fire({
+        title: 'Enter your email address',
+        input: 'email',
+        inputPlaceholder: 'Email address',
+        showCancelButton: true,
+        confirmButtonText: 'Submit',
+        preConfirm: (email) => {
+          return $.ajax({
+            url: '/profile/forgot-password',
+            method: 'POST',
+            data: { email },
+            success: function(response) {
+              if (response.success) {
+                Swal.fire({
+                  icon: 'success',
+                  title: 'Password Reset Link Sent',
+                  text: response.message
+                });
+              }
+            },
+            error: function(err) {
+              Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error sending password reset otp.'
+              });
+            }
+          });
+        }
+      });
+    });
+  </script>
+</body>
+</html>

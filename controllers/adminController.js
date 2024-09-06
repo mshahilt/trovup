@@ -534,28 +534,46 @@ exports.deleteUser = async (req, res) => {
 };
 
 exports.orderGET = async (req, res) => {
-    try{
-        
-      const order_details = await Orders.find().populate('items.product');
+    try {
   
-      // Step 2: Manually filter variants for each item in the order
-      const orders = order_details.map(order => {
-        order.items = order.items.map(item => {
-          // Find the variant that matches the item.variantId
-          const selectedVariant = item.product.variants.find(variant => variant._id.toString() === item.variantId.toString());
+        const orders = await Orders.find({}).populate('items.product');
   
-          // Replace the full variants array with only the matching variant
-          if (selectedVariant) {
-            item.product.variants = [selectedVariant];
-          }
-  
-          return item;
+        const order_history = orders.map(order => {
+          order.items = order.items.map(item => {
+            const product = item.product;
+            const specificVariant = product.variants.find(variant => variant._id.toString() === item.variantId.toString());
+    
+            return {
+              ...item,
+              product: {
+                ...product._doc,
+                variants: specificVariant 
+              }
+            };
+          });
+          return order;
         });
-        return order;
-      });
+    
 
-      res.render('admin/orders',{orders,layout:'layouts/adminLayout',title:'Orders'});
-    }catch(error){
-        console.log('error occured while loading order detials at admin side',)
-    }
+  
+        res.render('admin/orders',{order_history,title:'Order Management',layout:'layouts/adminLayout'});
+    
+      } catch (error) {
+        console.log('Error occurred while loading admin orders page:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
 }
+
+exports.cancel_orderPOST = async (req, res) => {
+    try {
+     console.log('function worked')
+      const { orderId } = req.body;
+  
+      await Orders.findByIdAndUpdate(orderId, { orderStatus: 'Cancelled' });
+  
+      res.json({ message: 'Order canceled successfully!' });
+    } catch (error) {
+      console.error('Error canceling the order:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  };

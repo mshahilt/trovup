@@ -180,7 +180,6 @@ exports.verifyOTP = async (req, res) => {
     }
 };
 
-
 exports.resendOTP = async (req, res) => {
     const userId = req.session.user.user;
     try {

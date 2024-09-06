@@ -78,7 +78,7 @@
                         <td>#<%= order._id %></td>
                         <td class="order-item">
                             <img src="/<%= item.product.variants[0].images[0] || 'default-image.jpg' %>" alt="<%= item.product.product_name %>">
-                            <span><%= item.product.product_name %></span>
+                            <span><%= item.product.product_name %> - <%= item.product.variants[0].variant_name %></span>
                         </td>
                         <td><span class="status"><%= order.orderStatus %></span></td>
                         <td>

@@ -65,36 +65,37 @@ exports.order_confirmPOST = async (req, res) => {
         });
     }
 };
-
-
 exports.order_historyGET = async (req, res) => {
     try {
       const userId = req.session.user.user;
-  
-      // Step 1: Fetch the order and populate the product field without variants
-      const order_details = await Order.find({ user: userId }).populate('items.product');
-  
-      // Step 2: Manually filter variants for each item in the order
-      const order_history = order_details.map(order => {
+
+      const orders = await Order.find({ user: userId }).populate('items.product');
+
+      const order_history = orders.map(order => {
         order.items = order.items.map(item => {
-          // Find the variant that matches the item.variantId
-          const selectedVariant = item.product.variants.find(variant => variant._id.toString() === item.variantId.toString());
+          const product = item.product;
+          const specificVariant = product.variants.find(variant => variant._id.toString() === item.variantId.toString());
   
-          // Replace the full variants array with only the matching variant
-          if (selectedVariant) {
-            item.product.variants = [selectedVariant];
-          }
-  
-          return item;
+          return {
+            ...item,
+            product: {
+              ...product._doc,
+              variants: specificVariant 
+            }
+          };
         });
         return order;
       });
-
+  
+      
       const isUserLoggedIn = req.session.user;
 
       res.render('user/order_history',{order_history,title:'Order History',layout:'layouts/homeLayout',isUserLoggedIn});
+  
     } catch (error) {
       console.log('Error occurred while loading order history page:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
   };
+  
+  
