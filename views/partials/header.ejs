@@ -1,12 +1,84 @@
 <!-- Top Notification Banner -->
 <div class="bg-dark text-white text-center py-2">
   <div class="container">
-    <p class="mb-0 poppins-thin" style="font-size: 12px;">
+    <p class="mb-0" style="font-size: 12px;">
       Summer Sale For All Swim Suits And Free Express Delivery - OFF 50%!  
       <a href="#" class="btn btn-primary text-light">SHOP NOW</a>
     </p>
   </div>
 </div>
+
+<!-- Styles for Search Results -->
+<style>
+  /* Remove default link styles and make result bold */
+.search-result-link {
+  display: flex;
+  text-decoration: none; /* Remove underline */
+  color: black; /* Change the text color */
+  width: 100%;
+}
+
+.search-result-name {
+  font-weight: bold; /* Make the product name bold */
+  font-size: 16px;
+  color: black; /* Ensure text remains black */
+}
+
+.search-result-category {
+  font-size: 12px;
+  color: #777;
+}
+
+.search-result-item {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s ease;
+}
+
+.search-result-item:hover {
+  background-color: #f9f9f9;
+}
+
+.search-result-image {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 5px;
+  margin-right: 15px;
+}
+
+.search-result-info {
+  display: flex;
+  flex-direction: column;
+}
+
+  #search-results {
+    background-color: white;
+    border: 1px solid #ccc;
+    position: absolute;
+    width: 100%;
+    z-index: 1000;
+    max-height: 300px;
+    overflow-y: auto;
+    display: none;
+  }
+
+  #search-results div {
+    padding: 10px;
+    cursor: pointer;
+  }
+
+  #search-results div:hover {
+    background-color: #f0f0f0;
+  }
+
+  #loading-spinner {
+    display: none;
+    color: gray;
+  }
+</style>
 
 <!-- Navbar -->
 <nav class="navbar navbar-expand-lg" style="background-color: white;">
@@ -20,42 +92,106 @@
     <div class="collapse navbar-collapse" id="navbarNav">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-5">
         <li class="nav-item ms-5">
-          <a class="nav-link" href="/home" style="color: black;">Home</a>
+          <a class="nav-link" href="/" style="color: black;">Home</a>
         </li>
         <li class="nav-item ms-5">
-          <a class="nav-link" href="/home/shop" style="color: black;">Shop</a>
+          <a class="nav-link" href="/products" style="color: black;">Shop</a>
         </li>
         <li class="nav-item ms-5">
           <a class="nav-link" href="#" style="color: black;">Contact</a>
         </li>
       </ul>
-      <form class="d-flex me-3">
-        <input class="form-control me-2" type="search" placeholder="Search here...." aria-label="Search" style="font-size: 13px;">
+
+      <!-- Search Form -->
+      <form class="d-flex me-3" id="search-form">
+        <input class="form-control me-2" type="search" id="search-input" name="query" placeholder="Search here..." aria-label="Search" style="font-size: 13px;">
         <button class="btn" type="submit">
           <i class="fas fa-search" style="color: black;"></i>
         </button>
       </form>
-      <a href="#"><i class="far fa-heart me-3" style="font-size: 20px; color: black;"></i></a>
-      <a href="/cart">
-        <i class="fas fa-shopping-cart" style="font-size: 25px; color: black;"></i>
-      </a>
-      <a href="/profile" class="ms-2">
-        <i class="far fa-user" style="font-size: 22px; color: black;"></i>
-      </a>
 
-     <!-- Signup/Login Button -->
-<% if (isUserLoggedIn) { %>
-  <form action="/logout" method="post">
-    <button href="/logout" class="btn btn-outline-dark ms-3" style="font-size: 14px; color: black;">Logout</button>
-  </form>
- 
-<% } else { %>
-  <a href="/login" class="btn btn-outline-dark ms-3" style="font-size: 14px; color: black;">Sign Up</a>
-<% } %>
-
+      <!-- Search Results -->
+      <div id="search-results" class="container"></div>
+       <!-- Wishlist, Cart, and Profile Icons -->
+      <div class="navbar-icons d-flex align-items-center">
+        <a href="#"><i class="far fa-heart me-3" style="font-size: 20px; color: black;"></i></a>
+        <a href="/cart" class="me-3">cart
+          <i class="fas fa-shopping-cart" style="font-size: 25px; color: black;"></i>
+        </a>
+        <a href="/profile" class="me-2">profile
+          <i class="far fa-user" style="font-size: 22px; color: black;"></i>
+        </a>
+      </div>
+      <!-- Signup/Login Button -->
+      <% if (isUserLoggedIn) { %>
+        <form action="/logout" method="post">
+          <button class="btn btn-outline-dark ms-3" style="font-size: 14px; color: black;">Logout</button>
+        </form>
+      <% } else { %>
+        <a href="/login" class="btn btn-outline-dark ms-3" style="font-size: 14px; color: black;">Sign Up</a>
+      <% } %>
     </div>
   </div>
 </nav>
 
-<!-- Include FontAwesome CDN -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
+<!-- Loading Spinner -->
+<p id="loading-spinner">Loading...</p>
+
+<!-- SweetAlert and Search Functionality Script -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+  document.getElementById('search-form').addEventListener('submit', function(event) {
+  event.preventDefault();
+  const query = document.getElementById('search-input').value.trim();
+  if (!query) return;
+
+  const spinner = document.getElementById('loading-spinner');
+  spinner.style.display = 'block';
+
+  fetch(`/search?query=${encodeURIComponent(query)}`)
+    .then(response => response.json())
+    .then(data => {
+      spinner.style.display = 'none';
+
+      const resultsDiv = document.getElementById('search-results');
+      resultsDiv.innerHTML = '';  // Clear previous results
+      resultsDiv.style.display = 'block';  // Show the results container
+
+      if (data.success && data.products.length > 0) {
+  // Display search results
+    data.products.forEach(item => {
+      const productId = item._id;
+      const productLink = `/product/${item._id}`;
+      const productImage = item.variants[0].images[0];
+
+      resultsDiv.innerHTML += `
+  <div class="search-result-item">
+    <a href="/product/${item._id}" class="search-result-link">
+      <img src="/${productImage}" alt="${item.product_name}" class="search-result-image"/>
+      <div class="search-result-info">
+        <span class="search-result-name">${item.product_name}</span>
+        <span class="search-result-category">${item.category_id ? item.category_id.category_name : ''}</span>
+      </div>
+    </a>
+  </div>`;
+
+    });
+  } else {
+    resultsDiv.innerHTML = '<div class="search-result-empty">No results found</div>';
+  }
+
+    })
+    .catch(error => {
+      spinner.style.display = 'none';
+      Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: 'Something went wrong. Please try again later!',
+      });
+      console.error('Error:', error);
+    });
+});
+
+</script>
+
+

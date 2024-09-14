@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Details</title>
+    <style>
+        .container {
+            width: 80%;
+            margin: 20px auto;
+            font-family: Arial, sans-serif;
+        }
+        .address-container, .order-container {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .address-container h3, .order-container h3 {
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        .order-container {
+            display: flex;
+        }
+        .order-status {
+            flex-grow: 1;
+        }
+        .order-status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .status-point {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100px;
+        }
+        .status-point span {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background-color: #ddd;
+        }
+        .status-point.active span {
+            background-color: green;
+        }
+        .status-bar {
+            height: 5px;
+            background-color: #ddd;
+            flex-grow: 1;
+            margin: 0 10px;
+            position: relative;
+        }
+        .status-bar.active {
+            background-color: green;
+        }
+        .order-summary {
+            display: flex;
+            align-items: center;
+        }
+        .order-summary img {
+            width: 80px;
+            margin-right: 15px;
+        }
+        .price, .quantity, .seller-info {
+            font-weight: bold;
+        }
+        .address-info p {
+            margin: 5px 0;
+        }
+        .chat-support {
+            margin-top: 10px;
+            text-align: right;
+        }
+        .chat-support a {
+            color: blue;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Delivery Address -->
+        <div class="address-container">
+            <h3>Delivery Address</h3>
+            <div class="address-info">
+                <p><strong><%= order.address.fullName %></strong></p>
+                <p><%= order.address.streetAddress %>, <%= order.address.city %></p>
+                <p>Phone number: <%= order.address.phoneNumber %></p>
+            </div>
+        </div>
+
+        <!-- Order Details -->
+        <div class="order-container">
+            <!-- Order Summary -->
+            <div class="order-summary">
+                <img src="/<%= order.items[0].product.variants[0].images[0] || 'default-image.jpg' %>" alt="<%= order.items[0].product.product_name %>">
+                <div>
+                    <h4><%= order.items[0].product.product_name %></h4>
+                    <p class="price">₹<%= order.items[0].price %></p>
+                    <p class="quantity">Quantity: <%= order.items[0].quantity %></p>
+                    <p class="seller-info">Seller: BookUrBook</p>
+                </div>
+            </div>
+
+            <!-- Order Status -->
+            <div class="order-status">
+                <h3>Order Status</h3>
+                <div class="order-status-bar">
+                    <div class="status-point <%= order.orderStatus === 'Pending' ? 'active' : '' %>">
+                        <span></span>
+                        <p>Pending</p>
+                    </div>
+                    <div class="status-bar <%= order.orderStatus !== 'Pending' ? 'active' : '' %>"></div>
+                    <div class="status-point <%= order.orderStatus === 'Processing' ? 'active' : '' %>">
+                        <span></span>
+                        <p>Processing</p>
+                    </div>
+                    <div class="status-bar <%= ['Shipped', 'Delivered', 'Cancelled'].includes(order.orderStatus) ? 'active' : '' %>"></div>
+                    <div class="status-point <%= order.orderStatus === 'Shipped' ? 'active' : '' %>">
+                        <span></span>
+                        <p>Shipped</p>
+                    </div>
+                    <div class="status-bar <%= ['Delivered', 'Cancelled'].includes(order.orderStatus) ? 'active' : '' %>"></div>
+                    <div class="status-point <%= order.orderStatus === 'Delivered' ? 'active' : '' %>">
+                        <span></span>
+                        <p>Delivered</p>
+                    </div>
+                    <div class="status-bar <%= order.orderStatus === 'Cancelled' ? 'active' : '' %>"></div>
+                    <div class="status-point <%= order.orderStatus === 'Cancelled' ? 'active' : '' %>">
+                        <span></span>
+                        <p>Cancelled</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Support -->
+        <div class="chat-support">
+            <a href="#">Chat with us</a>
+        </div>
+    </div>
+</body>
+</html>

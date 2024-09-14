@@ -142,7 +142,7 @@ exports.verifyOTP = async (req, res) => {
     const userId = req.session.user.user;
 
     try {
-        const otpRecord = await OTP.findOne({ userId });
+        const otpRecord = await OTP.findOne({ userId : userId });
 
         if (!otpRecord) {
             return res.status(404).json({ success: false, message: 'OTP not found.' });
@@ -179,9 +179,15 @@ exports.verifyOTP = async (req, res) => {
         return res.status(500).json({ success: false, message: 'Server error. Please try again later.' });
     }
 };
-
+      
 exports.resendOTP = async (req, res) => {
+
     const userId = req.session.user.user;
+    console.log(req.session)
+    console.log(req.session.user)
+    console.log(req.session.user.user)
+    
+    console.log("resendOTP/++-")
     try {
         const user = await User.findById(userId);
 
@@ -291,19 +297,24 @@ exports.loginUserGet = async (req, res) => {
         layout: 'layouts/authLayout'
     });
 };
-
 // POST: Get home page data
 exports.getHomePagePOST = async (req, res) => {
     try {
         const products = await Products.find({ isDelete: false });
         const categories = await Category.find({ isDeleted: false });
+        
+        // Assuming you're sending query parameters as part of the request
+        const query = req.query.search || ''; // Get query param or set to an empty string if not present
 
         const isUserLoggedIn = req.session.user ? true : false;
+        
+        // Pass the query to the view
         res.render('user/home', {
             title: 'Home',
             products,
             categories,
-            isUserLoggedIn, 
+            isUserLoggedIn,
+            query, // Pass query here
             layout: 'layouts/homeLayout'
         });
     } catch (error) {
@@ -313,26 +324,6 @@ exports.getHomePagePOST = async (req, res) => {
 };
 
 
-// GET: Render products page
-exports.productPageGET = async (req, res) => {
-    try {
-        const products = await Products.find({ isDelete: false })
-            .populate('category_id', 'category_name')
-            .populate('brand_id', 'brand_name');
-        const categories = await Category.find({ isDeleted: false });
-        const isUserLoggedIn = req.session.user ? true : false;
-        res.render('user/products', {
-            products,
-            categories,
-            title: 'Shop Now',
-            layout: 'layouts/homeLayout',
-            isUserLoggedIn
-        });
-    } catch (error) {
-        console.log('Error occurred when loading user product page:', error);
-        res.status(500).send('An error occurred while loading the product page.');
-    }
-};
 
 // GET: View a single product
 exports.viewProductGET = async (req, res) => {
@@ -383,7 +374,7 @@ exports.getUserProfile = async (req, res) => {
         }
     };
     
-exports.logout = (req, res) => {
+exports.logout = async (req, res) => {
     req.session.destroy((err) => {
         if (err) {
             console.log('Error destroying session:', err);
@@ -395,3 +386,116 @@ exports.logout = (req, res) => {
     });
     };
     
+        const sort = ''; 
+        exports.searchPageGET = async (req, res) => {
+            try {
+              const searchQuery = req.query.query;
+              const query = searchQuery ? searchQuery.trim() : '';
+          
+              let products = [];
+              if (query) {
+                products = await Products.find({
+                  isDelete: false,
+                  product_name: { $regex: query, $options: 'i' }
+                })
+                .populate('category_id', 'category_name')
+                .populate('brand_id', 'brand_name');
+              }
+          
+              res.status(200).json({
+                success: true,
+                products: products,  // Send the products array
+                message: 'Search completed successfully.'
+              });
+            } catch (error) {
+              console.error('Error occurred during product search:', error);
+              res.status(500).json({
+                success: false,
+                message: 'An error occurred while searching for products.'
+              });
+            }
+          };
+          
+  // Controller
+exports.productPageGET = async (req, res) => {
+    const { search, color, brand, category, minPrice, maxPrice, sort } = req.query;
+
+    console.log('sort:', sort);
+    // Build the query object for MongoDB
+    let query = {};
+    if (search) {
+        query.product_name = { $regex: new RegExp(search, 'i') }; // Case-insensitive search
+    }
+    if (color) {
+        query['variants.color'] = color;
+    }
+    if (brand) {
+        query['brand_id.brand_name'] = brand;
+    }
+    if (category) {
+        query['category_id.category_name'] = category;
+    }
+    if (minPrice || maxPrice) {
+        query['variants.price'] = {};
+        if (minPrice) query['variants.price'].$gte = Number(minPrice);
+        if (maxPrice) query['variants.price'].$lte = Number(maxPrice);
+    }
+
+    // Sorting options
+    let sortQuery = {};
+    switch (sort) {
+        case 'priceLowHigh':
+            sortQuery['variants.price'] = 1;
+            break;
+        case 'priceHighLow':
+            sortQuery['variants.price'] = -1;
+            break;
+        case 'nameAZ':
+            sortQuery['product_name'] = 1;
+            break;
+        case 'nameZA':
+            sortQuery['product_name'] = -1;
+            break;
+        default:
+            sortQuery = {}; // Default sort (no specific sorting)
+    }
+
+    try {
+        // Fetch products with filters and sorting
+        const products = await Products.find(query)
+            .sort(sortQuery)
+            .populate('category_id', 'category_name') // Only populate category_name
+            .populate('brand_id', 'brand_name'); // Only populate brand_name
+
+        console.log('Products found:', products);
+
+        // Check if the user is logged in
+        const isUserLoggedIn = req.session.user;
+
+        // Fetch distinct values for filters
+        const colors = await Products.distinct('variants.color');
+        const brands = await Products.distinct('brand_id.brand_name');
+        const categories = await Products.distinct('category_id.category_name');
+
+        // Render the products page with filters and product data
+        res.render('user/products', {
+            isUserLoggedIn,
+            title: 'Shop',
+            layout: 'layouts/homeLayout',
+            products,
+            search,
+            colors,
+            brands,
+            categories,
+            selectedColor: color,
+            selectedBrand: brand,
+            selectedCategory: category,
+            minPrice,
+            maxPrice,
+            sort
+        });
+    } catch (error) {
+        console.error('Error fetching products:', error);
+        res.status(500).send('Server Error');
+    }
+};

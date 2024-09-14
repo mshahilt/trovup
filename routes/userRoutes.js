@@ -13,14 +13,13 @@ router.get('/', userController.getHomePagePOST);
 router.get('/login', isLoggedOut, userController.loginUserGet);
 router.post('/login', isLoggedOut, userController.loginUser);
 
-router.get('/profile/:id', isLoggedIn, userController.getUserProfile);
-
 
 router.get('/products', userController.productPageGET);
 router.get('/product/:id', userController.viewProductGET);
 
+router.get('/search',userController.searchPageGET);
 
-router.post('/verifyOTP', userController.verifyOTP);
+router.post('/verifyOTP',userController.verifyOTP);
 router.get('/verifyOTP',userController.getVerifyOTP)
 
 router.post('/resendOTP',userController.resendOTP)
@@ -28,4 +27,6 @@ router.post('/resendOTP',userController.resendOTP)
 router.post('/otpLogin',userController.resendOTP)
 
 router.post('/logout',userController.logout)
+
+
 module.exports = router;

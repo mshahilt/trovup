@@ -1,6 +1,15 @@
 const mongoose = require('mongoose');
+const { v4: uuidv4 } = require('uuid');
+
+const generateShortUUID = () => uuidv4().split('-')[0];
 
 const orderSchema = new mongoose.Schema({
+    orderId: {
+        type: String,
+        default: generateShortUUID, // Use the shortened UUID function
+        unique: true,
+        required: true
+    },
     user: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,
@@ -10,11 +19,6 @@ const orderSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         required: true,
         ref: 'Address'
-    },
-    cart: {
-        type: mongoose.Schema.Types.ObjectId,
-        required: true,
-        ref: 'Cart'
     },
     items: [{
         product: {
@@ -38,7 +42,7 @@ const orderSchema = new mongoose.Schema({
     paymentMethod: {
         type: String,
         required: true,
-        enum: ['Cash on Delivery', 'Bank Transfer'] // Example payment methods
+        enum: ['Cash on Delivery', 'Bank Transfer']
     },
     totalAmount: {
         type: Number,
@@ -54,7 +58,7 @@ const orderSchema = new mongoose.Schema({
         default: Date.now
     }
 }, {
-    timestamps: true 
+    timestamps: true
 });
 
 const Order = mongoose.model('Order', orderSchema);

@@ -30,6 +30,7 @@
                                             <button class="btn btn-outline-light text-dark btn-sm" type="button" onclick="minus('<%= item._id %>', <%= item.price %>, <%= variant.stock %>)">-</button>
                                             <input type="number" name="quantity" class="form-control text-center mx-2" value="<%= item.quantity %>" style="width: 50px; background-color: #333; color: white;" id="quantity_<%= item._id %>" readonly>
                                             <button class="btn btn-outline-light text-dark btn-sm" type="button" onclick="plus('<%= item._id %>', <%= item.price %>, <%= variant.stock %>)">+</button>
+                                            <p class="text-muted ml-2">Available: <%= variant.stock %></p>
                                         </div>
                                     </td>
                                     <td class="text-end" id="price_<%= item._id %>">
@@ -89,7 +90,7 @@ function deleteCart(id) {
         cancelButtonText: 'No, cancel!'
     }).then((result) => {
         if (result.isConfirmed) {
-            fetch(`/deleteCart/${id}`, {
+            fetch(`/cart/deleteCart/${id}`, {
                 method: "DELETE",
                 headers: { "Content-Type": "application/json" }
             }).then((res) => {
@@ -137,7 +138,7 @@ function plus(id, price, stock) {
             quantity++;
             document.getElementById(`quantity_${id}`).value = quantity;
             document.getElementById(`price_${id}`).innerHTML = `<p class="text-dark">${(quantity * price).toFixed(2)} USD</p>`;
-            updateCart(id, quantity);  // Update quantity in the database
+            updateCart(id, quantity);
         } else {
             Swal.fire({
                 title: 'Maximum Quantity Reached',
@@ -152,7 +153,7 @@ function plus(id, price, stock) {
             text: 'This item is no longer available.',
             icon: 'warning',
             confirmButtonText: 'OK'
-        });
+        }); 
     }
 }
 
@@ -162,7 +163,7 @@ function minus(id, price, stock) {
         quantity--;
         document.getElementById(`quantity_${id}`).value = quantity;
         document.getElementById(`price_${id}`).innerHTML = `<p class="text-dark">${(quantity * price).toFixed(2)} USD</p>`;
-        updateCart(id, quantity);  // Update quantity in the database
+        updateCart(id, quantity);  
     }
 }
 
@@ -178,13 +179,11 @@ function calculateCartTotal() {
         subtotal += price;
     });
 
-    const total = subtotal; 
+    const total = subtotal;
 
     document.getElementById('cartSubtotal').textContent = `${subtotal.toFixed(2)} USD`;
     document.getElementById('cartTotal').textContent = `${total.toFixed(2)} USD`;
 }
 
-
 document.addEventListener('DOMContentLoaded', calculateCartTotal);
-
 </script>

@@ -13,31 +13,28 @@ exports.adminLoginGET = async (req, res) => {
         layout:'layouts/loginAndSignupLayout'
     })
 };
-
 exports.adminLoginPOST = async (req, res) => {
-    const { emailOrPhone, password } = req.body;
+    const { email, password } = req.body;
 
     console.log('admin post');
     
-    if (emailOrPhone && password) {
+    if (email && password) {
         try {
-            let admin;
-
-            // Check if the input is an email or phone number
-            if (validateEmail(emailOrPhone)) {
-                admin = await User.findOne({ email: emailOrPhone, isAdmin: true });
-            } else if (validatePhone(emailOrPhone)) {
-                admin = await User.findOne({ phone_number: emailOrPhone, isAdmin: true });
-            } else {
-                req.flash('error', 'Invalid email or phone number');
+            // Check if email is valid
+            if (!validateEmail(email)) {
+                req.flash('error', 'Invalid email format');
                 return res.redirect('/admin/login');
             }
 
+            // Find admin by email
+            const admin = await User.findOne({ email, isAdmin: true });
+            
             if (!admin) {
                 req.flash('error', 'Admin not found');
                 return res.redirect('/admin/login');
             }
 
+            // Compare password
             const isMatch = await bcrypt.compare(password, admin.password);
 
             if (!isMatch) {
@@ -59,20 +56,15 @@ exports.adminLoginPOST = async (req, res) => {
             return res.redirect('/admin/login');
         }
     } else {
-        req.flash('error', 'Email or phone and password are required');
+        req.flash('error', 'Email and password are required');
         return res.redirect('/admin/login');
     }
 };
 
-
-// functions to identify admins input is an email or not
+// Function to validate email format
 function validateEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
-}
-function validatePhone(phone) {
-    const phoneRegex = /^[0-9]{10}$/; 
-    return phoneRegex.test(phone);
 }
 
 
@@ -122,34 +114,32 @@ exports.adminCategoriesGET = async(req,res) => {
     const categories = await Category.find(); // Fetch categories from the database
         res.render('admin/catogories', { categories , title:'Categories', layout:'layouts/adminLayout'});
 }
-
-
 exports.adminAddcategoryPOST = async (req, res) => {
     try {
-        const { categoryName } = req.body; // Get the category name from the request body
+        const { categoryName } = req.body;
 
-        // Check if categoryName is provided
         if (!categoryName) {
             req.flash('error', 'Category name is required');
             return res.redirect('/admin/categories');
         }
 
-        // Check if the category already exists
-        const existingCategory = await Category.findOne({ category_name: categoryName });
+        // Create a case-insensitive regex pattern for the category name
+        const regexPattern = new RegExp(`^${categoryName.trim()}$`, 'i');
+
+        // Check if the category already exists (case-insensitive)
+        const existingCategory = await Category.findOne({ category_name: { $regex: regexPattern } });
         if (existingCategory) {
             req.flash('error', 'Category name already exists');
             return res.redirect('/admin/categories');
         }
 
-        // Create a new category instance
+        // Create a new category
         const newCategory = new Category({
-            category_name: categoryName, // Assign the category name
+            category_name: categoryName.trim(), // Store the category name as entered
         });
 
-        // Save the category to the database
         await newCategory.save();
 
-        // Flash a success message and redirect to the categories page
         req.flash('success', 'Category added successfully');
         res.redirect('/admin/categories');
     } catch (error) {
@@ -158,6 +148,8 @@ exports.adminAddcategoryPOST = async (req, res) => {
         res.redirect('/admin/categories');
     }
 };
+
+
 
 exports.edit_categoryGET = async (req, res) => {
     try {
@@ -292,7 +284,7 @@ exports.submit_productPOST = async (req, res) => {
      
             if (price !== undefined) {
 
-                const numericPrice = Number(price.replace(/,/g, ''));
+                const numericPrice = Number(price.split('').filter(val => !isNaN(val) && val !== ' ').join(''));
 
                 const variantImages = [];
 
@@ -336,6 +328,91 @@ exports.submit_productPOST = async (req, res) => {
         res.status(500).send('Error submitting product');
     }
 };
+exports.update_productPOST = async (req, res) => {
+    try {
+        const { id: product_id } = req.params;
+        const {
+            product_name,
+            product_description,
+            product_highlights,
+            category_id,
+            brand_id,
+            variant_count,
+            price,
+            storage_size,
+            stock,
+            color
+        } = req.body;
+
+        // Get the uploaded images from the request
+        const images = req.files;
+        console.log('req.body', req.body);
+        console.log('req.files:', images);
+
+        const variantDetails = [];
+        console.log('Total variants:', variant_count);
+
+        // Find the product by its ID
+        const product = await Product.findById(product_id);
+
+        if (!product) {
+            return res.status(404).send('Product not found');
+        }
+
+        // Loop through each variant and match images
+        for (let i = 0; i < variant_count; i++) {
+            const variantImages = [];
+
+            // Only push images if they exist for the specific variant
+            if (images && images.length > 0) {
+                images.forEach(image => {
+                    if (image.fieldname.startsWith(`variant_images_${i + 1}`)) {
+                        variantImages.push(image.path); // Add new images
+                    }
+                });
+            }
+
+            // If no new images are uploaded, retain existing images
+            if (variantImages.length === 0 && product.variants[i] && product.variants[i].images) {
+                variantImages.push(...product.variants[i].images); // Retain old images
+            }
+
+            console.log(`Variant ${i + 1} images:`, variantImages);
+
+            // Collect variant details only if price exists to filter valid variants
+            if (price[i]) {
+                variantDetails.push({
+                    price: Number(price[i].replace(/,/g, '')), // Convert price to a number
+                    storage_size: storage_size[i],
+                    stock: Number(stock[i]),
+                    color: color[i],
+                    images: variantImages // Use new or existing images
+                });
+            } else {
+                console.error(`Price for variant ${i + 1} is undefined.`);
+            }
+        }
+
+        // Update the product details
+        product.product_name = product_name;
+        product.product_description = product_description;
+        product.product_highlights = product_highlights;
+        product.category_id = category_id;
+        product.brand_id = brand_id;
+        product.variants = variantDetails; // Update variants
+
+        // Save the updated product
+        await product.save();
+        console.log('Product updated successfully:', product);
+
+        // Respond with success status or redirect (as needed)
+        return res.json({ success: true, message: 'Product updated successfully' });
+    } catch (error) {
+        console.error('Error updating product:', error);
+        return res.status(500).json({ success: false, message: 'Error updating product' });
+    }
+};
+
 
 
 
@@ -357,6 +434,7 @@ exports.edit_productGET = async (req, res) => {
         if (!product) {
             return res.status(404).send('Product not found');
         }
+        // res.json(product)
         res.render('admin/edit_product', {product,brands,categories,title:'Edit product',layout:'layouts/adminLayout'})
     } catch (err) {
         console.log('Error occurred while loading edit product page', err);
@@ -532,48 +610,94 @@ exports.deleteUser = async (req, res) => {
         res.status(404).json({ error: 'User not found' });
     }
 };
-
 exports.orderGET = async (req, res) => {
     try {
+      // Get the current page from the query, default to 1 if not provided
+      const page = parseInt(req.query.page) || 1;
   
-        const orders = await Orders.find({}).populate('items.product');
+      // Set the limit for how many orders per page
+      const limit = 10;
   
-        const order_history = orders.map(order => {
-          order.items = order.items.map(item => {
-            const product = item.product;
-            const specificVariant = product.variants.find(variant => variant._id.toString() === item.variantId.toString());
-    
-            return {
-              ...item,
-              product: {
-                ...product._doc,
-                variants: specificVariant 
-              }
-            };
-          });
-          return order;
+      // Calculate the number of documents to skip based on the current page
+      const skip = (page - 1) * limit;
+  
+      // Fetch the total number of orders (for pagination calculation)
+      const totalOrders = await Orders.countDocuments();
+  
+      // Fetch paginated orders with necessary population and skip/limit
+      const orders = await Orders.find({})
+        .populate('items.product')
+        .populate('user')
+        .populate('address')
+        .skip(skip)
+        .limit(limit);
+  
+      // Process the order history (same as before)
+      const order_history = orders.map(order => {
+        // Map through each order's items to retrieve specific variant details
+        order.items = order.items.map(item => {
+          const product = item.product;
+          const specificVariant = product.variants.find(
+            variant => variant._id.toString() === item.variantId.toString()
+          );
+  
+          return {
+            ...item,
+            product: {
+              ...product._doc,
+              variants: specificVariant, // Only include the specific variant
+            },
+          };
         });
-    
-
+        return order;
+      });
   
-        res.render('admin/orders',{order_history,title:'Order Management',layout:'layouts/adminLayout'});
-    
-      } catch (error) {
-        console.log('Error occurred while loading admin orders page:', error);
-        res.status(500).json({ error: 'Internal server error' });
-      }
-}
-
-exports.cancel_orderPOST = async (req, res) => {
-    try {
-     console.log('function worked')
-      const { orderId } = req.body;
+      // Calculate the total number of pages
+      const totalPages = Math.ceil(totalOrders / limit);
   
-      await Orders.findByIdAndUpdate(orderId, { orderStatus: 'Cancelled' });
-  
-      res.json({ message: 'Order canceled successfully!' });
+      // Render the admin orders page with pagination data
+      res.render('admin/orders', {
+        order_history,
+        title: 'Order Management',
+        layout: 'layouts/adminLayout',
+        currentPage: page,
+        totalPages: totalPages,  // Send totalPages for pagination
+      });
     } catch (error) {
-      console.error('Error canceling the order:', error);
+      console.log('Error occurred while loading admin orders page:', error);
       res.status(500).json({ error: 'Internal server error' });
+    }
+  };
+  
+  
+  
+exports.update_order_statusPOST = async (req, res) => {
+    try {
+      const { orderId, status } = req.body;
+  
+      if (!orderId || !status) {
+        return res.status(400).json({ message: 'Order ID and status are required.' });
+      }
+
+      const order = await Orders.findById(orderId);
+      if (!order) {
+        return res.status(404).json({ message: 'Order not found.' });
+      }
+  
+      const previousStatus = order.orderStatus;
+  
+      order.orderStatus = status;
+
+      await order.save();
+  
+      res.status(200).json({ 
+        message: `Order status updated from ${previousStatus} to ${status}.`, 
+        previousStatus, 
+        updatedStatus: status 
+      });
+  
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      res.status(500).json({ message: 'Internal server error.' });
     }
   };

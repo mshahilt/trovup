@@ -2,32 +2,28 @@ const express = require('express');
 const router = express.Router();
 const passport = require('passport');
 const googleAuthController = require('../controllers/googleAuthController');
-const userAuthMiddleware = require('../middlewares/userAuthMiddleware'); // Adjust the path to your middleware file
+const userAuthMiddleware = require('../middlewares/userAuthMiddleware');
 
-// Initiate Google OAuth with account selection prompt
 router.get('/', 
-    userAuthMiddleware.isLoggedOut,  // Ensure only logged-out users can initiate Google OAuth
+    userAuthMiddleware.isLoggedOut,
     passport.authenticate('google', { 
         scope: ['email', 'profile'],
-        prompt: 'select_account' // This forces Google to show the account selection screen
+        prompt: 'select_account'
     })
 );
 
-// Google OAuth Callback with Manual Handling
 router.get('/callback', 
     passport.authenticate('google', { failureRedirect: '/auth/google/failure' }),
     (req, res) => {
-        res.redirect('/auth/google/protected'); // Or any route you prefer
+        res.redirect('/auth/google/protected');
     }
 );
 
-// Protected Route (only accessible if authenticated)
 router.get('/protected', 
-    userAuthMiddleware.isLoggedIn,  // Protect this route with the isLoggedIn middleware
+    userAuthMiddleware.isLoggedIn,
     googleAuthController.callBackSuccess
 );
 
-// Failure Route
 router.get('/failure', googleAuthController.callBackFailure);
 
 module.exports = router;

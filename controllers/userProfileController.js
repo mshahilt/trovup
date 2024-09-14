@@ -3,13 +3,37 @@ const User = require('../models/userModel');
 const Products = require('../models/productModel');
 const Address = require('../models/addressModel');
 const Cart = require('../models/cartModel');
+const sendMail = require('../config/sendMail');
+const nodemailer = require('nodemailer');
 const bcrypt = require('bcrypt');   
+const OTP = require('../models/otpModels');
 const Order = require('../models/orderModel'); 
+
+
+// Configure nodemailer transporter
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.USER,
+        pass: process.env.APP_PASSWORD,
+    },
+});
+
+// Mail options template
+const mailOptions = {
+    from: {
+        name: 'Trovup',
+        address: process.env.USER
+    },
+    subject: "Verification code of Trovup",
+    text: "",
+};
 
 // GET user profile
 exports.user_profileGET = async (req, res) => {
     try {
         const userId = req.session.user.user;
+        console.log(userId,'safdsgdsag');
         const user = await User.findOne({_id: userId});
         const isUserLoggedIn = req.session.user;
         res.render('user/profile', { user , title:'Profile Info', layout:'layouts/homeLayout',isUserLoggedIn});
@@ -69,5 +93,221 @@ exports.user_password_change = async (req,res) => {
     } catch (error) {
       console.error(error);
       res.status(500).json({ success: false, message: 'Server error' });
+    }
+}
+
+async function resendOTP(userId) {
+    console.log("resendOTP");
+    try {
+        const user = await User.findById(userId);
+
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        const otp = Math.floor(1000 + Math.random() * 9000); // Generate a random 4-digit OTP
+        const otpExpiresAt = Date.now() + 180000; // Set OTP expiration time (3 minutes)
+
+        // Store the OTP and expiration in the database
+        await OTP.findOneAndUpdate(
+            { userId: userId },
+            { otp: otp, expiresAt: otpExpiresAt },
+            { upsert: true }
+        );
+
+        // Send OTP to the user's email
+        await sendMail(transporter, {
+            ...mailOptions,
+            to: user.email,
+            text: `Your new OTP is ${otp}`
+        });
+
+        console.log('New OTP sent');
+        return true; // Return success
+
+    } catch (error) {
+        console.error('Error while resending OTP:', error);
+        throw new Error('Server error while resending OTP');
+    }
+}
+exports.forgot_password = async (req, res) => {
+    try {
+        // Check if session exists
+        if (!req.session || !req.session.user) {
+            return res.status(401).json({ success: false, message: 'Unauthorized. Please log in again.' });
+        }
+
+        const userId = req.session.user.user;  // Assuming this is how you store the user ID in session
+        const user = await User.findById(userId);  // Fetch the user from the database
+        const { email } = req.body;  // Get the email from the request body
+        console.log('email recieve')
+        if (email === user.email) {
+            // Call resendOTP and handle any errors
+            await resendOTP(userId);
+            console.log('otp sented')
+            return res.status(200).json({ success: true, message: 'OTP sent successfully to your email.' });
+        } else {
+            return res.status(400).json({ success: false, message: 'Email does not match with our records.' });
+        }
+    } catch (error) {
+        console.error('Error occurred while processing forgot password:', error);
+        return res.status(500).json({ success: false, message: 'An error occurred while processing your request. Please try again later.' });
+    }
+};
+
+    exports.verifyOtpPOST = async (req,res) => {
+        const{otp1, otp2, otp3, otp4} = req.body;
+        const otp = otp1 + otp2 + otp3 + otp4;
+        console.log('otp recievend',otp,req.session.user.user);
+
+        const userId = req.session.user.user;
+        try{
+            const otpRecord = await OTP.findOne({userId})
+            console.log(otpRecord)
+            console.log('ovrcome')
+
+            if(!otpRecord){
+                return res.status(404).json({success:false, message:'OTP not found'})
+            }
+            if (otpRecord.expiresAt < Date.now()) {
+                await OTP.deleteOne({ userId });
+                return res.status(400).json({ success: false, message: 'OTP has expired.' });
+            }
+            if (otpRecord.otp !== otp) {
+                return res.status(400).json({ success: false, message: 'Invalid OTP.' });
+            }
+            console.log('overc ome ')
+            await OTP.deleteOne({ _id: otpRecord._id });
+
+            req.session.user = {
+                ...req.session.user,
+                verifiedByOtp: true
+            };
+            return res.status(200).json({
+                success: true,
+                message: 'OTP verified successfully!',
+            });
+
+        }catch(error){
+            console.log('erroc occured while verifying otp post')
+        }
+    }
+exports.forgetPassVerifyOtpGET = async (req,res) => {
+    try{
+         // Check if the user session exists
+        if (!req.session.user) {
+            req.flash('error', 'Session expired. Please register again.');
+            return res.redirect('/register');
+        }
+
+        console.log('function for loading ejs worked well')
+        // Render the OTP verification page
+        res.render('user/forgetPasswordOtpVerification', {
+            title: 'Verify OTP',
+            messages: req.flash(),
+            layout: 'layouts/authLayout'
+        });
+    }catch(error){
+        console.log('error occured while loading forget pass in user side')
+    }
+}
+
+exports.changePasswordGET = async (req,res) => {
+    try{
+        const isUserLoggedIn = req.session.user;
+        if(req.session?.user?.verifiedByOtp === true){
+            console.log('if worked')
+            console.log(req.session.user?.verifiedByOtp)
+        res.render('user/changePassword',{title:'Change Password',layout:'layouts/homeLayout',isUserLoggedIn});
+        }else{
+            console.log('else worled')
+            res.redirect('/');
+        }
+       
+    }catch(error){
+        console.log('error occured while changing forgotten password',error)
+    }
+}
+exports.changePasswordPOST = async (req, res) => {
+    try {
+        const { password } = req.body; 
+        const userId = req.session.user?.user; 
+        
+        if (!userId) {
+            return res.status(400).json({ success: false, message: 'User not logged in or session expired' });
+        }
+
+        if (!password || password.length < 6) {
+            return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long' });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const user = await User.findByIdAndUpdate(userId, { password: hashedPassword }, { new: true });
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        req.session.user = {
+            ...req.session.user,
+            verifiedByOtp: false
+        };
+
+        return res.status(200).json({ success: true, message: 'Password updated successfully' });
+    } catch (error) {
+        console.error('Error occurred while posting new forgotten password:', error);
+        return res.status(500).json({ success: false, message: 'An error occurred while updating the password' });
+    }
+};
+let isUserLoggedIn;
+exports.addressBookGET = async (req, res) => {
+    try {
+        isUserLoggedIn = req.session.user;
+        const addresses = await Address.find({ userId: req.session.user.user });
+        res.render('user/addressBook', { addresses , title: 'Adress Book', layout:'layouts/homeLayout',isUserLoggedIn});
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+}
+
+exports.addressEditGET = async (req, res) => {
+    try{
+        const address = await Address.findById(req.params.id);
+        if (!address) {
+            return res.status(404).send('Address not found');
+        }
+        res.render('user/editAddress', { address , title: 'Adress Book', layout:'layouts/homeLayout',isUserLoggedIn});
+    }catch(error){
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+}
+
+exports.addressEditPOST = async (req, res) => {
+    try{
+        await Address.findByIdAndUpdate(req.params.id, {
+            fullName: req.body.fullName,
+            streetAddress: req.body.streetAddress,
+            apartment: req.body.apartment,
+            city: req.body.city,
+            phoneNumber: req.body.phoneNumber,
+            emailAddress: req.body.emailAddress
+        });
+        res.redirect('/profile/addresses');
+    }catch(error){
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+}
+
+exports.deleteAddressPOST = async (req, res) => {
+    try {
+        await Address.findByIdAndDelete(req.params.id);
+        res.redirect('/profile/addresses');
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
     }
 }

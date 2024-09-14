@@ -11,15 +11,13 @@ router.get('/', passport.authenticate('google', {
     prompt: 'select_account' // This forces Google to show the account selection screen
 }));
 
-// Google OAuth Callback with Manual Handling
 router.get('/callback', 
     passport.authenticate('google', { failureRedirect: '/auth/google/failure' }),
     (req, res) => {
-        res.redirect('/auth/google/protected'); // Or any route you prefer
+        res.redirect('/auth/google/protected');
     }
 );
 
-// Protected Route (only accessible if authenticated)
 router.get('/protected', googleAuthController.callBackSuccess);
 
 // Failure Route

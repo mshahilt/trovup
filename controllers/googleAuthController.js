@@ -8,10 +8,6 @@ exports.callBackSuccess = (req, res) => {
         username: userSession.username,
         email: userSession.email,
     };
-    console.log(req.session.user.user,'sfajfsahfd');
-    console.log(req.session.user,'prrrr');
-
-    console.log(req.session.user,'dasasfdasfasfa');
     res.redirect('/')
 };
 

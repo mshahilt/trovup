@@ -56,6 +56,34 @@
             font-weight: bold;
         }
 
+        .action-btn {
+            padding: 7px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .cancel-btn {
+            background-color: red;
+            color: white;
+        }
+
+        .return-btn {
+            background-color: blue;
+            color: white;
+        }
+
+        /* New button style for View Details */
+        .view-details-btn {
+            background-color: green;
+            color: white;
+            padding: 7px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
     </style>
 </head>
 <body>
@@ -69,13 +97,14 @@
                     <th>Status</th>
                     <th>Quantity</th>
                     <th>Amount</th>
+                    <th>Show Details</th>
                 </tr>
             </thead>
             <tbody>
                 <% order_history.forEach(order => { %>
                     <% order.items.forEach(item => { %>
                     <tr>
-                        <td>#<%= order._id %></td>
+                        <td><%= order.orderId %></td>
                         <td class="order-item">
                             <img src="/<%= item.product.variants[0].images[0] || 'default-image.jpg' %>" alt="<%= item.product.product_name %>">
                             <span><%= item.product.product_name %> - <%= item.product.variants[0].variant_name %></span>
@@ -87,6 +116,10 @@
                             </select>
                         </td>
                         <td class="price">₹<%= item.price %></td>
+                        <td>
+                            <!-- View Details button with orderId as parameter -->
+                            <a href="/order/order-details/<%= order._id %>" class="view-details-btn">View Details</a>
+                        </td>
                     </tr>
                     <% }) %>
                 <% }) %>

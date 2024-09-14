@@ -94,7 +94,7 @@
         <div class="sidebar">
           <p class="fw-bold">Manage My Account</p>
           <a href="#">My Profile</a>
-          <a href="#">Address Book</a>
+          <a href="/profile/addresses">Address Book</a>
           <a href="#">Change Password</a>
           <p class="fw-bold mt-4">My Orders</p>
           <a href="/order/order_history">Orders</a>
@@ -237,37 +237,49 @@
 
     // Handle forgot password button click
     $('#forgotPasswordBtn').on('click', function() {
-      Swal.fire({
+    Swal.fire({
         title: 'Enter your email address',
         input: 'email',
         inputPlaceholder: 'Email address',
         showCancelButton: true,
         confirmButtonText: 'Submit',
         preConfirm: (email) => {
-          return $.ajax({
-            url: '/profile/forgot-password',
-            method: 'POST',
-            data: { email },
-            success: function(response) {
-              if (response.success) {
-                Swal.fire({
-                  icon: 'success',
-                  title: 'Password Reset Link Sent',
-                  text: response.message
+            return new Promise((resolve, reject) => {
+                $.ajax({
+                    url: '/profile/forgot-password',
+                    method: 'POST',
+                    data: { email },
+                    success: function(response) {
+                        if (response.success) {
+                            resolve(response);
+                        } else {
+                            reject(response.message);
+                        }
+                    },
+                    error: function(err) {
+                        reject('Error sending password reset OTP.');
+                    }
                 });
-              }
-            },
-            error: function(err) {
-              Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Error sending password reset otp.'
-              });
-            }
-          });
+            });
         }
-      });
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Password Reset OTP Sent',
+                text: result.value.message
+            }).then(() => {
+                window.location.href = '/profile/forgetPassVerifyOtp';
+            });
+        }
+    }).catch((error) => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: error
+        });
     });
+});
   </script>
 </body>
 </html>

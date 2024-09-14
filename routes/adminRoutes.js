@@ -32,8 +32,9 @@ router.post('/delete-brand/:id', isAuthenticatedAdmin, adminControllers.delete_b
 
 router.get('/orders', isAuthenticatedAdmin, adminControllers.orderGET);
 
+router.post('/update_product/:id',isAuthenticatedAdmin,upload.any(), adminControllers.update_productPOST)
 router.post('/submit_product', isAuthenticatedAdmin, upload.any(), adminControllers.submit_productPOST);
 
-router.post('/cancel-order',isAuthenticatedAdmin,adminControllers.cancel_orderPOST)
+router.post('/update-order-status',isAuthenticatedAdmin,adminControllers.update_order_statusPOST);
 
 module.exports = router;

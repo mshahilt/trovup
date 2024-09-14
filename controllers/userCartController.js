@@ -40,9 +40,8 @@ exports.addToCartGET = async (req, res) => {
 exports.addToCartPost = async (req, res) => {
     try {
         const product_Id = req.params.id;
-        const userSession = req.session.user
+        const userSession = req.session.user;
         const user_Id = req.session.user.user;
-        console.log(req.session.user);
         const { variantId } = req.body;
 
         if (!userSession) {
@@ -62,6 +61,12 @@ exports.addToCartPost = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Variant not found' });
         }
 
+        // Inventory management check: Ensure variant has stock left
+        if (variant.stock <= 0) {
+            console.log('Variant out of stock');
+            return res.status(400).json({ success: false, message: 'Variant is out of stock' });
+        }
+
         let cart = await Cart.findOne({ user: user_Id });
         if (!cart) {
             cart = new Cart({ user: user_Id, items: [], total_price: 0 });
@@ -71,13 +76,26 @@ exports.addToCartPost = async (req, res) => {
         const existingItemIndex = cart.items.findIndex(item => item.product.toString() === product_Id && item.variantId === variantId);
 
         if (existingItemIndex > -1) {
+            // Check if adding more will exceed stock
+            if (cart.items[existingItemIndex].quantity + 1 > variant.stock) {
+                console.log('Not enough stock available');
+                return res.status(400).json({ success: false, message: 'Not enough stock available' });
+            }
+
             cart.items[existingItemIndex].quantity += 1;
             cart.items[existingItemIndex].price += variant.price;
         } else {
+            if (variant.stock < 1) {
+                console.log('Variant is out of stock');
+                return res.status(400).json({ success: false, message: 'Variant is out of stock' });
+            }
             cart.items.push({ product: product_Id, variantId, quantity: 1, price: variant.price });
         }
 
+        // Update total price
         cart.total_price = cart.items.reduce((total, item) => total + item.price, 0);
+
+        // Save cart changes
         await cart.save();
 
         res.json({ success: true, message: 'Product variant added to cart', redirectUrl: '/' });
@@ -87,7 +105,8 @@ exports.addToCartPost = async (req, res) => {
     }
 };
 
-// PUT: Update Cart Quantity
+
+// PUT: Update Cart Quantity with Inventory Check
 exports.updateCartQuantity = async (req, res) => {
     try {
         const { id } = req.params;
@@ -99,6 +118,18 @@ exports.updateCartQuantity = async (req, res) => {
         }
 
         const item = cart.items.id(id);
+        const product = await Products.findById(item.product._id);
+        
+        // Find the variant in the product to check its stock
+        const variant = product.variants.find(variant => variant._id.toString() === item.variantId);
+        if (!variant) {
+            return res.status(404).json({ success: false, message: 'Variant not found' });
+        }
+
+        if (variant.stock < quantity) {
+            return res.status(400).json({ success: false, message: `Only ${variant.stock} items are available in stock.` });
+        }
+
         if (item) {
             item.quantity = quantity;
             await cart.save();
@@ -111,6 +142,7 @@ exports.updateCartQuantity = async (req, res) => {
         return res.status(500).json({ success: false, message: 'An error occurred while updating cart quantity' });
     }
 };
+
 
 // GET: Proceed to Checkout Page
 exports.cartCheckout = async (req, res) => {
@@ -190,5 +222,29 @@ exports.place_orderPOST = async (req, res) => {
     } catch (error) {
         console.log('Error occurred while placing the order:', error);
         return res.status(500).json({ message: 'Failed to place order' });
+    }
+};
+
+
+exports.deleteCart = async (req, res) => {
+    try {
+        const { id: itemId } = req.params;
+        const userId = req.session.userId;
+
+        console.log('cart function delete called')
+        const cart = await Cart.findOneAndUpdate(
+            { userId }, 
+            { $pull: { items: { _id: itemId } } },
+            { new: true } 
+        );
+
+        if (cart) {
+            return res.status(200).json({ success: true, cart });
+        } else {
+            return res.status(404).json({ success: false, message: 'Cart not found' });
+        }
+    } catch (error) {
+        console.log('Error occurred while deleting cart items:', error);
+        return res.status(500).json({ success: false, message: 'Server error' });
     }
 };
