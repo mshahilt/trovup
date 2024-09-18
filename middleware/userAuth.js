@@ -1,46 +1,71 @@
 const User = require('../models/userModel');
-exports.isLoggedIn = async(req,res,next) => {
+
+// Middleware to check if the user is logged in
+exports.isLoggedIn = async (req, res, next) => {
   try {
-       
-      if (req.session.user)  {
-        const userId = req.session.user.user
-     
-        const user = await User.findOne({_id : userId})
-        if (user.isBlock) {
-            req.session.destroy();
-            res.redirect('/login')
-        }else{
-            next();
-        }
+    if (req.session.user) {
+      const userId = req.session.user.user;
+      const user = await User.findOne({ _id: userId });
+
+      if (user && user.isBlock) {
+        req.session.destroy();
+        return res.redirect('/login');
+      } 
       
-      }else{
-          res.redirect('/login')
-      }
-  } catch (error) {
-      console.log(error.message);
-  }
-}
-
-exports.isLoggedOut = async(req, res, next) =>{
-  try {
-      if (req.session.user ) {
-          res.redirect('/');
-      } else {
-          next()
-      }
-  } catch (error) {
-      console.log(error.message);
-  }
-}
-
-exports.otpConfirm = async (req, res,next) =>{
-    try {
-        if(req.session.email){
-           next()
-        }else{
-         res.redirect('/login')   
-        }
-    } catch (error) {
-        console.log(error.message);
+      return next();
+    } else {
+      return res.redirect('/login');
     }
-}
+  } catch (error) {
+    console.error(error.message);
+    return res.redirect('/error'); // Redirect to an error page
+  }
+};
+
+// Middleware to check if the user is blocked for accessing the home page
+exports.isBlockForHome = async (req, res, next) => {
+  try {
+    if (req.session.user && req.session.user.user) {
+      const userId = req.session.user.user;
+      const user = await User.findOne({ _id: userId });
+
+      if (user && user.isBlock) {
+        req.session.destroy();
+        return res.redirect('/login');
+      }
+    }
+    
+    return next();
+  } catch (error) {
+    console.error(error.message);
+    return res.redirect('/error'); // Add error handling
+  }
+};
+
+// Middleware to check if the user is logged out
+exports.isLoggedOut = async (req, res, next) => {
+  try {
+    if (req.session.user) {
+      return res.redirect('/');
+    } else {
+      return next();
+    }
+  } catch (error) {
+    console.error(error.message);
+    return res.redirect('/error'); // Add error handling
+  }
+};
+
+// Middleware to confirm if the OTP session exists
+exports.otpConfirm = async (req, res, next) => {
+  try {
+    if (req.session.email) {
+      return next();
+    } else {
+      return res.redirect('/login');
+    }
+  } catch (error) {
+    console.error(error.message);
+    return res.redirect('/error'); // Add error handling
+  }
+};

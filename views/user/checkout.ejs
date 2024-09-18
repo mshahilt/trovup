@@ -369,31 +369,34 @@
                     paymentMethod
                 };
 
-
-                $.ajax({
-                    url: '/order/order_confirm',
-                    method: 'POST',
-                    data: orderData,
-                    success: function (response) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Order Placed',
-                            text: 'Your order has been placed successfully.',
-                            confirmButtonText: 'OK'
-                        }).then(() => {
-                            window.location.href = '/order/order_history';
-                        });
-                    },
-                    error: function (error) {
-                        console.warn(error)
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Order Failed',
-                            text: 'There was an error placing your order. Please try again later.',
-                            confirmButtonText: 'OK'
-                        });
-                    }
-                });
+                if (paymentMethod === 'cod') {
+                        $.ajax({
+                        url: '/order/order_confirm',
+                        method: 'POST',
+                        data: orderData,
+                        success: function (response) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Order Placed',
+                                text: 'Your order has been placed successfully.',
+                                confirmButtonText: 'OK'
+                            }).then(() => {
+                                window.location.href = '/order/order_history';
+                            });
+                        },
+                        error: function (error) {
+                            console.warn(error)
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Order Failed',
+                                text: 'There was an error placing your order. Please try again later.',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    });
+                }else if(paymentMethod === 'bank'){
+                    
+                }
             });
         });
     </script>

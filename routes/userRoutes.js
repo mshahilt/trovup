@@ -1,13 +1,13 @@
 const express = require('express');
 const userController = require('../controllers/userController');
-const { isLoggedIn, isLoggedOut, otpConfirm } = require('../middleware/userAuth');
+const { isLoggedIn, isLoggedOut, otpConfirm, isBlockForHome } = require('../middleware/userAuth');
 const router = express.Router();
 
 
 router.get('/register', isLoggedOut, userController.registerUserGet);
 router.post('/register', isLoggedOut, userController.registerUser);
 
-router.get('/', userController.getHomePagePOST);
+router.get('/',isBlockForHome, userController.getHomePagePOST);
 
 
 router.get('/login', isLoggedOut, userController.loginUserGet);

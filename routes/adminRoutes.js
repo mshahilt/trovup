@@ -1,12 +1,11 @@
 const express = require('express');
 const adminControllers = require('../controllers/adminController');
-const { isAuthenticatedAdmin } = require('../middleware/adminAuth');
+const { isAuthenticatedAdmin, redirectIfAuthenticatedAdmin } = require('../middleware/adminAuth');
 const router = express.Router();
 const upload = require('../config/multer');
 
-// Admin routes
-router.get('/login', adminControllers.adminLoginGET);
-router.post('/login', adminControllers.adminLoginPOST);
+router.get('/login',redirectIfAuthenticatedAdmin, adminControllers.adminLoginGET);
+router.post('/login',redirectIfAuthenticatedAdmin, adminControllers.adminLoginPOST);
 
 router.get('/dashboard', isAuthenticatedAdmin, adminControllers.adminDashboardGET);
 router.get('/user', isAuthenticatedAdmin, adminControllers.getAllUsers);

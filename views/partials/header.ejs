@@ -8,84 +8,10 @@
   </div>
 </div>
 
-<!-- Styles for Search Results -->
-<style>
-  /* Remove default link styles and make result bold */
-.search-result-link {
-  display: flex;
-  text-decoration: none; /* Remove underline */
-  color: black; /* Change the text color */
-  width: 100%;
-}
-
-.search-result-name {
-  font-weight: bold; /* Make the product name bold */
-  font-size: 16px;
-  color: black; /* Ensure text remains black */
-}
-
-.search-result-category {
-  font-size: 12px;
-  color: #777;
-}
-
-.search-result-item {
-  display: flex;
-  align-items: center;
-  padding: 10px;
-  border-bottom: 1px solid #f0f0f0;
-  transition: background-color 0.2s ease;
-}
-
-.search-result-item:hover {
-  background-color: #f9f9f9;
-}
-
-.search-result-image {
-  width: 50px;
-  height: 50px;
-  object-fit: cover;
-  border-radius: 5px;
-  margin-right: 15px;
-}
-
-.search-result-info {
-  display: flex;
-  flex-direction: column;
-}
-
-  #search-results {
-    background-color: white;
-    border: 1px solid #ccc;
-    position: absolute;
-    width: 100%;
-    z-index: 1000;
-    max-height: 300px;
-    overflow-y: auto;
-    display: none;
-  }
-
-  #search-results div {
-    padding: 10px;
-    cursor: pointer;
-  }
-
-  #search-results div:hover {
-    background-color: #f0f0f0;
-  }
-
-  #loading-spinner {
-    display: none;
-    color: gray;
-  }
-</style>
-
 <!-- Navbar -->
 <nav class="navbar navbar-expand-lg" style="background-color: white;">
   <div class="container">
-    <a class="navbar-brand ml-5" href="index.html" style="color: black;">
-      <span style="font-weight: bold; font-size: 24px;">Trovup</span>
-    </a>
+    <a class="navbar-brand ml-5" href="/" style="color: black; font-weight: bold; font-size: 24px;">Trovup</a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
@@ -112,7 +38,8 @@
 
       <!-- Search Results -->
       <div id="search-results" class="container"></div>
-       <!-- Wishlist, Cart, and Profile Icons -->
+      
+      <!-- Navbar Icons (Wishlist, Cart, Profile) -->
       <div class="navbar-icons d-flex align-items-center">
         <a href="#"><i class="far fa-heart me-3" style="font-size: 20px; color: black;"></i></a>
         <a href="/cart" class="me-3">cart
@@ -122,6 +49,7 @@
           <i class="far fa-user" style="font-size: 22px; color: black;"></i>
         </a>
       </div>
+
       <!-- Signup/Login Button -->
       <% if (isUserLoggedIn) { %>
         <form action="/logout" method="post">
@@ -134,64 +62,162 @@
   </div>
 </nav>
 
-<!-- Loading Spinner -->
-<p id="loading-spinner">Loading...</p>
+<!-- Updated Styles -->
+<style>
+  /* Search Results Styling */
+  #search-results {
+    background-color: white;
+    border: 1px solid #ccc;
+    position: absolute;
+    width: 100%;
+    z-index: 1000;
+    max-height: 300px;
+    overflow-y: auto;
+    display: none;
+    border-radius: 5px;
+    padding-top: 10px;
+    margin-top: 10px;
+  }
+
+  .search-result-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s ease;
+  }
+
+  .search-result-item:hover {
+    background-color: #f9f9f9;
+    cursor: pointer;
+  }
+
+  .search-result-link {
+    display: flex;
+    text-decoration: none;
+    color: black;
+    width: 100%;
+  }
+
+  .search-result-name {
+    font-weight: bold;
+    font-size: 16px;
+    color: black;
+  }
+
+  .search-result-category {
+    font-size: 12px;
+    color: #777;
+  }
+
+  .search-result-image {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 5px;
+    margin-right: 15px;
+  }
+
+  .search-result-info {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .search-result-empty {
+    padding: 10px;
+    color: red;
+    font-weight: bold;
+  }
+
+  /* Close Button */
+  .close-search-result {
+    background-color: transparent;
+    border: none;
+    color: red;
+    font-size: 20px;
+    font-weight: bold;
+    position: absolute;
+    top: 5px;
+    right: 15px;
+    cursor: pointer;
+  }
+
+  .close-search-result:hover {
+    color: darkred;
+  }
+
+  .close-search-result-item {
+    background-color: transparent;
+    border: none;
+    color: red;
+    font-size: 18px;
+    font-weight: bold;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    cursor: pointer;
+  }
+
+  .close-search-result-item:hover {
+    color: darkred;
+  }
+
+</style>
 
 <!-- SweetAlert and Search Functionality Script -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+  // Close button functionality
+  document.getElementById('close-search-results')?.addEventListener('click', function() {
+    document.getElementById('search-results').style.display = 'none';
+  });
+
   document.getElementById('search-form').addEventListener('submit', function(event) {
-  event.preventDefault();
-  const query = document.getElementById('search-input').value.trim();
-  if (!query) return;
+    event.preventDefault();
+    const query = document.getElementById('search-input').value.trim();
+    if (!query) return;
 
-  const spinner = document.getElementById('loading-spinner');
-  spinner.style.display = 'block';
+    const spinner = document.getElementById('loading-spinner');
+    if (spinner) spinner.style.display = 'block';
 
-  fetch(`/search?query=${encodeURIComponent(query)}`)
-    .then(response => response.json())
-    .then(data => {
-      spinner.style.display = 'none';
+    fetch(`/search?query=${encodeURIComponent(query)}`)
+      .then(response => response.json())
+      .then(data => {
+        if (spinner) spinner.style.display = 'none';
 
-      const resultsDiv = document.getElementById('search-results');
-      resultsDiv.innerHTML = '';  // Clear previous results
-      resultsDiv.style.display = 'block';  // Show the results container
+        const resultsDiv = document.getElementById('search-results');
+        resultsDiv.innerHTML = '';  // Clear previous results
+        resultsDiv.style.display = 'block';  // Show the results container
 
-      if (data.success && data.products.length > 0) {
-  // Display search results
-    data.products.forEach(item => {
-      const productId = item._id;
-      const productLink = `/product/${item._id}`;
-      const productImage = item.variants[0].images[0];
+        if (data.success && data.products.length > 0) {
+          // Display search results
+          data.products.forEach(item => {
+            const productImage = item.variants[0].images[0];
 
-      resultsDiv.innerHTML += `
-  <div class="search-result-item">
-    <a href="/product/${item._id}" class="search-result-link">
-      <img src="/${productImage}" alt="${item.product_name}" class="search-result-image"/>
-      <div class="search-result-info">
-        <span class="search-result-name">${item.product_name}</span>
-        <span class="search-result-category">${item.category_id ? item.category_id.category_name : ''}</span>
-      </div>
-    </a>
-  </div>`;
-
-    });
-  } else {
-    resultsDiv.innerHTML = '<div class="search-result-empty">No results found</div>';
-  }
-
-    })
-    .catch(error => {
-      spinner.style.display = 'none';
-      Swal.fire({
-        icon: 'error',
-        title: 'Oops...',
-        text: 'Something went wrong. Please try again later!',
+            resultsDiv.innerHTML += `
+              <div class="search-result-item" style="margin-right: 50px; width: 60%;">
+                <a href="/product/${item._id}" class="search-result-link">
+                  <img src="/${productImage}" alt="${item.product_name}" class="search-result-image"/>
+                  <div class="search-result-info">
+                    <span class="search-result-name">${item.product_name}</span>
+                    <span class="search-result-category">${item.category_id ? item.category_id.category_name : ''}</span>
+                  </div>
+                </a>
+                <button class="close-search-result-item" onclick="this.parentElement.style.display='none';">&times;</button>
+              </div>`;
+          });
+        } else {
+          resultsDiv.innerHTML = '<div class="search-result-empty">No results found</div>';
+        }
+      })
+      .catch(error => {
+        if (spinner) spinner.style.display = 'none';
+        Swal.fire({
+          icon: 'error',
+          title: 'Oops...',
+          text: 'Something went wrong. Please try again later!',
+        });
+        console.error('Error:', error);
       });
-      console.error('Error:', error);
-    });
-});
-
+  });
 </script>
-
-

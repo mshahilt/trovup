@@ -424,7 +424,7 @@ exports.productPageGET = async (req, res) => {
     // Build the query object for MongoDB
     let query = {};
     if (search) {
-        query.product_name = { $regex: new RegExp(search, 'i') }; // Case-insensitive search
+        query.product_name = { $regex: new RegExp(search, 'i') };
     }
     if (color) {
         query['variants.color'] = color;

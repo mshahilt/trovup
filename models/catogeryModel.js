@@ -4,7 +4,7 @@ const categorySchema = new mongoose.Schema({
     category_name: { type: String, required: true },
     isDeleted: { type: Boolean, default: false }
 }, {
-    timestamps: true // Add timestamps option
+    timestamps: true
 });
 
 const Category = mongoose.model('Category', categorySchema);

@@ -173,7 +173,7 @@ exports.edit_categoryGET = async (req, res) => {
 
 exports.edit_categoryPOST = async (req, res) => {
     try {
-        const { categoryId, new_category_name } = req.body; // Assuming categoryId and new_category_name are sent in the request body
+        const { categoryId, new_category_name } = req.body; 
         const updatedCategory = await Category.findByIdAndUpdate(
             categoryId, // The ID of the category to update
             { category_name: new_category_name }) // The new data to update
@@ -344,77 +344,69 @@ exports.update_productPOST = async (req, res) => {
             color
         } = req.body;
 
-        // Get the uploaded images from the request
         const images = req.files;
         console.log('req.body', req.body);
         console.log('req.files:', images);
 
+        const product = await Product.findById(product_id);
+        if (!product) {
+            return res.status(404).json({ success: false, message: 'Product not found' });
+        }
+
         const variantDetails = [];
         console.log('Total variants:', variant_count);
 
-        // Find the product by its ID
-        const product = await Product.findById(product_id);
-
-        if (!product) {
-            return res.status(404).send('Product not found');
-        }
-
-        // Loop through each variant and match images
         for (let i = 0; i < variant_count; i++) {
             const variantImages = [];
 
-            // Only push images if they exist for the specific variant
             if (images && images.length > 0) {
                 images.forEach(image => {
                     if (image.fieldname.startsWith(`variant_images_${i + 1}`)) {
-                        variantImages.push(image.path); // Add new images
+                        variantImages.push(image.path); 
                     }
                 });
             }
 
-            // If no new images are uploaded, retain existing images
             if (variantImages.length === 0 && product.variants[i] && product.variants[i].images) {
-                variantImages.push(...product.variants[i].images); // Retain old images
+                variantImages.push(...product.variants[i].images);
             }
 
             console.log(`Variant ${i + 1} images:`, variantImages);
 
-            // Collect variant details only if price exists to filter valid variants
             if (price[i]) {
                 variantDetails.push({
-                    price: Number(price[i].replace(/,/g, '')), // Convert price to a number
+                    _id: product.variants[i]?._id,
+                    price: Number(price[i].replace(/,/g, '')),
                     storage_size: storage_size[i],
                     stock: Number(stock[i]),
                     color: color[i],
-                    images: variantImages // Use new or existing images
+                    images: variantImages 
                 });
             } else {
                 console.error(`Price for variant ${i + 1} is undefined.`);
             }
         }
 
-        // Update the product details
-        product.product_name = product_name;
-        product.product_description = product_description;
-        product.product_highlights = product_highlights;
-        product.category_id = category_id;
-        product.brand_id = brand_id;
-        product.variants = variantDetails; // Update variants
 
-        // Save the updated product
-        await product.save();
-        console.log('Product updated successfully:', product);
+        await Product.findByIdAndUpdate(
+            product_id,
+            {
+                product_name,
+                product_description,
+                product_highlights,
+                category_id,
+                brand_id,
+                variants: variantDetails 
+            },
+            { new: true } 
+        );
 
-        // Respond with success status or redirect (as needed)
-        return res.json({ success: true, message: 'Product updated successfully' });
+        return res.redirect('/admin/products');
     } catch (error) {
         console.error('Error updating product:', error);
         return res.status(500).json({ success: false, message: 'Error updating product' });
     }
 };
-
-
-
 
 
 exports.edit_productGET = async (req, res) => {
@@ -616,7 +608,7 @@ exports.orderGET = async (req, res) => {
       const page = parseInt(req.query.page) || 1;
   
       // Set the limit for how many orders per page
-      const limit = 10;
+      const limit = 5;
   
       // Calculate the number of documents to skip based on the current page
       const skip = (page - 1) * limit;

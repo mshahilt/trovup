@@ -115,7 +115,6 @@ async function resendOTP(userId) {
             { upsert: true }
         );
 
-        // Send OTP to the user's email
         await sendMail(transporter, {
             ...mailOptions,
             to: user.email,
@@ -123,7 +122,7 @@ async function resendOTP(userId) {
         });
 
         console.log('New OTP sent');
-        return true; // Return success
+        return true;
 
     } catch (error) {
         console.error('Error while resending OTP:', error);
@@ -132,17 +131,15 @@ async function resendOTP(userId) {
 }
 exports.forgot_password = async (req, res) => {
     try {
-        // Check if session exists
         if (!req.session || !req.session.user) {
             return res.status(401).json({ success: false, message: 'Unauthorized. Please log in again.' });
         }
 
-        const userId = req.session.user.user;  // Assuming this is how you store the user ID in session
-        const user = await User.findById(userId);  // Fetch the user from the database
-        const { email } = req.body;  // Get the email from the request body
+        const userId = req.session.user.user;
+        const user = await User.findById(userId);
+        const { email } = req.body;
         console.log('email recieve')
         if (email === user.email) {
-            // Call resendOTP and handle any errors
             await resendOTP(userId);
             console.log('otp sented')
             return res.status(200).json({ success: true, message: 'OTP sent successfully to your email.' });
@@ -260,6 +257,7 @@ exports.changePasswordPOST = async (req, res) => {
         return res.status(500).json({ success: false, message: 'An error occurred while updating the password' });
     }
 };
+
 let isUserLoggedIn;
 exports.addressBookGET = async (req, res) => {
     try {
