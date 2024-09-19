@@ -6,9 +6,14 @@ const generateShortUUID = () => uuidv4().split('-')[0];
 const orderSchema = new mongoose.Schema({
     orderId: {
         type: String,
-        default: generateShortUUID, // Use the shortened UUID function
+        default: generateShortUUID, 
         unique: true,
         required: true
+    },
+    cartId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Cart',
+        required: false
     },
     user: {
         type: mongoose.Schema.Types.ObjectId,
@@ -42,7 +47,17 @@ const orderSchema = new mongoose.Schema({
     paymentMethod: {
         type: String,
         required: true,
-        enum: ['Cash on Delivery', 'Bank Transfer']
+        enum: ['Cash on Delivery', 'Razorpay']
+    },
+    razorpayOrderId: {
+        type: String,
+        required: function() { return this.paymentMethod === 'Razorpay'; },
+        default: null
+    },
+    paymentStatus: {
+        type: String,
+        default: 'Pending',
+        enum: ['Pending', 'Paid', 'Failed'] 
     },
     totalAmount: {
         type: Number,

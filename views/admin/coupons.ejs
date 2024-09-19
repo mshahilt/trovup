@@ -1,0 +1,163 @@
+<div class="col-12 grid-margin stretch-card w-100">
+    <div class="card stretch-card">
+        <div class="card-body">
+            <!-- Flash messages -->
+            <% if (messages.success) { %>
+                <div class="alert alert-success">
+                    <%= messages.success %>
+                </div>
+            <% } %>
+            <% if (messages.error) { %>
+                <div class="alert alert-danger">
+                    <%= messages.error %>
+                </div>
+            <% } %>
+
+            <h4 class="card-title">Coupon Management</h4>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Coupon Id</th>
+                            <th>Coupon Code</th>
+                            <th>Discount (%)</th>
+                            <th>Start Date</th>
+                            <th>Expiry Date</th>
+                            <th>Minimum Amount</th>
+                            <th>Maximum Amount</th> <!-- New Column -->
+                            <th>Edit</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% coupons.forEach((coupon, index) => { %>
+                        <tr>
+                            <td>#<%= index + 1 %></td>
+                            <td><%= coupon.coupon_code %></td>
+                            <td><%= coupon.discount %> %</td>
+                            <td><%= coupon.start_date.toDateString() %></td>
+                            <td><%= coupon.expiry_date.toDateString() %></td>
+                            <td>$<%= coupon.minimum_purchase_amount %></td>
+                            <td>$<%= coupon.maximum_coupon_amount %></td> <!-- Display Max Amount -->
+                            <td>
+                                <form action="/admin/edit-coupon/<%= coupon._id %>" method="GET">
+                                    <button type="submit" class="btn btn-warning">Edit</button>
+                                </form>
+                            </td>
+                            <td>
+                                <% if (new Date(coupon.expiry_date) < new Date()) { %>
+                                    <form action="/admin/delete-coupon/<%= coupon._id %>" method="POST">
+                                        <button type="submit" class="btn btn-success">Restore</button>
+                                    </form>
+                                <% } else { %>
+                                    <form action="/admin/delete-coupon/<%= coupon._id %>" method="POST">
+                                        <button type="submit" class="btn btn-danger">Delete</button>
+                                    </form>
+                                <% } %>
+                            </td>
+                        </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Add New Coupon Section -->
+            <div class="mt-4">
+                <h5>+ Add New Coupon</h5>
+                <form id="couponForm" class="d-flex align-items-center">
+                    <input type="text" name="couponCode" id="couponCode" class="form-control me-2" placeholder="Coupon Code" required>
+                    <input type="number" name="discount" id="discount" class="form-control me-2" placeholder="Discount (%)" required>
+                    <input type="date" id="startDate" name="startDate" class="form-control me-2" placeholder="Start Date" required>
+                    <input type="date" id="expiryDate" name="expiryDate" class="form-control me-2" placeholder="Expiry Date" required>
+                    <input type="number" name="minimumAmount" id="minimumAmount" class="form-control me-2" placeholder="Minimum Amount" required>
+                    <input type="number" name="maximumAmount" id="maximumAmount" class="form-control me-2" placeholder="Maximum Coupon Amount" required>
+                    <textarea name="description" id="description" class="form-control me-2" placeholder="Coupon Description" rows="2" required></textarea>
+                    <button type="submit" class="btn btn-dark">Add Coupon</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SweetAlert and Validation Script -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const couponForm = document.getElementById('couponForm');
+    const startDateInput = document.getElementById('startDate');
+    const expiryDateInput = document.getElementById('expiryDate');
+    const couponCodeInput = document.getElementById('couponCode');
+    const discountInput = document.getElementById('discount');
+    const minimumAmountInput = document.getElementById('minimumAmount');
+    const maximumAmountInput = document.getElementById('maximumAmount');
+    const descriptionInput = document.getElementById('description');
+
+    // Set minimum start date as today
+    const today = new Date().toISOString().split('T')[0];
+    startDateInput.setAttribute('min', today);
+
+    startDateInput.addEventListener('change', () => {
+        const startDate = new Date(startDateInput.value);
+        const startDateString = startDate.toISOString().split('T')[0];
+        expiryDateInput.setAttribute('min', startDateString);
+    });
+
+
+    couponForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const formData = {
+            couponCode: couponCodeInput.value,
+            discount: discountInput.value,
+            startDate: startDateInput.value,
+            expiryDate: expiryDateInput.value,
+            minimumAmount: minimumAmountInput.value,
+            maximumAmount: maximumAmountInput.value,
+            description: descriptionInput.value
+        };
+
+        // Front-end validation
+        if (!formData.couponCode || !formData.discount || !formData.startDate || !formData.expiryDate || !formData.minimumAmount || !formData.maximumAmount) {
+            Swal.fire('Error', 'Please fill out all fields.', 'error');
+            return;
+        }
+
+        if (formData.discount <= 0 || formData.discount > 100) {
+            Swal.fire('Error', 'Discount must be between 1 and 100.', 'error');
+            return;
+        }
+
+        if (formData.minimumAmount <= 0) {
+            Swal.fire('Error', 'Minimum amount must be greater than 0.', 'error');
+            return;
+        }
+
+        if (formData.maximumAmount <= 0) {
+            Swal.fire('Error', 'Maximum coupon amount must be greater than 0.', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch('/admin/add-coupon', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                Swal.fire('Success', 'Coupon added successfully!', 'success').then(() => {
+                    window.location.reload();
+                });
+            } else {
+                Swal.fire('Error', result.message || 'Failed to add coupon.', 'error');
+            }
+        } catch (error) {
+            Swal.fire('Error', 'An error occurred while adding the coupon.', 'error');
+        }
+    });
+});
+</script>

@@ -7,6 +7,7 @@ const Products = require('../models/productModel');
 const Addresses = require('../models/addressModel');
 const { isLoggedIn } = require('../middleware/userAuth');
 const { storeUserSession } = require('../utility/sessionUtil');
+const Coupon = require('../models/coupenModel');
 
 // GET: Add to Cart Page
 exports.addToCartGET = async (req, res) => {
@@ -131,36 +132,50 @@ exports.updateCartQuantity = async (req, res) => {
 };
 
 
-
 // GET: Proceed to Checkout Page
 exports.cartCheckout = async (req, res) => {
     try {
         const userId = req.session.user.user;
         const cart = await Cart.findOne({ user: userId }).populate('items.product');
+        const coupons = await Coupon.find();
+
+        let cartTotal = 0;
 
         if (cart && cart.items.length > 0) {
             for (let item of cart.items) {
                 const variant = item.product.variants.find(v => v._id.toString() === item.variantId);
                 if (variant) {
-                    item.price = variant.price; // Dynamically set price
+                    item.price = variant.price;
+                    cartTotal += item.price * item.quantity;
                 }
             }
         }
 
+        const applicableCoupons = coupons.filter(coupon => {
+            return cartTotal >= coupon.minimum_purchase_amount;
+        });
+
+        console.log(applicableCoupons,'coupons applied from checkout function');
+        console.log(cartTotal);
+
+        // Fetch user addresses
         const addresses = await Addresses.find({ userId });
         const isUserLoggedIn = !!req.session.user;
 
         res.render('user/checkout', {
             title: 'Checkout',
             isUserLoggedIn,
+            coupons: applicableCoupons,
             cart,
             addresses,
+            cartTotal,
             layout: 'layouts/homeLayout',
         });
     } catch (error) {
         console.log('Error occurred while loading proceed to checkout page:', error);
     }
 };
+
 
 // POST: Save Address for Checkout
 exports.save_addressPOST = async (req, res) => {
@@ -246,3 +261,46 @@ exports.deleteCart = async (req, res) => {
         return res.status(500).json({ success: false, message: 'Server error' });
     }
 };
+
+exports.apply_couponPOST = async (req, res) => {
+    try {
+        const { coupon_code } = req.body;
+
+        const userId = req.session.user.user;
+
+        const coupon = await Coupon.findOne({ coupon_code: coupon_code });
+
+        if (!coupon) {
+            return res.status(400).json({ error: 'Invalid coupon code' });
+        }
+
+        const now = new Date();
+        if (now < coupon.start_date || now > coupon.expiry_date) {
+            return res.status(400).json({ error: 'Coupon has expired' });
+        }
+        const cart = await Cart.findOne({ user: userId }).populate('items.product');
+        if (!cart || cart.items.length === 0) {
+            return res.status(400).json({ error: 'Cart is empty' });
+        }
+
+        let cartTotal = 0;
+        for (let item of cart.items) {
+            const variant = item.product.variants.find(v => v._id.toString() === item.variantId);
+            if (variant) {
+                cartTotal += variant.price * item.quantity;
+            }
+        }
+
+        if (cartTotal < coupon.minimum_purchase_amount) {
+            return res.status(400).json({ error: `Minimum purchase amount for this coupon is ₹${coupon.minimum_purchase_amount}` });
+        }
+
+        let discount = (cartTotal * coupon.discount) / 100;
+        discount = Math.min(discount, coupon.maximum_coupon_amount);
+
+        res.json({ discount: discount });
+    } catch (error) {
+        console.log('Error occurred while applying coupon:', error);
+        res.status(500).json({ error: 'An error occurred while applying the coupon' });
+    }
+}

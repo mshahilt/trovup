@@ -173,7 +173,7 @@
     let cropper;
     let currentPreviewId = '';
     let currentFileInputId = '';
-    let variantIndex = <%= product.variants.length %>; // Set variantIndex to current number of variants
+    let variantIndex = <%= product.variants.length %>; 
 
     function previewImage(input, previewId) {
         const preview = document.getElementById(previewId);
@@ -222,7 +222,6 @@
         cropper.destroy();
     });
 
-    // Add Variant functionality
     document.getElementById('add-variant-btn').addEventListener('click', () => {
         variantIndex++;
         const variantSection = document.getElementById('variants-section');
@@ -302,15 +301,15 @@
         `;
 
         variantSection.insertAdjacentHTML('beforeend', variantTemplate);
-        document.getElementById('variant_count').value = variantIndex; // Update hidden input for variant count
+        document.getElementById('variant_count').value = variantIndex;
     });
 
-    // Remove Variant functionality
     document.getElementById('variants-section').addEventListener('click', (event) => {
         if (event.target.classList.contains('remove-variant')) {
             event.target.closest('.variant-row').remove();
-            variantIndex--; // Decrement variant count
-            document.getElementById('variant_count').value = variantIndex; // Update hidden input for variant count
+            variantIndex--;
+            document.getElementById('variant_count').value = variantIndex; 
         }
     });
 </script>
+

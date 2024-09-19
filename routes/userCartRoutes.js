@@ -10,6 +10,8 @@ router.post('/updateCart/:id',isLoggedIn,userCartController.updateCartQuantity )
 
 router.get('/checkout',isLoggedIn,userCartController.cartCheckout);
 
+router.post('/apply-coupon',isLoggedIn,userCartController.apply_couponPOST);
+
 router.post('/place_order',isLoggedIn,userCartController.place_orderPOST);
 router.post('/save_address',isLoggedIn, userCartController.save_addressPOST)
 

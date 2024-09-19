@@ -6,6 +6,7 @@ const Brand = require('../models/brandModel');
 const flash = require('connect-flash');
 const Products = require('../models/productModel');
 const Orders = require('../models/orderModel');
+const Coupon = require('../models/coupenModel');
 
 // Get All Users (Admin only)
 exports.adminLoginGET = async (req, res) => {
@@ -693,3 +694,44 @@ exports.update_order_statusPOST = async (req, res) => {
       res.status(500).json({ message: 'Internal server error.' });
     }
   };
+
+  exports.couponGET = async (req, res) => {
+    try {
+        const coupons = await Coupon.find();
+        res.render('admin/coupons', {coupons , title: 'Coupon Management', layout: 'layouts/adminLayout' });
+    }catch(error){
+        console.log('Error occurred while loading coupon page:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+}
+
+exports.add_couponPOST = async (req, res) => {
+    try {
+        const { couponCode, discount, startDate, expiryDate, minimumAmount, maximumAmount, description } = req.body; // Add maximumAmount
+
+        const existingCoupon = await Coupon.findOne({ 
+            coupon_code: { $regex: new RegExp(`^${couponCode}$`, 'i') } 
+        });
+        
+        if (existingCoupon) {
+            return res.status(400).json({ message: 'Coupon with this code already exists.' });
+        }
+
+        const newCoupon = new Coupon({
+            coupon_code: couponCode,
+            discount,
+            start_date: new Date(startDate),
+            expiry_date: new Date(expiryDate),
+            minimum_purchase_amount: minimumAmount,
+            maximum_coupon_amount: maximumAmount,
+            coupon_description: description
+        });
+
+        await newCoupon.save();
+
+        res.status(201).json({ message: 'Coupon added successfully!' });
+    } catch (err) {
+        console.error('Error adding coupon:', err);
+        res.status(500).json({ message: 'Server error. Please try again later.' });
+    }
+};

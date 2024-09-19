@@ -92,6 +92,59 @@
             display: block;
             opacity: 1;
         }
+        .coupon-section {
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 5px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .input-group {
+            display: flex;
+        }
+
+        .input-group input {
+            flex: 1;
+        }
+
+        .input-group button {
+            margin-left: 5px;
+        }
+
+        .applicable-coupons {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .coupon-item {
+            padding: 10px;
+        }
+
+        .form-check-input {
+            margin-top: 0.3rem;
+        }
+
+        .form-check-label {
+            margin-left: 10px;
+        }
+
+        /* New CSS for the applied coupon section */
+        .border-dashed {
+            border: 1px dashed green;
+            border-radius: 5px;
+        }
+
+        /* Coupon removal button */
+        #removeCouponBtn {
+            border: none;
+        }
+
+        /* Hide the applied coupon section by default */
+        .d-none {
+            display: none;
+        }
+
     </style>
 </head>
 
@@ -193,7 +246,7 @@
                     </div>
                     <div class="product-item total">
                         <span>Total:</span>
-                        <span>$<%= subtotal.toFixed(2) %></span>
+                        <span id="total_price">$<%= subtotal.toFixed(2) %></span>
                     </div>
                     <% } else { %>
                     <p>Your cart is empty.</p>
@@ -202,8 +255,8 @@
                     <div class="payment-methods">
                         <h5>Payment Method</h5>
                         <div class="form-check">
-                            <input type="radio" id="bank" name="paymentMethod" value="bank" class="form-check-input">
-                            <label for="bank" class="form-check-label">Bank Transfer <i
+                            <input type="radio" id="razorpay" name="paymentMethod" value="razorpay" class="form-check-input">
+                            <label for="razorpay" class="form-check-label">Pay with Razorpay <i
                                     class="bi bi-credit-card"></i></label>
                         </div>
                         <div class="form-check">
@@ -212,11 +265,37 @@
                                     class="bi bi-cash"></i></label>
                         </div>
                     </div>
-
-                    <div class="form-group mt-3">
-                        <input type="text" class="form-control" placeholder="Coupon Code">
-                        <button class="btn btn-dark mt-2">Apply Coupon</button>
+                    <input type="hidden" id="couponsData" value='<%= JSON.stringify(coupons) %>'>
+                    <div class="coupon-section">
+                        <!-- Applied Coupon Section (Initially hidden) -->
+                        <div id="appliedCouponSection" class="d-none border-dashed p-3 mb-4">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <strong>You Save: ₹<span id="appliedCouponDiscount"></span></strong><br>
+                                    <span>Coupon applied: <span id="appliedCouponCode"></span></span>
+                                </div>
+                                <button class="btn btn-outline-danger btn-sm" id="removeCouponBtn">Remove</button>
+                            </div>
+                        </div>
+                    
+                        <!-- Coupon Input Field -->
+                        <div class="form-group mt-3">
+                            <form id="couponForm">
+                                <div class="input-group">
+                                    <input type="text" id="couponCode" class="form-control" placeholder="Enter Coupon Code" required>
+                                    <button type="submit" class="btn btn-dark">Apply</button>
+                                </div>
+                            </form>
+                            <div id="couponFeedback" class="mt-2"></div>
+                        </div>
+                    
+                        <!-- Applicable Coupons Section -->
+                        <div class="applicable-coupons mt-4">
+                            <h5>Applicable Coupons</h5>
+                            <div id="couponsList"></div>
+                        </div>
                     </div>
+                    
                     
                     <button type="submit" id="place-order-btn" class="btn btn-success place-order-btn">Place Order</button>
                 </div>
@@ -225,8 +304,106 @@
     </div>
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script>
         $(document).ready(function () {
+    document.getElementById('couponForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+
+        const couponCode = document.getElementById('couponCode').value;
+        const feedbackElement = document.getElementById('couponFeedback');
+        const appliedCouponSection = document.getElementById('appliedCouponSection');
+        const appliedCouponDiscount = document.getElementById('appliedCouponDiscount');
+        const appliedCouponCode = document.getElementById('appliedCouponCode');
+
+        try {
+            const response = await fetch('/cart/apply-coupon', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ coupon_code: couponCode })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                // Display the applied coupon
+                appliedCouponDiscount.innerText = result.discount.toFixed(2);
+                appliedCouponCode.innerText = couponCode;
+                appliedCouponSection.classList.remove('d-none');
+                
+                // Disable other coupons
+                disableCoupons();
+
+                feedbackElement.innerHTML = `<span class="text-success">Coupon applied successfully! Discount: ₹${result.discount.toFixed(2)}</span>`;
+            } else {
+                feedbackElement.innerHTML = `<span class="text-danger">Failed to apply coupon: ${result.error}</span>`;
+            }
+        } catch (error) {
+            feedbackElement.innerHTML = `<span class="text-danger">An error occurred: ${error.message}</span>`;
+        }
+    });
+
+    // Handle coupon removal
+    document.getElementById('removeCouponBtn').addEventListener('click', function() {
+        // Hide the applied coupon section
+        document.getElementById('appliedCouponSection').classList.add('d-none');
+        
+        // Re-enable the coupon selection
+        enableCoupons();
+
+        // Clear feedback message
+        document.getElementById('couponFeedback').innerHTML = '';
+    });
+
+    // Disable all other coupons when a coupon is applied
+    function disableCoupons() {
+        const radios = document.getElementsByName('couponRadio');
+        radios.forEach(radio => {
+            radio.disabled = true;
+        });
+    }
+
+    // Enable all coupons when the applied coupon is removed
+    function enableCoupons() {
+        const radios = document.getElementsByName('couponRadio');
+        radios.forEach(radio => {
+            radio.disabled = false;
+        });
+    }
+
+    // Dynamically render coupons from the backend
+    const couponsList = document.getElementById('couponsList');
+
+    const coupons = JSON.parse(document.getElementById('couponsData').value);
+    console.log(coupons);
+    // Render coupons
+    coupons.forEach(coupon => {
+        const couponElement = `
+        <div class="coupon-item border-bottom pb-2 mb-2">
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="couponRadio" id="${coupon.coupon_code}" value="${coupon.coupon_code}">
+                <label class="form-check-label" for="${coupon.coupon_code}">
+                    <strong>Savings: ₹${coupon.discount.toFixed(2)}</strong><br>
+                    <span>${coupon.coupon_code}</span><br>
+                    <small>${coupon.coupon_description}</small><br>
+                    <a href="#" class="text-decoration-none text-primary">View T & C</a>
+                </label>
+            </div>
+        </div>
+        `;
+        couponsList.insertAdjacentHTML('beforeend', couponElement);
+    });
+
+    // Set input field when coupon is selected
+    document.getElementById('couponsList').addEventListener('change', function(event) {
+        if (event.target.name === 'couponRadio') {
+            document.getElementById('couponCode').value = event.target.value;
+        }
+    });
+
+
             $('#savedAddresses').change(function () {
                 if ($(this).val() === 'new') {
                     $('#newAddressForm').addClass('show');
@@ -394,8 +571,98 @@
                             });
                         }
                     });
-                }else if(paymentMethod === 'bank'){
-                    
+                }else if(paymentMethod === 'razorpay'){
+                        fetch("/order/create_razor_order", {
+                        method: "post",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            paymentMethod: paymentMethod,
+                            orderData: orderData
+                        }),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if(data.status){
+                            console.log(data.data)
+                            var option = {
+                                key: "rzp_test_0cBu6RNEEzVgUn",
+                                amount: data.data.amount,
+                                currency:"INR",
+                                name:"Trovup",
+                                description:"Payment for order",
+                                order_id: data.data.id,
+                                handler: function(response){
+                                    console.log('Razorpay Response:', response); 
+                                    fetch("/order/verify_razorpay_payment", {
+                                        method: "post",
+                                        headers: {
+                                            "Content-type": "application/json",
+                                        },
+                                        body: JSON.stringify({
+                                        payment_id: response.razorpay_payment_id,
+                                        order_id: response.razorpay_order_id,
+                                        signature: response.razorpay_signature
+                                    }),
+                                    })
+                                    .then((response) => response.json())
+                                    .then((verifyData) => {
+                                        console.log(verifyData,' data');
+                                        if(verifyData.status){
+                                            console.log(verifyData,'verified data');
+                                            Swal.fire({
+                                                icon: 'success',
+                                                title: 'Order Placed',
+                                                text: 'Your order has been placed successfully.',
+                                                confirmButtonText: 'OK',
+                                                timer: 2000,
+                                                willClose: () => {
+                                                    window.location = "/";
+                                                }
+                                            })
+                                        }else{
+                                            console.log(verifyData,'failed data');
+                                            Swal.fire({
+                                                icon:'error',
+                                                title:"Payment Failed",
+                                                text:'Payment verification failed. Please try again',
+                                                confirmButtonText:'OK'
+                                            })
+                                        }
+                                    })
+                                },
+                                prefill: {
+                                    name : 'name',
+                                    email : 'email@email',
+                                    contact : '927401977'
+                                },
+                                theme: {
+                                    color: "#3399cc"
+                                }
+                            };
+                            var paymentObject = new window.Razorpay(option);
+                            paymentObject.open();
+                        }else{
+                            console.log('else case worked')
+                            Swal.fire({
+                                icon:'error',
+                                title:"Payment Failed",
+                                text: data.message ||'Payment verification failed. Please try again',
+                                confirmButtonText:'OK'
+                            })
+                        }
+                    })
+                    .catch((error) => {
+                        Swal.fire({
+                            icon:'error',
+                            title: "Error",
+                            text: error.message ||'Failed to place order. Please try again',
+                            confirmButtonText:'OK',
+                        });
+                    })
+                }else{
+                    console.log('else  2 case worked')
                 }
             });
         });
@@ -403,3 +670,4 @@
 </body>
 
 </html>
+ 
