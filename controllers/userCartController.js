@@ -130,7 +130,7 @@ exports.updateCartQuantity = async (req, res) => {
         return res.status(500).json({ success: false, message: 'An error occurred while updating cart quantity' });
     }
 };
-
+const mongoose = require('mongoose');
 
 // GET: Proceed to Checkout Page
 exports.cartCheckout = async (req, res) => {
@@ -138,6 +138,11 @@ exports.cartCheckout = async (req, res) => {
         const userId = req.session.user.user;
         const cart = await Cart.findOne({ user: userId }).populate('items.product');
         const coupons = await Coupon.find();
+
+        const appliedCoupon = await Coupon.findOne({
+            "users.userId": userId,
+            "users.isBought":false
+        });
 
         let cartTotal = 0;
 
@@ -154,11 +159,8 @@ exports.cartCheckout = async (req, res) => {
         const applicableCoupons = coupons.filter(coupon => {
             return cartTotal >= coupon.minimum_purchase_amount;
         });
-
-        console.log(applicableCoupons,'coupons applied from checkout function');
         console.log(cartTotal);
 
-        // Fetch user addresses
         const addresses = await Addresses.find({ userId });
         const isUserLoggedIn = !!req.session.user;
 
@@ -169,13 +171,13 @@ exports.cartCheckout = async (req, res) => {
             cart,
             addresses,
             cartTotal,
+            appliedCoupon,
             layout: 'layouts/homeLayout',
         });
     } catch (error) {
         console.log('Error occurred while loading proceed to checkout page:', error);
     }
 };
-
 
 // POST: Save Address for Checkout
 exports.save_addressPOST = async (req, res) => {
@@ -304,3 +306,54 @@ exports.apply_couponPOST = async (req, res) => {
         res.status(500).json({ error: 'An error occurred while applying the coupon' });
     }
 }
+exports.apply_coupon_to_userPOST = async (req, res) => {
+    const { coupon_code } = req.body; 
+    const userId = req.session.user.user;
+  
+    try {
+        const result = await Coupon.findOneAndUpdate(
+            { coupon_code: coupon_code },
+            { $addToSet: { users: { userId: userId } } },
+            { new: true, upsert: false }
+        );
+
+        if (!result) {
+            return res.status(404).json({ coupon: false, message: "Coupon not found" });
+        }
+
+        return res.status(200).json({
+            coupon: true,
+            message: "Coupon applied successfully",
+            discountAmount: result.discount,
+            coupon_code: result.coupon_code
+        });
+    } catch (error) {
+        return res.status(500).json({ coupon: false, message: "An error occurred while applying the coupon" });
+    }
+};
+exports.remove_coupon_from_userPOST = async (req, res) => {
+    const { coupon_code } = req.body;
+    const userId = req.session.user.user;
+  
+    try {
+        // Remove the user from the coupon's users array
+        const result = await Coupon.findOneAndUpdate(
+            { coupon_code: coupon_code },
+            { $pull: { users: { userId: userId } } },
+            { new: true }
+        );
+
+        if (!result) {
+            return res.status(404).json({ coupon: false, message: "Coupon not found" });
+        }
+
+        return res.status(200).json({
+            coupon: true,
+            message: "Coupon removed successfully",
+            coupon_code: result.coupon_code
+        });
+    } catch (error) {
+        console.log('Error occurred while removing coupon:', error);
+        return res.status(500).json({ coupon: false, message: "An error occurred while removing the coupon" });
+    }
+};

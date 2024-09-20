@@ -735,3 +735,13 @@ exports.add_couponPOST = async (req, res) => {
         res.status(500).json({ message: 'Server error. Please try again later.' });
     }
 };
+
+exports.offerAdminGET = async (req, res) => {
+    try {
+        const offers = await Offers.find();
+        res.render('admin/offers', {offers , title: 'Offer Management', layout: 'layouts/adminLayout' });
+    }catch(error){
+        console.log('Error occurred while loading offer page:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+}

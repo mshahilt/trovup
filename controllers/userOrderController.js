@@ -6,6 +6,7 @@ const Cart = require('../models/cartModel');
 const Order = require('../models/orderModel');
 const razorpay = require('../config/razorPay');
 const crypto = require('crypto');
+const Coupon = require('../models/coupenModel');
 
 exports.order_confirmPOST = async (req, res) => {
     try {
@@ -179,11 +180,14 @@ exports.order_detailsGET = async (req, res) => {
 exports.create_razor_orderPOST = async (req, res) => {
     try {
         const { cartId, addressId } = req.body.orderData;
+        const userId = req.session.user.user;
 
+        // Validate input
         if (!cartId || !addressId) {
             return res.status(400).json({ error: 'Missing cart or address information' });
         }
 
+        // Fetch cart and address details
         const cart = await Cart.findById(cartId).populate('items.product');
         const address = await Address.findById(addressId);
 
@@ -194,6 +198,7 @@ exports.create_razor_orderPOST = async (req, res) => {
             return res.status(404).json({ error: 'Address not found' });
         }
 
+        // Calculate total amount and prepare order items
         let totalAmount = 0;
         const orderItems = [];
 
@@ -206,13 +211,16 @@ exports.create_razor_orderPOST = async (req, res) => {
                 return res.status(400).json({ error: 'Product not found' });
             }
 
+            // Find the matching variant
             let variant = product.variants.find(v => v._id.toString() === item.variantId.toString());
             if (!variant) {
                 return res.status(400).json({ error: 'Variant not found' });
             }
 
+            // Calculate total price for the current item
             totalAmount += variant.price * item.quantity;
 
+            // Add item to orderItems array
             orderItems.push({
                 product: item.product._id,
                 variantId: variant._id,
@@ -220,26 +228,63 @@ exports.create_razor_orderPOST = async (req, res) => {
                 price: variant.price
             });
 
+            // Update stock for the variant
             variant.stock = Math.max(0, variant.stock - item.quantity);
             await product.save();
         }
 
+        // Fetch all coupons for debugging purposes
+        let allCoupons = await Coupon.find({});
+        console.log("Available Coupons:", allCoupons);
+
+        // Check for applicable discount
+        let discountOnOrder = 0;
+        const coupon = await Coupon.findOne({
+            "users.userId": userId, 
+            "users.isBought": false
+        });
+
+        // Log coupon details if found
+        if (coupon) {
+            console.log("Coupon Found:", coupon);
+
+            const discountPercentage = coupon.discount; // Discount percentage from the coupon
+            const discountAmount = (totalAmount * discountPercentage) / 100; // Calculate discount amount
+
+            // Apply the discount, ensuring it doesn't exceed the maximum coupon limit
+            discountOnOrder = Math.min(discountAmount, coupon.maximum_coupon_amount);
+
+            // Log discount calculations for debugging
+            console.log("Discount Percentage:", discountPercentage);
+            console.log("Calculated Discount Amount:", discountAmount);
+            console.log("Discount on Order:", discountOnOrder);
+        } else {
+            console.log("No coupon found or coupon not applicable.");
+        }
+
+        // Calculate payable amount after applying discount
+        const payableAmount = totalAmount - discountOnOrder;
+
+        console.log(payableAmount, 'Payable Amount', totalAmount, 'Total Amount', discountOnOrder, 'Discount on Order');
+
+        // Create the order object
         const order = new Order({
-            user: req.session.user.user,
+            user: userId,
             address: addressId,
             items: orderItems,
-            totalAmount: totalAmount,
+            totalAmount: totalAmount, // Original total amount
+            discountAmount: discountOnOrder,
+            payableAmount ,
             paymentMethod: 'Razorpay',
             razorpayOrderId: null,
             paymentStatus: 'Pending',
             cartId: cartId
         });
-        
 
         const options = {
-            amount: totalAmount * 100,
+            amount: payableAmount * 100,  // Razorpay accepts the amount in paise, hence multiplying by 100
             currency: "INR",
-            receipt: `receipt#${order.orderId}`,
+            receipt: `receipt#${order._id}`,
             payment_capture: 1
         };
 
@@ -247,14 +292,21 @@ exports.create_razor_orderPOST = async (req, res) => {
             const razorpayOrder = await razorpay.orders.create(options);
             order.razorpayOrderId = razorpayOrder.id;
             await order.save();
+
             return res.json({
                 status: true,
-                data: razorpayOrder
+                data: {
+                    razorpayOrder,
+                    totalAmount: totalAmount,
+                    discountOnOrder: discountOnOrder,
+                    payableAmount: payableAmount
+                }
             });
         } catch (error) {
             console.error('Error creating Razorpay order:', error);
             return res.status(500).json({ status: false, message: "Razorpay order creation failed" });
         }
+
     } catch (error) {
         console.error('Error in create_razor_orderPOST:', error);
         res.status(500).json({ error: 'Internal Server Error' });
@@ -271,8 +323,12 @@ exports.verify_razorpay_paymentPOST = async (req, res) => {
             .update(body)
             .digest('hex');
 
+        console.log("Expected Signature:", expectedSignature);
+        console.log("Actual Signature:", signature);
         if (expectedSignature === signature) {
             console.log('Successful payment');
+
+            // Find and update the order's payment status
             const order = await Order.findOneAndUpdate(
                 { razorpayOrderId: order_id },
                 { paymentStatus: 'Paid' },
@@ -290,6 +346,20 @@ exports.verify_razorpay_paymentPOST = async (req, res) => {
             order.cartId = undefined;
             await order.save();
 
+            // Update the coupon's isBought field to true for this user
+            const userId = order.user; // Assuming the user ID is in the order
+            const coupon = await Coupon.findOneAndUpdate(
+                { "users.user_Id": userId, "users.isBought": false },
+                { $set: { "users.$.isBought": true } },
+                { new: true }
+            );
+
+            if (coupon) {
+                console.log('Coupon marked as used:', coupon);
+            } else {
+                console.log('No applicable coupon found for the user.');
+            }
+
             console.log('Order updated and cart deleted:', order);
             return res.json({ status: true, message: "Payment verified, cart deleted", order });
         } else {
@@ -301,3 +371,4 @@ exports.verify_razorpay_paymentPOST = async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 };
+

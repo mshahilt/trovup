@@ -53,5 +53,7 @@ router.post('/update-order-status', isAuthenticatedAdmin, adminControllers.updat
 router.get('/coupons', isAuthenticatedAdmin, adminControllers.couponGET);
 router.post('/add-coupon', isAuthenticatedAdmin, adminControllers.add_couponPOST);
 
+router.get('/offers', isAuthenticatedAdmin, adminControllers.offerAdminGET);
+
 module.exports = router;
 

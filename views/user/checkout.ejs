@@ -244,9 +244,13 @@
                         <span>Shipping:</span>
                         <span>Free</span>
                     </div>
+                    <div class="product-item">
+                        <span>Discount:</span>
+                        <span id="discountInCheckout">₹ 0</span>
+                    </div>
                     <div class="product-item total">
                         <span>Total:</span>
-                        <span id="total_price">$<%= subtotal.toFixed(2) %></span>
+                        $<span id="total_price"><%= subtotal.toFixed(2) %></span>
                     </div>
                     <% } else { %>
                     <p>Your cart is empty.</p>
@@ -266,35 +270,43 @@
                         </div>
                     </div>
                     <input type="hidden" id="couponsData" value='<%= JSON.stringify(coupons) %>'>
-                    <div class="coupon-section">
-                        <!-- Applied Coupon Section (Initially hidden) -->
-                        <div id="appliedCouponSection" class="d-none border-dashed p-3 mb-4">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <strong>You Save: ₹<span id="appliedCouponDiscount"></span></strong><br>
-                                    <span>Coupon applied: <span id="appliedCouponCode"></span></span>
-                                </div>
-                                <button class="btn btn-outline-danger btn-sm" id="removeCouponBtn">Remove</button>
-                            </div>
-                        </div>
-                    
-                        <!-- Coupon Input Field -->
-                        <div class="form-group mt-3">
-                            <form id="couponForm">
-                                <div class="input-group">
-                                    <input type="text" id="couponCode" class="form-control" placeholder="Enter Coupon Code" required>
-                                    <button type="submit" class="btn btn-dark">Apply</button>
-                                </div>
-                            </form>
-                            <div id="couponFeedback" class="mt-2"></div>
-                        </div>
-                    
-                        <!-- Applicable Coupons Section -->
-                        <div class="applicable-coupons mt-4">
-                            <h5>Applicable Coupons</h5>
-                            <div id="couponsList"></div>
-                        </div>
-                    </div>
+
+                    <% if (appliedCoupon) { %>
+                    <input type="hidden" id="previoslyAppliedCouponData" value='<%= JSON.stringify(appliedCoupon) %>'>
+                    <% } else { %>
+                    <input type="hidden" id="previoslyAppliedCouponData" value='null'>
+                    <% } %>
+
+    <div class="coupon-section">
+        <!-- Applied Coupon Section (Initially hidden) -->
+        <div id="appliedCouponSection" class="d-none border-dashed p-3 mb-4">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <strong>You Save: ₹<span id="appliedCouponDiscount"></span></strong><br>
+                    <span>Coupon applied: <span id="appliedCouponCode"></span></span>
+                </div>
+                <button class="btn btn-outline-danger btn-sm" id="removeCouponBtn">Remove</button>
+            </div>
+        </div>
+
+        <!-- Coupon Input Field -->
+        <div class="form-group mt-3">
+            <form id="couponForm">
+                <div class="input-group">
+                    <input type="text" id="couponCode" class="form-control" placeholder="Enter Coupon Code" required>
+                    <button type="submit" class="btn btn-dark">Apply</button>
+                </div>
+            </form>
+            <div id="couponFeedback" class="mt-2"></div>
+        </div>
+
+        <!-- Applicable Coupons Section -->
+        <div class="applicable-coupons mt-4">
+            <h5>Applicable Coupons</h5>
+            <div id="couponsList"></div>
+        </div>
+    </div>
+
                     
                     
                     <button type="submit" id="place-order-btn" class="btn btn-success place-order-btn">Place Order</button>
@@ -307,15 +319,30 @@
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script>
         $(document).ready(function () {
+    const feedbackElement = document.getElementById('couponFeedback');
+    const appliedCouponSection = document.getElementById('appliedCouponSection');
+    const appliedCouponDiscount = document.getElementById('appliedCouponDiscount');
+    const appliedCouponCode = document.getElementById('appliedCouponCode');
+
+    // Check if previoslyAppliedCouponData has data
+    const previoslyAppliedCouponData = JSON.parse(document.getElementById('previoslyAppliedCouponData').value);
+
+    if (previoslyAppliedCouponData && Object.keys(previoslyAppliedCouponData).length !== 0) {
+        // Set the previously applied coupon data to the elements
+        appliedCouponCode.innerText = previoslyAppliedCouponData.coupon_code;
+        appliedCouponDiscount.innerText = previoslyAppliedCouponData.discount.toFixed(2);
+        document.getElementById("discountInCheckout").innerText = `₹ ${previoslyAppliedCouponData.discount.toFixed(2)}`;
+        appliedCouponSection.classList.remove('d-none');
+
+        // Disable other coupons
+        disableCoupons();
+    }
+
+    // Coupon form submission
     document.getElementById('couponForm').addEventListener('submit', async function(event) {
         event.preventDefault();
-
+        
         const couponCode = document.getElementById('couponCode').value;
-        const feedbackElement = document.getElementById('couponFeedback');
-        const appliedCouponSection = document.getElementById('appliedCouponSection');
-        const appliedCouponDiscount = document.getElementById('appliedCouponDiscount');
-        const appliedCouponCode = document.getElementById('appliedCouponCode');
-
         try {
             const response = await fetch('/cart/apply-coupon', {
                 method: 'POST',
@@ -328,8 +355,23 @@
             const result = await response.json();
 
             if (response.ok) {
-                // Display the applied coupon
+                const coupon_code = couponCode; 
+                await fetch('/cart/apply_coupon_to_user', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        coupon_code: coupon_code 
+                    })
+                });
+
+                let totalText = document.getElementById("total_price").textContent;
+                let total = parseFloat(totalText.replace('$', '').trim());
                 appliedCouponDiscount.innerText = result.discount.toFixed(2);
+                document.getElementById("discountInCheckout").innerText = `₹ ${result.discount.toFixed(2)}`;
+                
+                document.getElementById("total_price").innerText = `${total - result.discount.toFixed(2)}`;
                 appliedCouponCode.innerText = couponCode;
                 appliedCouponSection.classList.remove('d-none');
                 
@@ -346,15 +388,35 @@
     });
 
     // Handle coupon removal
-    document.getElementById('removeCouponBtn').addEventListener('click', function() {
-        // Hide the applied coupon section
-        document.getElementById('appliedCouponSection').classList.add('d-none');
-        
-        // Re-enable the coupon selection
-        enableCoupons();
+    document.getElementById('removeCouponBtn').addEventListener('click', async function() {
+        const appliedCouponCode = document.getElementById('appliedCouponCode').innerText;
+        try {
+            const response = await fetch('/cart/remove_coupon_from_user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ coupon_code: appliedCouponCode })
+            });
 
-        // Clear feedback message
-        document.getElementById('couponFeedback').innerHTML = '';
+            const result = await response.json();
+
+            if (response.ok) {
+                // Hide the applied coupon section
+                document.getElementById('appliedCouponSection').classList.add('d-none');
+                
+                // Re-enable the coupon selection
+                enableCoupons();
+
+                // Clear feedback message
+                document.getElementById('couponFeedback').innerHTML = '';
+                window.location.reload();
+            } else {
+                document.getElementById('couponFeedback').innerHTML = `<span class="text-danger">Failed to remove coupon: ${result.error}</span>`;
+            }
+        } catch (error) {
+            document.getElementById('couponFeedback').innerHTML = `<span class="text-danger">An error occurred: ${error.message}</span>`;
+        }
     });
 
     // Disable all other coupons when a coupon is applied
@@ -377,7 +439,7 @@
     const couponsList = document.getElementById('couponsList');
 
     const coupons = JSON.parse(document.getElementById('couponsData').value);
-    console.log(coupons);
+
     // Render coupons
     coupons.forEach(coupon => {
         const couponElement = `
@@ -585,14 +647,14 @@
                     .then(response => response.json())
                     .then(data => {
                         if(data.status){
-                            console.log(data.data)
+                            console.log(data.data.razorpayOrder.id,'razor pay order id')
                             var option = {
                                 key: "rzp_test_0cBu6RNEEzVgUn",
-                                amount: data.data.amount,
+                                amount: data.data.payableAmount*100,
                                 currency:"INR",
                                 name:"Trovup",
                                 description:"Payment for order",
-                                order_id: data.data.id,
+                                order_id: data.data.razorpayOrder.id,
                                 handler: function(response){
                                     console.log('Razorpay Response:', response); 
                                     fetch("/order/verify_razorpay_payment", {
@@ -670,4 +732,3 @@
 </body>
 
 </html>
- 
