@@ -84,6 +84,37 @@
     .highlight-item i {
         margin-right: 8px;
     }
+    .main-image-container img:hover {
+    transform: scale(2);
+}
+.main-image-container img {
+    transition: transform 0.5s ease-in-out;
+}
+
+    .main-image {
+            width: 100%;
+            height: auto;
+        }
+
+        .zoom-container {
+            position: relative;
+            width: 100%;
+            height: 500px; /* Adjust height based on your layout */
+        }
+
+        .zoom-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            cursor: zoom-in;
+        }
+
+        .thumbnail-images img {
+            width: 80px;
+            height: 80px;
+            margin: 5px;
+            cursor: pointer;
+        }
 </style>
 <nav aria-label="breadcrumb" class="bg-light py-3 mt-5">
     <div class="container">
@@ -118,7 +149,18 @@
         <!-- Product Details -->
         <div class="col-md-5">
             <h1 class="product-title"><%= product.product_name %></h1>
-            <p class="product-price">₹<%= selectedVariant.price %></p>
+            <div class="product-price-container">
+                <% if (selectedVariant.offer) { %>
+                    <h4>
+                        <span class="text-danger">₹<%= selectedVariant.discount_price %></span>
+                        <small class="text-muted text-decoration-line-through">₹<%= selectedVariant.price %></small>
+                        <span class="badge bg-success">Offer: <%= selectedVariant.offer.offer_percentage %>% off</span>
+                    </h4>
+                <% } else { %>
+                    <h4>₹<%= selectedVariant.price %></h4>
+                <% } %>
+            </div>
+            
             <p class="product-rating">
                 <i class="bi bi-star-fill"></i>
                 <i class="bi bi-star-fill"></i>
@@ -195,7 +237,7 @@
         <% } %>
     </div>
 </div>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/zoomer.js/0.9.1/zoomer.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     // Embed product data into the script
@@ -276,16 +318,31 @@
             updateProductView();
         }
 
-        // Function to update the main image
+        // Function to update the main image and reinitialize zoom
         function updateMainImage(imageIndex) {
             const mainImage = document.querySelector('.main-image');
             mainImage.src = '/' + selectedVariant.images[imageIndex];
+
+            // Reinitialize zoom on the new main image
+            enableZoom(mainImage);
         }
 
         // Function to update the product view based on the selected variant
         function updateProductView() {
             document.querySelector('.product-title').textContent = product.product_name;
-            document.querySelector('.product-price').textContent = '₹' + selectedVariant.price;
+    
+            // Update the price and offer details
+            const priceContainer = document.querySelector('.product-price-container');
+            if (selectedVariant.offer) {
+                priceContainer.innerHTML = `
+                    <span class="text-danger">₹${selectedVariant.discount_price}</span>
+                    <small class="text-muted text-decoration-line-through">₹${selectedVariant.price}</small>
+                    <span class="badge bg-success">Offer: ${selectedVariant.offer.offer_percentage}% off</span>
+                `;
+            } else {
+                priceContainer.innerHTML = `<h4>₹${selectedVariant.price}</h4>`;
+            }
+
             updateMainImage(0);
 
             // Update the thumbnails for the selected variant
@@ -294,5 +351,21 @@
                 thumbnails[index].src = '/' + image;
             });
         }
+
+        // Function to enable zoom on the main image
+        function enableZoom(imageElement) {
+            if (imageElement) {
+                new Zoomer(imageElement, {
+                    zoomFactor: 2, // Adjust the zoom level (2x by default)
+                    zoomType: 'inside', // Zooms inside the image container
+                    smooth: true // Smooth zoom transitions
+                });
+            }
+        }
+
+        // Initialize zoom on the initial main image
+        enableZoom(document.querySelector('.main-image'));
+
     });
 </script>
+

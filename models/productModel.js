@@ -38,6 +38,13 @@ const productSchema = new mongoose.Schema({
             type: Number,
             required: true,
         },
+        discount_price: { 
+            type: Number, default: 0
+        },
+        offer: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Offer",
+        },
         storage_size: {
             type: String,
             default:null,
@@ -51,12 +58,14 @@ const productSchema = new mongoose.Schema({
             type: String,
             required: true
         },
-        images: [{ // Array to handle multiple images for each variant
+        images: [{
             type: String,
             required: false
         }]
     }]
-}, {
+},
+
+ {
     timestamps: true,
 });
 

@@ -300,21 +300,45 @@ exports.loginUserGet = async (req, res) => {
 // POST: Get home page data
 exports.getHomePagePOST = async (req, res) => {
     try {
-        const products = await Products.find({ isDelete: false });
+        const products = await Products.aggregate([
+            {
+              $match: {
+                isDelete: false
+              }
+            },
+            {
+              $unwind: "$variants" 
+            },
+            {
+              $lookup: {
+                from: "offers", 
+                localField: "variants.offer", 
+                foreignField: "_id", 
+                as: "variants.offer" 
+              }
+            },
+            {
+              $unwind: {
+                path: "$variants.offer",  
+                preserveNullAndEmptyArrays: true 
+              }
+            },
+          ]);
+
+        // res.json(products)
         const categories = await Category.find({ isDeleted: false });
         
-        // Assuming you're sending query parameters as part of the request
-        const query = req.query.search || ''; // Get query param or set to an empty string if not present
+     
+        const query = req.query.search || '';
 
         const isUserLoggedIn = req.session.user ? true : false;
         
-        // Pass the query to the view
         res.render('user/home', {
             title: 'Home',
             products,
             categories,
             isUserLoggedIn,
-            query, // Pass query here
+            query,
             layout: 'layouts/homeLayout'
         });
     } catch (error) {
@@ -323,27 +347,40 @@ exports.getHomePagePOST = async (req, res) => {
     }
 };
 
-
-
 // GET: View a single product
 exports.viewProductGET = async (req, res) => {
     try {
         const id = req.params.id;
-        const product = await Products.findById(id)
-            .populate('category_id', 'category_name')
-            .populate('brand_id', 'brand_name');
         
+        // Find the product by ID and populate related fields
+        const product = await Products.findById(id)
+            .populate({
+                path: 'variants.offer',
+                model: 'Offer',
+            })
+            .populate('brand_id')  
+            .populate('category_id');
+
+        // If product not found or marked as deleted, send a 404 response
         if (!product || product.isDelete) {
             return res.status(404).send('Product not found');
         }
 
+        // Fetch related products based on the same category
         const relatedCategory = product.category_id._id;
-        const relatedProducts = await Products.find({ category_id: relatedCategory, isDelete: false });
+        const relatedProducts = await Products.find({
+            category_id: relatedCategory,
+            isDelete: false,
+            _id: { $ne: id }  // Exclude the current product
+        });
+
+        // Determine if the user is logged in
         const isUserLoggedIn = req.session.user ? true : false;
 
-        // Set the default selectedVariant as the first variant
+        // Set the default selected variant as the first variant in the product
         const selectedVariant = product.variants[0];
 
+        // Render the product EJS page with the required data
         res.render('user/product', {
             product,
             selectedVariant,
@@ -352,8 +389,9 @@ exports.viewProductGET = async (req, res) => {
             related_products: relatedProducts,
             isUserLoggedIn
         });
+
     } catch (error) {
-        console.log('Error occurred while loading single product view page:', error);
+        console.error('Error occurred while loading single product view page:', error);
         res.status(500).send('Server error');
     }
 };

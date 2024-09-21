@@ -7,6 +7,7 @@ const flash = require('connect-flash');
 const Products = require('../models/productModel');
 const Orders = require('../models/orderModel');
 const Coupon = require('../models/coupenModel');
+const Offer = require('../models/offerModal');
 
 // Get All Users (Admin only)
 exports.adminLoginGET = async (req, res) => {
@@ -738,10 +739,93 @@ exports.add_couponPOST = async (req, res) => {
 
 exports.offerAdminGET = async (req, res) => {
     try {
-        const offers = await Offers.find();
-        res.render('admin/offers', {offers , title: 'Offer Management', layout: 'layouts/adminLayout' });
+        const offerData = await Offer.find();
+        const productData = await Product.aggregate([
+            {
+              $unwind: "$variants"  // Unwind the variants array
+            },
+            {
+              $lookup: {
+                from: "offers",  // The name of the Offer collection
+                localField: "variants.offer",  // Field in variants to match with the Offer collection
+                foreignField: "_id",  // Field in the Offer collection to match against
+                as: "variants.offer"  // Output field where the matching offer will be added
+              }
+            },
+            {
+              $unwind: {
+                path: "$variants.offer",  // Unwind the populated offer field
+                preserveNullAndEmptyArrays: true  // Preserve variants without an offer
+              }
+            },
+          ]);
+          
+          console.log(productData, '');
+
+        //   res.json({productData});
+          
+        const categoryData = await Category.find()
+        const referralData = ['']
+        offerData ? offerData : []
+        productData ? productData : []
+        categoryData ? categoryData : []
+        res.render("admin/offers", { offerData, productData , referralData, categoryData, title: 'Offer Management',  layout: 'layouts/adminLayout'}); 
     }catch(error){
         console.log('Error occurred while loading offer page:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 }
+
+exports.addOfferPOST = async (req, res) => {
+    try {
+        const {offerName, offerPercentage, offerStartDate, offerEndDate  } = req.body;
+        console.log(req.body)
+        const newOffer = new Offer({
+            offer_name: offerName,
+            offer_percentage: offerPercentage,
+            offer_start_date: new Date(offerStartDate),
+            offer_end_date: new Date(offerEndDate),
+        });
+
+        await newOffer.save();
+        req.flash("success", "new offer added successfully");
+        res.redirect("/admin/offers");
+    } catch (error) {
+        console.log('Error occurred while adding offer:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+}
+exports.updateOfferPOST = async (req, res) => {
+    try {
+      const { productId, offerId, variantId } = req.body;
+      console.log(req.body);
+  
+      const productData = await Product.findOne({ _id: productId, "variants._id": variantId });
+
+      console.log(productData,'productData')
+      const offerData = await Offer.findOne({ _id: offerId });
+  
+      if (!productData || !offerData) {
+        return res.status(404).json({ error: "Product or offer not found" });
+      }
+  
+      const variant = productData.variants.id(variantId);
+  
+      if (!variant) {
+        return res.status(404).json({ error: "Variant not found" });
+      }
+  
+      const discountPrice = (variant.price * offerData.offer_percentage) / 100;
+  
+      variant.discount_price = discountPrice;
+      variant.offer = offerId;
+
+      await productData.save();
+  
+      res.json({ success: true, message: "Offer added successfully to the variant" });
+    } catch (error) {
+      console.log("Error occurred while updating offer:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  };
+  

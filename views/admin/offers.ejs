@@ -1,0 +1,453 @@
+<div class="main-panel">
+    <div class="content-wrapper">
+      <div class="row">
+        <div class="col-12">
+          <div class="home-tab">
+            <div class="d-sm-flex align-items-center justify-content-between border-bottom">
+              <ul class="nav nav-tabs" role="tablist">
+                <li class="nav-item">
+                  <a class="nav-link active ps-0" id="home-tab" data-bs-toggle="tab" href="#overview" role="tab" aria-controls="overview" aria-selected="true">Offer Management</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" id="profile-tab" data-bs-toggle="tab" href="#products" role="tab" aria-selected="false">Products</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" id="contact-tab" data-bs-toggle="tab" href="#category" role="tab" aria-selected="false">Categories</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link border-0" id="more-tab" data-bs-toggle="tab" href="#referrals" role="tab" aria-selected="false">Referrals</a>
+                </li>
+              </ul>
+            </div>
+  
+            <!-- Main Tab Content -->
+            <div class="tab-content tab-content-basic">
+              <!-- Overview Tab -->
+              <div class="tab-pane fade show active" id="overview" role="tabpanel" aria-labelledby="overview">
+                <div class="col-lg-12 grid-margin stretch-card">
+                  <div class="card">
+                    <div class="card-body">
+                      <div class="row">
+                        <div class="col-lg-9">
+                          <h4 class="card-title">Offer Management</h4>
+                          <p class="card-description">Manage Offer details</p>
+                        </div>
+                        <div class="col-lg-3 text-end">
+                          <button type="button" class="btn btn-lg btn-inverse-info" data-bs-toggle="modal" data-bs-target="#addCouponModal">+ Add New Offer</button>
+                        </div>
+                      </div>
+  
+                      <!-- Flash Messages -->
+                      <div>
+                        <% if (messages.success) { %>
+                          <div class="alert alert-success"><%= messages.success %></div>
+                        <% } %>
+                        <% if (messages.error) { %>
+                          <div class="alert alert-danger"><%= messages.error %></div>
+                        <% } %>
+                      </div>
+  
+                      <div class="table-responsive">
+                        <table class="table table-striped">
+                          <thead>
+                            <tr>
+                              <th>Offer Name</th>
+                              <th>Discount</th>
+                              <th>Start Date</th>
+                              <th>Expiry Date</th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <% offerData.forEach(element => { %>
+                            <tr>
+                              <td><%= element.offer_name %></td>
+                              <td><%= element.offer_percentage %>%</td>
+                              <td><%= new Date(element.offer_start_date).toLocaleString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true }) %></td>
+                              <td><%= new Date(element.offer_end_date).toLocaleString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true }) %></td>
+                              <td>
+                                <div class="d-flex justify-content-center">
+                                  <div class="mx-2">
+                                    <a href="#" class="btn btn-primary btn-rounded btn-icon btn-sm" data-bs-toggle="modal" data-bs-target="#editOfferModal" onclick="populateEditModal('<%= element._id %>','<%= element.offer_name %>','<%= element.offer_percentage %>','<%= element.offer_start_date %>','<%= element.offer_end_date %>')">
+                                      <span>Edit</span>
+                                    </a>
+                                  </div>
+                                  <div>
+                                    <% if (element.is_delete) { %>
+                                    <a href="/admin/offerManagement/unBlockOffer/<%= element._id %>" class="btn btn-secondary btn-sm">UnBlock</a>
+                                    <% } else { %>
+                                    <a href="/admin/offerManagement/blockOffer/<%= element._id %>" class="btn btn-danger btn-sm">Block</a>
+                                    <% } %>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                            <% }) %>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+  
+              <!-- Products Tab -->
+              <div class="tab-pane fade" id="products" role="tabpanel" aria-labelledby="products">
+                <div class="col-lg-12 grid-margin stretch-card">
+                  <div class="card">
+                    <div class="card-body">
+                      <div class="row">
+                        <div class="col-lg-9">
+                          <h4 class="card-title">Product Offer Management</h4>
+                          <p class="card-description">Manage Product Offer details</p>
+                        </div>
+                      </div>
+  
+                      <!-- Flash Messages -->
+                      <div>
+                        <% if (messages.success) { %>
+                          <div class="alert alert-success"><%= messages.success %></div>
+                        <% } %>
+                        <% if (messages.error) { %>
+                          <div class="alert alert-danger"><%= messages.error %></div>
+                        <% } %>
+                      </div>
+  
+                      <div class="table-responsive">
+                        <table class="table table-striped">
+                          <thead>
+                            <tr>
+                              <th>Product Name</th>
+                              <th>Color</th>
+                              <th>Discount</th>
+                              <th>Start Date</th>
+                              <th>Expiry Date</th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <% productData.forEach(element => { %>
+                            <tr>
+                              <td><%= element.product_name %></td>
+                              <td><%= element.variants.color %></td>
+                              <% if (element.variants.offer) { %>
+                              <td><%= element.variants.offer.offer_percentage %>%</td>
+                              <td><%= new Date(element.variants.offer.offer_start_date).toLocaleString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true }) %></td>
+                              <td><%= new Date(element.variants.offer.offer_end_date).toLocaleString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true }) %></td>
+                              <% } else { %>
+                              <td>No Offer</td>
+                              <td>Null</td>
+                              <td>Null</td>
+                              <% } %>
+                              <td>
+                                <div class="form-group">
+                                    <select class="form-select" onchange="updateOffer('<%= element._id %>', this.value, '<%= element.variants._id %>')">
+                                    <option value="">Select Offer</option>
+                                    <% offerData.forEach(offer => { %>
+                                      <option value="<%= offer._id %>" <% if(element.offer && offer._id === element.offer._id) { %> selected <% } %>> <%= offer.offer_name %> - <%= offer.offer_percentage %>%</option>
+                                    <% }) %>
+                                  </select>
+                                </div>
+                              </td>
+                            </tr>
+                            <% }) %>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+  
+             <!-- Categories Tab -->
+<div class="tab-pane fade" id="category" role="tabpanel" aria-labelledby="category">
+    <div class="col-lg-12 grid-margin stretch-card">
+      <div class="card">
+        <div class="card-body">
+          <div class="row">
+            <div class="col-lg-9">
+              <h4 class="card-title">Category Offer Management</h4>
+              <p class="card-description">Manage Category Offer details</p>
+            </div>
+          </div>
+  
+          <!-- Flash Messages -->
+          <div>
+            <% if (messages.success) { %>
+              <div class="alert alert-success"><%= messages.success %></div>
+            <% } %>
+            <% if (messages.error) { %>
+              <div class="alert alert-danger"><%= messages.error %></div>
+            <% } %>
+          </div>
+  
+          <div class="table-responsive">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>Category Name</th>
+                  <th>Discount</th>
+                  <th>Start Date</th>
+                  <th>Expiry Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% categoryData.forEach(category => { %>
+                <tr>
+                  <td><%= category.name %></td>
+                  <% if (category.offer) { %>
+                  <td><%= category.offer.offer_percentage %>%</td>
+                  <td><%= new Date(category.offer.offer_start_date).toLocaleString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true }) %></td>
+                  <td><%= new Date(category.offer.offer_end_date).toLocaleString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true }) %></td>
+                  <% } else { %>
+                  <td>No Offer</td>
+                  <td>Null</td>
+                  <td>Null</td>
+                  <% } %>
+                  <td>
+                    <div class="form-group">
+                      <select class="form-select" onchange="updateCategoryOffer('<%= category._id %>', this.value)">
+                        <option value="">Select Offer</option>
+                        <% offerData.forEach(offer => { %>
+                          <option value="<%= offer._id %>" <% if(category.offer && offer._id === category.offer._id) { %> selected <% } %>> 
+                            <%= offer.offer_name %> - <%= offer.offer_percentage %>%</option>
+                        <% }) %>
+                      </select>
+                    </div>
+                  </td>
+                </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Referrals Tab -->
+  <div class="tab-pane fade" id="referrals" role="tabpanel" aria-labelledby="referrals">
+    <div class="col-lg-12 grid-margin stretch-card">
+      <div class="card">
+        <div class="card-body">
+          <h4 class="card-title">Referral Management</h4>
+          <p class="card-description">Manage Referral details</p>
+          <div class="table-responsive">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>Referral Code</th>
+                  <th>Referral Count</th>
+                  <th>Discount</th>
+                  <th>Expiry Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% referralData.forEach(referral => { %>
+                <tr>
+                  <td><%= referral.code %></td>
+                  <td><%= referral.count %></td>
+                  <td><%= referral.discount %>%</td>
+                  <td><%= new Date(referral.expiry_date).toLocaleString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true }) %></td>
+                  <td>
+                    <div class="d-flex justify-content-center">
+                      <div class="mx-2">
+                        <a href="#" class="btn btn-primary btn-rounded btn-icon btn-sm" data-bs-toggle="modal" data-bs-target="#editReferralModal" onclick="populateEditReferralModal('<%= referral._id %>','<%= referral.code %>','<%= referral.count %>','<%= referral.discount %>','<%= referral.expiry_date %>')">
+                          <span>Edit</span>
+                        </a>
+                      </div>
+                      <div>
+                        <% if (referral.is_delete) { %>
+                        <a href="/admin/referralManagement/unBlockReferral/<%= referral._id %>" class="btn btn-secondary btn-sm">UnBlock</a>
+                        <% } else { %>
+                        <a href="/admin/referralManagement/blockReferral/<%= referral._id %>" class="btn btn-danger btn-sm">Block</a>
+                        <% } %>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modals for Add and Edit Offers and Referrals -->
+  <!-- Add Offer Modal -->
+  <div class="modal fade" id="addCouponModal" tabindex="-1" role="dialog" aria-labelledby="addCouponModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addCouponModalLabel">Add New Offer</h5>
+          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form action="/admin/addOffer" method="POST">
+            <div class="form-group">
+              <label for="offerName">Offer Name</label>
+              <input type="text" class="form-control" id="offerName" name="offerName" required>
+            </div>
+            <div class="form-group">
+              <label for="offerPercentage">Offer Percentage</label>
+              <input type="number" class="form-control" id="offerPercentage" name="offerPercentage" required>
+            </div>
+            <div class="form-group">
+              <label for="offerStartDate">Start Date</label>
+              <input type="datetime-local" class="form-control" id="offerStartDate" name="offerStartDate" required>
+            </div>
+            <div class="form-group">
+              <label for="offerEndDate">End Date</label>
+              <input type="datetime-local" class="form-control" id="offerEndDate" name="offerEndDate" required>
+            </div>
+            <div class="modal-footer">
+              <button type="submit" class="btn btn-primary">Add Offer</button>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Edit Offer Modal -->
+  <div class="modal fade" id="editOfferModal" tabindex="-1" role="dialog" aria-labelledby="editOfferModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editOfferModalLabel">Edit Offer</h5>
+          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form action="/admin/offerManagement/editOffer" method="POST">
+            <input type="hidden" id="editOfferId" name="offerId">
+            <div class="form-group">
+              <label for="editOfferName">Offer Name</label>
+              <input type="text" class="form-control" id="editOfferName" name="offerName" required>
+            </div>
+            <div class="form-group">
+              <label for="editOfferPercentage">Offer Percentage</label>
+              <input type="number" class="form-control" id="editOfferPercentage" name="offerPercentage" required>
+            </div>
+            <div class="form-group">
+              <label for="editOfferStartDate">Start Date</label>
+              <input type="datetime-local" class="form-control" id="editOfferStartDate" name="offerStartDate" required>
+            </div>
+            <div class="form-group">
+              <label for="editOfferEndDate">End Date</label>
+              <input type="datetime-local" class="form-control" id="editOfferEndDate" name="offerEndDate" required>
+            </div>
+            <div class="modal-footer">
+              <button type="submit" class="btn btn-primary">Save Changes</button>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </form>
+    </div>
+</div>
+</div>
+</div>
+<script>
+  function validDetailsModal() {
+    var name = document.getElementById("add_coupon_code").value;
+    let discount = document.getElementById("add_discount").value;
+    document.getElementById("add-coupon-error").textContent = "";
+    document.getElementById("add-discount-error").textContent = "";
+
+    if (!name || name.trim().length == 0) {
+      document.getElementById("add-coupon-error").innerHTML =
+        "Field is required";
+      return false;
+    }
+    if (!discount || discount.trim().length == 0) {
+      document.getElementById("add-discount-error").innerHTML =
+        "Field is required";
+      return false;
+    }
+
+    return true;
+  }
+
+  function populateEditModal(
+  offerId,
+  offerName,
+  discount,
+  startDate,
+  expiryDate
+) {
+
+  document.getElementById("editCouponForm").action = `/admin/offerManagment/editOffer/${offerId}`;
+ 
+  // Set the current offer details in the input fields
+  document.getElementById("editOfferId").value = offerId;
+  document.getElementById("edit_coupon_code").value = offerName;
+  document.getElementById("edit_discount").value = discount;
+  document.getElementById("edit_start_date").value = new Date(startDate)
+    .toISOString()
+    .split("T")[0];
+  document.getElementById("edit_expiry_date").value = new Date(expiryDate)
+    .toISOString()
+    .split("T")[0];
+}
+
+  function updateOffer(productId, offerId, variantId) {
+    if (!offerId) return; // Don't do anything
+
+
+    // Send AJAX request to update the offer for the product
+    fetch(`/admin/updateOffer`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ productId, offerId, variantId }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          alert("Offer updated successfully");
+          window.location.reload();
+        } else {
+          alert("Failed to update offer");
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        alert("An error occurred while updating the offer.");
+      });
+  }
+
+  function updateCategoryOffer(categoryId, offerId) {
+    if (!offerId) return; // Don't do anything if no offer is selected
+
+    // Send AJAX request to update the offer for the product
+    fetch(`/admin/offerManagement/ChangeCategoryOffer`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ categoryId, offerId }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          alert("Offer updated successfully");
+          window.location.reload();
+        } else {
+          alert("Failed to update offer");
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        alert("An error occurred while updating the offer.");
+      });
+  }
+</script>
+

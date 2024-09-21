@@ -54,6 +54,7 @@ router.get('/coupons', isAuthenticatedAdmin, adminControllers.couponGET);
 router.post('/add-coupon', isAuthenticatedAdmin, adminControllers.add_couponPOST);
 
 router.get('/offers', isAuthenticatedAdmin, adminControllers.offerAdminGET);
-
+router.post('/addOffer',isAuthenticatedAdmin, adminControllers.addOfferPOST);
+router.post('/updateOffer',isAuthenticatedAdmin, adminControllers.updateOfferPOST);
 module.exports = router;
 
