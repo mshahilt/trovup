@@ -18,7 +18,6 @@ exports.adminLoginGET = async (req, res) => {
 exports.adminLoginPOST = async (req, res) => {
     const { email, password } = req.body;
 
-    console.log('admin post');
     
     if (email && password) {
         try {
@@ -662,39 +661,54 @@ exports.orderGET = async (req, res) => {
       res.status(500).json({ error: 'Internal server error' });
     }
   };
-  
-  
-  
-exports.update_order_statusPOST = async (req, res) => {
+  exports.update_order_statusPOST = async (req, res) => {
     try {
-      const { orderId, status } = req.body;
-  
-      if (!orderId || !status) {
-        return res.status(400).json({ message: 'Order ID and status are required.' });
-      }
+        console.log('Update order status request body:', req.body);
 
-      const order = await Orders.findById(orderId);
-      if (!order) {
-        return res.status(404).json({ message: 'Order not found.' });
-      }
-  
-      const previousStatus = order.orderStatus;
-  
-      order.orderStatus = status;
+        const { itemId, status } = req.body;
 
-      await order.save();
-  
-      res.status(200).json({ 
-        message: `Order status updated from ${previousStatus} to ${status}.`, 
-        previousStatus, 
-        updatedStatus: status 
-      });
-  
+        console.log(`Updating order status for item ${itemId} to ${status}`);
+
+        // Find the order containing the specified item
+        const order = await Orders.findOne({ 'items._id': itemId });
+
+        if (!order) {
+            console.error(`Order not found for item ID: ${itemId}`);
+            return res.status(404).json({ message: 'Order not found.' });
+        }
+
+        console.log(`Found order: ${JSON.stringify(order)}`);
+
+        // Find the specific item within the order
+        const item = order.items.id(itemId);
+
+        if (!item) {
+            console.error(`Item with ID: ${itemId} not found in order.`);
+            return res.status(404).json({ message: 'Item not found.' });
+        }
+
+        console.log(`Found item: ${JSON.stringify(item)}`);
+
+        // Prevent cancellation if the item is already delivered
+        if (item.orderStatus === 'Delivered' && status === 'Cancelled') {
+            console.error(`Cannot cancel an item that is already delivered.`);
+            return res.status(400).json({ message: 'Cannot cancel an item that has already been delivered.' });
+        }
+
+        // Update the order status directly
+        item.orderStatus = status;
+        await order.save();
+
+        console.log(`Successfully updated item status. Updated order: ${JSON.stringify(order)}`);
+        res.status(200).json({ message: 'Order status updated successfully.' });
     } catch (error) {
-      console.error('Error updating order status:', error);
-      res.status(500).json({ message: 'Internal server error.' });
+        console.error('Error updating order status:', error);
+        res.status(500).json({ message: 'Internal server error.' });
     }
-  };
+};
+
+
+
 
   exports.couponGET = async (req, res) => {
     try {
@@ -742,20 +756,20 @@ exports.offerAdminGET = async (req, res) => {
         const offerData = await Offer.find();
         const productData = await Product.aggregate([
             {
-              $unwind: "$variants"  // Unwind the variants array
+              $unwind: "$variants"  
             },
             {
               $lookup: {
-                from: "offers",  // The name of the Offer collection
-                localField: "variants.offer",  // Field in variants to match with the Offer collection
-                foreignField: "_id",  // Field in the Offer collection to match against
-                as: "variants.offer"  // Output field where the matching offer will be added
+                from: "offers", 
+                localField: "variants.offer", 
+                foreignField: "_id", 
+                as: "variants.offer" 
               }
             },
             {
               $unwind: {
-                path: "$variants.offer",  // Unwind the populated offer field
-                preserveNullAndEmptyArrays: true  // Preserve variants without an offer
+                path: "$variants.offer",  
+                preserveNullAndEmptyArrays: true 
               }
             },
           ]);
@@ -797,35 +811,66 @@ exports.addOfferPOST = async (req, res) => {
 }
 exports.updateOfferPOST = async (req, res) => {
     try {
-      const { productId, offerId, variantId } = req.body;
-      console.log(req.body);
-  
-      const productData = await Product.findOne({ _id: productId, "variants._id": variantId });
+        const { productId, offerId, variantId } = req.body;
+        console.log(req.body);
 
-      console.log(productData,'productData')
-      const offerData = await Offer.findOne({ _id: offerId });
-  
-      if (!productData || !offerData) {
-        return res.status(404).json({ error: "Product or offer not found" });
-      }
-  
-      const variant = productData.variants.id(variantId);
-  
-      if (!variant) {
-        return res.status(404).json({ error: "Variant not found" });
-      }
-  
-      const discountPrice = (variant.price * offerData.offer_percentage) / 100;
-  
-      variant.discount_price = discountPrice;
-      variant.offer = offerId;
+        const productData = await Product.findOne({ _id: productId, "variants._id": variantId });
+        console.log(productData, 'productData');
 
-      await productData.save();
-  
-      res.json({ success: true, message: "Offer added successfully to the variant" });
+        const offerData = await Offer.findOne({ _id: offerId });
+
+        if (!productData || !offerData) {
+            return res.status(404).json({ error: "Product or offer not found" });
+        }
+
+        const variant = productData.variants.id(variantId);
+
+        if (!variant) {
+            return res.status(404).json({ error: "Variant not found" });
+        }
+
+        // Corrected discount price calculation
+        const discountPrice = variant.price - (variant.price * offerData.offer_percentage / 100);
+
+        variant.discount_price = discountPrice;
+        variant.offer = offerId;
+
+        await productData.save();
+
+        res.json({ success: true, message: "Offer added successfully to the variant" });
     } catch (error) {
-      console.log("Error occurred while updating offer:", error);
-      res.status(500).json({ error: "Internal server error" });
+        console.log("Error occurred while updating offer:", error);
+        res.status(500).json({ error: "Internal server error" });
     }
-  };
-  
+};
+
+
+exports.accept_return_requestPOST = async (req, res) => {
+    try {
+        const { itemId, orderId } = req.body;
+
+        const order = await Orders.findOne({ orderId });
+        
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+
+        const item = order.items.find(item => item._id.toString() === itemId);
+        
+        if (!item) {
+            return res.status(404).json({ message: 'Item not found in the order' });
+        }
+        if (!item.isReturnRequested) {
+            return res.status(400).json({ message: 'Return request has not been made for this item' });
+        }
+
+        item.isAdminAcceptedReturn = 'Accepted';
+
+        await order.save();
+
+        return res.status(200).json({ message: 'Return request accepted successfully', order });
+    } catch (error) {
+        console.error('Error occurred while accepting the return request', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+};

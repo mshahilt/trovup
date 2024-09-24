@@ -8,7 +8,6 @@ const Addresses = require('../models/addressModel');
 const { isLoggedIn } = require('../middleware/userAuth');
 const { storeUserSession } = require('../utility/sessionUtil');
 const Coupon = require('../models/coupenModel');
-
 // GET: Add to Cart Page
 exports.addToCartGET = async (req, res) => {
     try {
@@ -21,15 +20,14 @@ exports.addToCartGET = async (req, res) => {
                     const variant = item.product.variants.find(v => v._id.toString() === item.variantId);
                     if (variant) {
                         item.variantImage = variant.images[0];
-                        item.price = variant.price; 
-                        console.log(item.price,'from loop in cart');
+                        item.price = variant.discount_price ? variant.discount_price : variant.price; 
+                        console.log(item.price, 'from loop in cart');
                     }
                 }
             }
 
             const isUserLoggedIn = req.session.user;
             res.render('user/cart', { cart, title: 'Cart', isUserLoggedIn, layout: 'layouts/homeLayout' });
-            // res.json(cart);
         } else {
             req.flash('error', 'You need to log in to access the cart.');
             res.redirect('/login');
@@ -39,9 +37,6 @@ exports.addToCartGET = async (req, res) => {
         res.status(500).send('An error occurred');
     }
 };
-
-
-
 // POST: Add Product Variant to Cart
 exports.addToCartPost = async (req, res) => {
     try {
@@ -74,13 +69,23 @@ exports.addToCartPost = async (req, res) => {
         }
 
         const existingItemIndex = cart.items.findIndex(item => item.product.toString() === product_Id && item.variantId === variantId);
+        const maxQuantity = 5;
 
         if (existingItemIndex > -1) {
-            if (cart.items[existingItemIndex].quantity + 1 > variant.stock) {
-                return res.status(400).json({ success: false, message: 'Not enough stock available' });
+            const currentQuantity = cart.items[existingItemIndex].quantity;
+
+            // Check if adding another item exceeds the maximum quantity allowed
+            if (currentQuantity >= maxQuantity) {
+                return res.status(400).json({ success: false, message: 'Cannot add more than 5 of the same item' });
             }
+
             cart.items[existingItemIndex].quantity += 1;
         } else {
+            // Check if adding this new item exceeds the maximum quantity allowed
+            if (1 > maxQuantity) {
+                return res.status(400).json({ success: false, message: 'Cannot add more than 5 of the same item' });
+            }
+
             cart.items.push({ product: product_Id, variantId, quantity: 1 });
         }
 
@@ -91,9 +96,6 @@ exports.addToCartPost = async (req, res) => {
         res.status(500).json({ success: false, message: 'An error occurred' });
     }
 };
-
-
-
 
 // PUT: Update Cart Quantity
 exports.updateCartQuantity = async (req, res) => {
@@ -130,9 +132,7 @@ exports.updateCartQuantity = async (req, res) => {
         return res.status(500).json({ success: false, message: 'An error occurred while updating cart quantity' });
     }
 };
-const mongoose = require('mongoose');
 
-// GET: Proceed to Checkout Page
 exports.cartCheckout = async (req, res) => {
     try {
         const userId = req.session.user.user;
@@ -141,7 +141,7 @@ exports.cartCheckout = async (req, res) => {
 
         const appliedCoupon = await Coupon.findOne({
             "users.userId": userId,
-            "users.isBought":false
+            "users.isBought": false
         });
 
         let cartTotal = 0;
@@ -150,8 +150,10 @@ exports.cartCheckout = async (req, res) => {
             for (let item of cart.items) {
                 const variant = item.product.variants.find(v => v._id.toString() === item.variantId);
                 if (variant) {
-                    item.price = variant.price;
-                    cartTotal += item.price * item.quantity;
+                    // Use discount_price instead of price
+                    const priceToUse = variant.discount_price || variant.price; // Fallback to original price if discount_price is not set
+                    item.price = priceToUse;
+                    cartTotal += priceToUse * item.quantity;
                 }
             }
         }
@@ -178,6 +180,7 @@ exports.cartCheckout = async (req, res) => {
         console.log('Error occurred while loading proceed to checkout page:', error);
     }
 };
+
 
 // POST: Save Address for Checkout
 exports.save_addressPOST = async (req, res) => {
@@ -289,7 +292,11 @@ exports.apply_couponPOST = async (req, res) => {
         for (let item of cart.items) {
             const variant = item.product.variants.find(v => v._id.toString() === item.variantId);
             if (variant) {
-                cartTotal += variant.price * item.quantity;
+                if(variant.offer){
+                    cartTotal += variant.discount_price * item.quantity
+                }else{
+                    cartTotal += variant.price * item.quantity
+                }                
             }
         }
 

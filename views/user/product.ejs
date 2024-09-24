@@ -1,10 +1,14 @@
-<!-- Breadcrumb -->
 <style>
     /* Styles for the product page */
     .product-images {
         display: flex;
         flex-direction: column;
         gap: 10px;
+    }
+    .buy-button {
+        background-color: #343a40 !important; /* Dark color */
+        border-color: #343a40 !important;
+        color: white !important;
     }
 
     .main-image-container {
@@ -189,8 +193,8 @@
 
             <!-- Buy Now -->
             <div class="mb-3 mt-5">
-                <button class="btn btn-primary btn-lg buy-button" data-action="buy-now">Buy Now</button>
-                <button class="btn btn-primary btn-lg buy-button" data-action="add-to-cart">Add To Cart</button>
+                <button class="btn btn-dark btn-lg buy-button" data-action="add-to-wishlist">Add To Wishlist</button>
+                <button class="btn btn-dark btn-lg buy-button" data-action="add-to-cart">Add To Cart</button>
             </div>
 
             <!-- Delivery Options -->
@@ -245,15 +249,24 @@
     let selectedVariant = product.variants[0];
 
     document.addEventListener('DOMContentLoaded', function() {
-        // Event listener for Buy Now and Add to Cart buttons
-        document.querySelectorAll('.buy-button').forEach(button => {
+        // Event listener for Buy Now, Add to Cart, and Add to Wishlist buttons
+        document.querySelectorAll('.buy-button, .wishlist-button').forEach(button => {
             button.addEventListener('click', async function() {
                 const action = this.getAttribute('data-action');
                 const productId = '<%= product._id %>';
                 const variantId = selectedVariant._id;
 
+                let url = '';
+                if (action === 'buy-now') {
+                    url = `/cart/buy/${productId}`;
+                } else if (action === 'add-to-cart') {
+                    url = `/cart/add/${productId}`;
+                } else if (action === 'add-to-wishlist') {
+                    url = `/wishlist/add/${productId}`;
+                }
+
                 try {
-                    const response = await fetch(`/cart/${action === 'buy-now' ? 'buy' : 'add'}/${productId}`, {
+                    const response = await fetch(url, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -266,14 +279,16 @@
                     if (result.success) {
                         Swal.fire({
                             icon: 'success',
-                            title: action === 'buy-now' ? 'Proceeding to Checkout!' : 'Added to Cart!',
+                            title: action === 'buy-now' ? 'Proceeding to Checkout!' 
+                                  : action === 'add-to-cart' ? 'Added to Cart!' 
+                                  : 'Added to Wishlist!',
                             text: result.message,
                             timer: 1500,
                             showConfirmButton: false
                         }).then(() => {
                             if (action === 'buy-now') {
                                 window.location.href = '/checkout';
-                            } else {
+                            } else if (action === 'add-to-cart') {
                                 window.location.href = result.redirectUrl;
                             }
                         });
@@ -368,4 +383,3 @@
 
     });
 </script>
-

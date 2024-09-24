@@ -1,0 +1,171 @@
+<% if (wishListData.length > 0) { %>
+    <section class="h-100 h-custom" style="background-color: #9e9e9e">
+      <div class="container py-5 h-100">
+        <div class="row d-flex justify-content-center align-items-center h-100">
+          <div class="col-12">
+            <div class="card card-registration card-registration-2" style="border-radius: 15px">
+              <div class="card-body p-0">
+                <div class="row g-0">
+                  <div class="col-lg-12">
+                    <div class="p-5">
+                      <div class="d-flex justify-content-between align-items-center mb-5">
+                        <h1 class="fw-bold mb-0">Wishlist</h1>
+                        <h6 class="mb-0 text-muted"><%= wishListData.length %> items</h6>
+                      </div>
+                      <hr class="my-4" />
+    
+                      <% wishListData.forEach(wishlistItem => { %>
+                        <% const product = wishlistItem.product; %>
+                        <% const variant = product.variants.find(v => v._id.toString() === wishlistItem.variantId); %>
+                        <% if (!product.isDelete && variant) { %>
+                          <div class="row mb-4 d-flex justify-content-between align-items-center">
+                            <div class="col-md-2 col-lg-2 col-xl-2 d-flex align-items-center justify-content-center">
+                              <img src="/<%= variant.images[0] %>" class="img-fluid" style="width: 80px;" alt="Product Image" />
+                            </div>
+                            <div class="col-md-3 col-lg-3 col-xl-3">
+                              <h6 class="text-muted"><%= product.product_name %> - <%= variant.storage_size %> / <%= variant.color %></h6>
+                            </div>
+                            <div class="col-2 d-flex justify-content-center align-items-center">
+                              <% if (variant.stock <= 0) { %>
+                                <h3 class="text-muted">Out of Stock</h3>
+                              <% } else { %>
+                                <h3 class="text-success fw-bold">In Stock</h3>
+                              <% } %>
+                            </div>
+                            <div class="col-2 d-flex justify-content-center align-items-center">
+                              <% if (variant.stock <= 0) { %>
+                                <h6 class="mb-0 text-muted"><del>₹ <%= variant.price %></del></h6>
+                              <% } else { %>
+                                <% if (variant.discount_price) { %>
+                                  <h6 class="mb-0 text-danger"><del>₹ <%= variant.price %></del> ₹ <%= variant.discount_price %></h6>
+                                <% } else { %>
+                                  <h6 class="mb-0">₹ <%= variant.price %></h6>
+                                <% } %>
+                              <% } %>
+                            </div>
+                            <div class="col-2 d-flex justify-content-center align-items-center">
+                              <% if (variant.stock <= 0) { %>
+                                <button class="btn btn-outline-secondary px-2" style="font-size: 12px; pointer-events: none;">
+                                  <del>Out of Stock</del>
+                                </button>
+                              <% } else { %>
+                                <button class="btn btn-primary fs-4" onclick="addToCart('<%= product._id %>', '<%= variant._id %>')">Add to cart</button>
+                              <% } %>
+                            </div>
+                            <div class="col-1 d-flex justify-content-center align-items-center">
+                              <button onclick="deleteItem('<%= wishlistItem._id %>', '<%= variant._id %>')" style="border: none; background: none; padding: 0; cursor: pointer;" class="text-muted">
+                                <i class="fas fa-times"></i>
+                              </button>
+                            </div>
+                          </div>
+                          <hr class="my-4" />
+                        <% } %>
+                      <% }) %>
+    
+                      <div class="pt-5" style="display: flex; justify-content: space-between">
+                        <h6 class="mb-0">
+                          <a href="/products" class="text-body">
+                            <i class="fas fa-long-arrow-alt-left me-2"></i>Back to shop
+                          </a>
+                        </h6>
+                      </div>
+                      <div class="pt-5"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+    </section>
+    
+    <% } else { %>
+    <section class="h-100 h-custom" style="background-color: #d2c9ff">
+      <div class="container py-5 h-100">
+        <div class="row d-flex justify-content-center align-items-center h-100">
+          <div class="col-md-12">
+            <div class="card card-registration card-registration-2" style="border-radius: 15px">
+              <div class="card-body cart">
+                <div class="col-sm-12 empty-cart-cls text-center">
+                  <img src="https://i.imgur.com/dCdflKN.png" width="180" height="180" class="img-fluid mb-4 mr-3">
+                  <h2><strong>Your wishlist is Empty</strong></h2>
+                  <h3>Add something to make me happy:</h3>
+                  <a href="/home/shop" class="btn btn-primary cart-btn-transform btn-lg m-3" data-abc="true">Continue Shopping</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <% } %>
+    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+      function deleteItem(product_id, variant_id) {
+        Swal.fire({
+          title: "Are you sure to delete this item?",
+          showCancelButton: true,
+          customClass: { popup: "swal-custom-font1" }
+        }).then((result) => {
+          if (result.isConfirmed) {
+            fetch("/wishlist/delete-item", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ product_id: product_id , variant_id: variant_id})
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                Swal.fire({
+                  title: "Deleted!",
+                  text: "The item has been removed from your wishlist.",
+                  icon: "success",
+                  timer: 2000
+                }).then(() => {
+                  window.location.reload();
+                });
+              }
+            });
+          }
+        });
+      }
+    
+      function addToCart(id, variant_id) {
+        fetch(`cart/add/${id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: id, variantId: variant_id })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Added to cart',
+              showConfirmButton: false,
+              timer: 1500
+            });
+          } else {
+            Swal.fire({
+              icon: 'error',
+              title: 'Oops...',
+              text: data.data || 'Something went wrong!',
+              customClass: { popup: "swal-custom-font" }
+            }).then(() => {
+              window.location.reload();
+            });
+          }
+        })
+        .catch(error => {
+          Swal.fire({
+            icon: 'error',
+            title: 'Oops...',
+            text: 'An error occurred!'
+          }).then(() => {
+            window.location.reload();
+          });
+        });
+      }
+    </script>
+    

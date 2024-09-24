@@ -46,15 +46,19 @@ router.post('/delete-product/:id', isAuthenticatedAdmin, adminControllers.delete
 // Order Management Routes
 // -----------------------
 router.get('/orders', isAuthenticatedAdmin, adminControllers.orderGET);
-router.post('/update-order-status', isAuthenticatedAdmin, adminControllers.update_order_statusPOST);
+router.post('/update-product-status', isAuthenticatedAdmin, adminControllers.update_order_statusPOST);
 
 // Coupon Management Routes
 // -------------------------
 router.get('/coupons', isAuthenticatedAdmin, adminControllers.couponGET);
 router.post('/add-coupon', isAuthenticatedAdmin, adminControllers.add_couponPOST);
 
+// Offer Management Routes
+// -------------------------
 router.get('/offers', isAuthenticatedAdmin, adminControllers.offerAdminGET);
 router.post('/addOffer',isAuthenticatedAdmin, adminControllers.addOfferPOST);
 router.post('/updateOffer',isAuthenticatedAdmin, adminControllers.updateOfferPOST);
+
+router.post('/accept-return-request',isAuthenticatedAdmin, adminControllers.accept_return_requestPOST);
 module.exports = router;
 

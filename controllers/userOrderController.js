@@ -158,36 +158,48 @@ exports.order_historyGET = async (req, res) => {
   }
 };
 
-  
-  
 exports.order_detailsGET = async (req, res) => {
-  try {
-      const order = await Order.findById(req.params.id)
-          .populate('items.product')
-          .populate('address');
+    try {
+        const order = await Order.findById(req.params.id)
+            .populate('items.product')
+            .populate('address');
 
-      // Filtering the correct variant based on variantId in each item
-      order.items.forEach(item => {
-          item.variant = item.product.variants.find(variant => variant._id.toString() === item.variantId.toString());
-      });
+        order.items.forEach(item => {
+            if (item.product && item.product.variants) {
+                item.product.variants = item.product.variants.find(variant => 
+                    variant._id.toString() === item.variantId.toString()
+                );
+                // Optionally log if no matching variant was found
+                if (!item.product.variants) {
+                    console.log(`No matching variant found for product ID: ${item.product._id}`);
+                }
+            }
+        });
+  
+        const userId = req.session.user.user;
+        const user = await User.findById(userId);
+        const isUserLoggedIn = req.session.user;
 
-      const isUserLoggedIn = req.session.user;
-      res.render('user/orderDetails', { order, title: 'Order Details', layout: 'layouts/homeLayout', isUserLoggedIn });
-  } catch (error) {
-      console.log('Error occurred while loading order details page:', error);
-  }
+        // res.json(order)
+        res.render('user/orderDetails', { user, order, title: 'Order Details', layout: 'layouts/homeLayout', isUserLoggedIn });
+    } catch (error) {
+        console.log('Error occurred while loading order details page:', error);
+        res.status(500).send('An error occurred while retrieving order details.');
+    }
 };
+
+
+  
+
 exports.create_razor_orderPOST = async (req, res) => {
     try {
         const { cartId, addressId } = req.body.orderData;
         const userId = req.session.user.user;
 
-        // Validate input
         if (!cartId || !addressId) {
             return res.status(400).json({ error: 'Missing cart or address information' });
         }
 
-        // Fetch cart and address details
         const cart = await Cart.findById(cartId).populate('items.product');
         const address = await Address.findById(addressId);
 
@@ -198,7 +210,6 @@ exports.create_razor_orderPOST = async (req, res) => {
             return res.status(404).json({ error: 'Address not found' });
         }
 
-        // Calculate total amount and prepare order items
         let totalAmount = 0;
         const orderItems = [];
 
@@ -211,70 +222,53 @@ exports.create_razor_orderPOST = async (req, res) => {
                 return res.status(400).json({ error: 'Product not found' });
             }
 
-            // Find the matching variant
             let variant = product.variants.find(v => v._id.toString() === item.variantId.toString());
             if (!variant) {
                 return res.status(400).json({ error: 'Variant not found' });
             }
 
-            // Calculate total price for the current item
-            totalAmount += variant.price * item.quantity;
+            totalAmount += variant.discount_price * item.quantity;
 
-            // Add item to orderItems array
             orderItems.push({
                 product: item.product._id,
                 variantId: variant._id,
                 quantity: item.quantity,
-                price: variant.price
+                price: variant.discount_price
             });
 
-            // Update stock for the variant
             variant.stock = Math.max(0, variant.stock - item.quantity);
             await product.save();
         }
 
-        // Fetch all coupons for debugging purposes
-        let allCoupons = await Coupon.find({});
-        console.log("Available Coupons:", allCoupons);
-
-        // Check for applicable discount
         let discountOnOrder = 0;
         const coupon = await Coupon.findOne({
-            "users.userId": userId, 
+            "users.userId": userId,
             "users.isBought": false
         });
 
-        // Log coupon details if found
         if (coupon) {
-            console.log("Coupon Found:", coupon);
+            const discountPercentage = coupon.discount;
+            const discountAmount = (totalAmount * discountPercentage) / 100;
 
-            const discountPercentage = coupon.discount; // Discount percentage from the coupon
-            const discountAmount = (totalAmount * discountPercentage) / 100; // Calculate discount amount
-
-            // Apply the discount, ensuring it doesn't exceed the maximum coupon limit
+            console.log(discountAmount,'insid coupon condition');
             discountOnOrder = Math.min(discountAmount, coupon.maximum_coupon_amount);
-
-            // Log discount calculations for debugging
-            console.log("Discount Percentage:", discountPercentage);
-            console.log("Calculated Discount Amount:", discountAmount);
-            console.log("Discount on Order:", discountOnOrder);
-        } else {
-            console.log("No coupon found or coupon not applicable.");
         }
 
-        // Calculate payable amount after applying discount
-        const payableAmount = totalAmount - discountOnOrder;
+        const payableAmount = Math.max(0, totalAmount - discountOnOrder);
 
-        console.log(payableAmount, 'Payable Amount', totalAmount, 'Total Amount', discountOnOrder, 'Discount on Order');
+        for (let item of orderItems) {
+            const itemTotal = item.price * item.quantity;
+            const itemDiscount = (itemTotal / totalAmount) * discountOnOrder;
+            item.discount = itemDiscount;
+        }
 
-        // Create the order object
         const order = new Order({
             user: userId,
             address: addressId,
             items: orderItems,
-            totalAmount: totalAmount, // Original total amount
+            totalAmount: totalAmount,
             discountAmount: discountOnOrder,
-            payableAmount ,
+            payableAmount,
             paymentMethod: 'Razorpay',
             razorpayOrderId: null,
             paymentStatus: 'Pending',
@@ -282,7 +276,7 @@ exports.create_razor_orderPOST = async (req, res) => {
         });
 
         const options = {
-            amount: payableAmount * 100,  // Razorpay accepts the amount in paise, hence multiplying by 100
+            amount: payableAmount * 100,
             currency: "INR",
             receipt: `receipt#${order._id}`,
             payment_capture: 1
@@ -303,15 +297,14 @@ exports.create_razor_orderPOST = async (req, res) => {
                 }
             });
         } catch (error) {
-            console.error('Error creating Razorpay order:', error);
             return res.status(500).json({ status: false, message: "Razorpay order creation failed" });
         }
 
     } catch (error) {
-        console.error('Error in create_razor_orderPOST:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 };
+
 exports.verify_razorpay_paymentPOST = async (req, res) => {
     try {
         const { payment_id, order_id, signature } = req.body;
@@ -372,3 +365,34 @@ exports.verify_razorpay_paymentPOST = async (req, res) => {
     }
 };
 
+exports.return_productPOST = async (req, res) => {
+    try {
+        const { orderId, itemId, reason, additionalReason } = req.body;
+        const order = await Order.findOne({ orderId });
+
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        const item = order.items.find(item => item._id.toString() === itemId);
+
+        if (!item) {
+            return res.status(404).json({ success: false, message: 'Item not found in order' });
+        }
+
+        if (item.isReturnRequested) {
+            return res.status(400).json({ success: false, message: 'Return request already submitted for this item' });
+        }
+
+        item.isReturnRequested = true;
+        item.reasonOfReturn = reason;
+        item.additionalReason = additionalReason;
+
+        await order.save();
+
+        res.status(200).json({ success: true, message: 'Return request submitted successfully' });
+    } catch (error) {
+        console.error('Error occurred while processing return product POST', error);
+        res.status(500).json({ success: false, message: 'An error occurred while submitting your return request' });
+    }
+};

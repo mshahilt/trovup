@@ -1,95 +1,199 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order Details</title>
-    <style>
-        .container {
-            width: 80%;
-            margin: 20px auto;
-            font-family: Arial, sans-serif;
-        }
-        .address-container, .order-container {
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        .order-container {
-            display: flex;
-        }
-        .order-summary img {
-            width: 80px;
-            margin-right: 15px;
-        }
-        .price, .quantity, .color, .storage {
-            font-weight: bold;
-        }
-        .address-info p {
-            margin: 5px 0;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <!-- Delivery Address -->
-        <div class="address-container">
-            <h3>Delivery Address</h3>
-            <div class="address-info">
-                <p><strong><%= order.address.fullName %></strong></p>
-                <p><%= order.address.streetAddress %>, <%= order.address.city %></p>
-                <p>Phone number: <%= order.address.phoneNumber %></p>
-            </div>
-        </div>
+<section class="h-100 gradient-custom">
+    <div class="container py-5 h-100">
+        <div class="row d-flex justify-content-center align-items-center h-100">
+            <div class="col-lg-10 col-xl-8">
+                <div class="card" style="border-radius: 10px;">
+                    <div class="card-header px-4 py-5">
+                        <h5 class="text-muted mb-0">Thanks for your Order, <span style="color: #a8729a;"><%= user.username %></span>!</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <p class="lead fw-normal mb-0" style="color: #a8729a;">Receipt</p>
+                            <p class="small text-muted mb-0">Order Id: <%= order.orderId %></p>
+                        </div>
+                        <input type="hidden" id="orderIdHidden" value="<%= order.orderId %>">
 
-        <!-- Order Details -->
-        <div class="order-container">
-            <!-- Order Summary -->
-            <div class="order-summary">
-                <!-- Display variant image -->
-                <img src="/<%= order.items[0].variant.images[0] || 'default-image.jpg' %>" alt="<%= order.items[0].product.product_name %>">
-                <div>
-                    <h4><%= order.items[0].product.product_name %></h4>
-                    <p class="price">Price: ₹<%= order.items[0].variant.price %></p>
-                    <p class="color">Color: <%= order.items[0].variant.color %></p>
-                    <p class="storage">Storage: <%= order.items[0].variant.storage_size %></p>
-                    <p class="quantity">Quantity: <%= order.items[0].quantity %></p>
-                </div>
-            </div>
+                        <% order.items.forEach(function(item) { %>
+                        <div class="card shadow-0 border mb-4">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-2">
+                                        <img src="/<%= item.product.variants[0].images[0] %>" class="img-fluid" alt="<%= item.product.product_name %>">
+                                    </div>
+                                    <div class="col-md-2 text-center d-flex justify-content-center align-items-center">
+                                        <p class="text-muted mb-0"><%= item.product.product_name %></p>
+                                    </div>
+                                    <div class="col-md-2 text-center d-flex justify-content-center align-items-center">
+                                        <p class="text-muted mb-0 small"><%= item.product.variants[0].color %></p>
+                                    </div>
+                                    <div class="col-md-2 text-center d-flex justify-content-center align-items-center">
+                                        <p class="text-muted mb-0 small">Qty: <%= item.quantity %></p>
+                                    </div>
+                                    <div class="col-md-2 text-center d-flex justify-content-center align-items-center">
+                                        <p class="text-muted mb-0 small">$<%= item.price %></p>
+                                    </div>
+                                </div>
+                                <hr class="mb-4" style="background-color: #e0e0e0; opacity: 1;">
+                                <div class="row d-flex align-items-center">
+                                    <div class="col-md-2">
+                                        <p class="text-muted mb-0 small">Track Order</p>
+                                    </div>
+                                    <div class="col-md-10">
+                                        <div class="progress">
+                                            <div class="progress-bar"
+                                                 role="progressbar"
+                                                 data-order-status="<%= item.orderStatus %>"
+                                                 style="width: 0%; background-color: #a8729a; border-radius: 16px;"
+                                                 aria-valuenow="0"
+                                                 aria-valuemin="0"
+                                                 aria-valuemax="100">
+                                            </div>
+                                        </div>
+                                        <div class="d-flex justify-content-around mt-1">
+                                            <p class="text-muted small">Ordered</p>
+                                            <p class="text-muted small">Shipped</p>
+                                            <p class="text-muted small">Out for Delivery</p>
+                                            <p class="text-muted small">Delivered</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <% if (item.orderStatus === 'Delivered') { %>
+                                    <% if (item.isReturnRequested === true) { %>
+                                        <% if (item.isAdminAcceptedReturn === 'Pending') { %>
+                                            <button class="btn btn-warning mt-3" data-bs-toggle="modal" data-bs-target="#returnModal-<%= item._id %>" disabled>Return Requested</button>
+                                        <% } else if (item.isAdminAcceptedReturn === 'Accepted') { %>
+                                            <button class="btn btn-success mt-3" disabled>Return Accepted</button>
+                                        <% } else if (item.isAdminAcceptedReturn === 'Rejected') { %>
+                                            <button class="btn btn-danger mt-3" disabled>Return Rejected</button>
+                                        <% } %>
+                                    <% } else { %>
+                                        <button class="btn btn-warning mt-3" data-bs-toggle="modal" data-bs-target="#returnModal-<%= item._id %>">Return</button>
+                                    <% } %>
+                                    <!-- Return Modal -->
+                                    <div class="modal fade" id="returnModal-<%= item._id %>" tabindex="-1" aria-labelledby="returnModalLabel-<%= item._id %>" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="returnModalLabel-<%= item._id %>">Return Product</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <p><strong>Product:</strong> <%= item.product.product_name %></p>
+                                                    <p><strong>Variant:</strong> <%= item.product.variants[0].color %></p>
+                                                    <form id="returnForm-<%= item._id %>">
+                                                        <div class="mb-3">
+                                                            <label for="returnReason-<%= item._id %>" class="form-label">Reason for Return</label>
+                                                            <select class="form-select" id="returnReason-<%= item._id %>" required>
+                                                                <option value="">Select reason</option>
+                                                                <option value="Defective product">Defective product</option>
+                                                                <option value="Wrong product delivered">Wrong product delivered</option>
+                                                                <option value="Product no longer needed">Product no longer needed</option>
+                                                                <option value="Found a better price elsewhere">Found a better price elsewhere</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label for="additionalReason-<%= item._id %>" class="form-label">Additional Reason (optional)</label>
+                                                            <textarea class="form-control" id="additionalReason-<%= item._id %>" rows="3"></textarea>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                    <button type="button" class="btn btn-primary" onclick="submitReturnRequest('<%= item._id %>')">Submit Return</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <% } %>
+                            </div>
+                        </div>
+                        <% }); %>
 
-            <!-- Order Status (same as before) -->
-            <div class="order-status">
-                <h3>Order Status</h3>
-                <div class="order-status-bar">
-                    <!-- Status points logic remains unchanged -->
-                    <div class="status-point <%= order.orderStatus === 'Pending' ? 'active' : '' %>">
-                        <span></span>
-                        <p>Pending</p>
-                    </div>
-                    <div class="status-bar <%= order.orderStatus !== 'Pending' ? 'active' : '' %>"></div>
-                    <div class="status-point <%= order.orderStatus === 'Processing' ? 'active' : '' %>">
-                        <span></span>
-                        <p>Processing</p>
-                    </div>
-                    <div class="status-bar <%= ['Shipped', 'Delivered', 'Cancelled'].includes(order.orderStatus) ? 'active' : '' %>"></div>
-                    <div class="status-point <%= order.orderStatus === 'Shipped' ? 'active' : '' %>">
-                        <span></span>
-                        <p>Shipped</p>
-                    </div>
-                    <div class="status-bar <%= ['Delivered', 'Cancelled'].includes(order.orderStatus) ? 'active' : '' %>"></div>
-                    <div class="status-point <%= order.orderStatus === 'Delivered' ? 'active' : '' %>">
-                        <span></span>
-                        <p>Delivered</p>
-                    </div>
-                    <div class="status-bar <%= order.orderStatus === 'Cancelled' ? 'active' : '' %>"></div>
-                    <div class="status-point <%= order.orderStatus === 'Cancelled' ? 'active' : '' %>">
-                        <span></span>
-                        <p>Cancelled</p>
+                        <div class="d-flex justify-content-between pt-2">
+                            <p class="fw-bold mb-0">Order Details</p>
+                            <p class="text-muted mb-0"><span class="fw-bold me-4">Total</span> $<%= order.totalAmount %></p>
+                        </div>
+                        <!-- Additional order details here... -->
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</body>
-</html>
+</section>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const progressBars = document.querySelectorAll(".progress-bar");
+
+        progressBars.forEach(bar => {
+            const orderStatus = bar.getAttribute("data-order-status");
+            let progressPercentage = 0;
+            let barColor = "#a8729a";
+
+            switch(orderStatus) {
+                case 'Pending':
+                    progressPercentage = 25;
+                    break;
+                case 'Processing':
+                    progressPercentage = 50;
+                    break;
+                case 'Shipped':
+                    progressPercentage = 75;
+                    break;
+                case 'Delivered':
+                    progressPercentage = 100;
+                    break;
+                case 'Cancelled':
+                    progressPercentage = 100;
+                    barColor = "red";
+                    break;
+                default:
+                    progressPercentage = 0;
+            }
+
+            bar.style.width = progressPercentage + "%";
+            bar.style.backgroundColor = barColor;
+            bar.setAttribute("aria-valuenow", progressPercentage);
+        });
+    });
+
+    function submitReturnRequest(itemId) {
+    const orderId = document.getElementById('orderIdHidden').value;
+    console.log(orderId, 'dasfkjhdasjkfds')
+    const reason = document.getElementById(`returnReason-${itemId}`).value;
+    const additionalReason = document.getElementById(`additionalReason-${itemId}`).value;
+
+    if (!reason) {
+        alert("Please select a reason for return.");
+        return;
+    }
+    const payload = {
+        orderId: orderId,
+        itemId: itemId,
+        reason: reason,
+        additionalReason: additionalReason
+    };
+
+    fetch('/order/return-product', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert("Return request submitted successfully.");
+            location.reload();
+        } else {
+            alert("Failed to submit return request: " + data.message);
+        }
+    })
+    .catch(error => {
+        console.error("Error submitting return request:", error);
+        alert("An error occurred while submitting your return request. Please try again.");
+    });
+}
+
+</script>
