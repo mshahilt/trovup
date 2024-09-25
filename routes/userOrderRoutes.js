@@ -13,4 +13,6 @@ router.post('/create_razor_order',isLoggedIn,userOrderController.create_razor_or
 router.post('/verify_razorpay_payment',isLoggedIn,userOrderController.verify_razorpay_paymentPOST);
 
 router.post('/return-product',isLoggedIn,userOrderController.return_productPOST);
+
+router.post('/cancel-product', isLoggedIn, userOrderController.cancel_productPOST);
 module.exports = router;

@@ -7,17 +7,12 @@ const Order = require('../models/orderModel');
 const razorpay = require('../config/razorPay');
 const crypto = require('crypto');
 const Coupon = require('../models/coupenModel');
-
 exports.order_confirmPOST = async (req, res) => {
     try {
         const { addressId, cartId } = req.body;
         let { paymentMethod } = req.body;
-        console.log('Order Confirmation Data:');
-        console.log('Address ID:', addressId);
-        console.log('Cart ID:', cartId);
-        console.log('Payment Method:', paymentMethod);
-  
-        // Fetch the address
+
+        // Validate the address
         const address = await Address.findById(addressId);
         if (!address) {
             return res.status(400).json({
@@ -25,8 +20,8 @@ exports.order_confirmPOST = async (req, res) => {
                 message: 'Invalid address ID',
             });
         }
-  
-        // Fetch the cart and populate items
+
+        // Validate the cart and populate items
         let cart = await Cart.findById(cartId).populate('items.product');
         if (!cart) {
             return res.status(400).json({
@@ -34,46 +29,43 @@ exports.order_confirmPOST = async (req, res) => {
                 message: 'Invalid cart ID',
             });
         }
-  
+
         // Handle payment method
         if (paymentMethod === 'cod') {
             paymentMethod = 'Cash on Delivery';
         }
-  
-        // Calculate the total amount dynamically
+
+        // Calculate the total amount and prepare order items
         let totalAmount = 0;
         const orderItems = [];
-  
+
+        const productIds = cart.items.map(item => item.product._id);
+        const products = await Products.find({ _id: { $in: productIds } });
+
         for (let item of cart.items) {
-            const product = await Products.findById(item.product._id);
+            const product = products.find(p => p._id.toString() === item.product._id.toString());
             if (!product) {
                 return res.status(400).json({
                     success: false,
                     message: 'Product not found',
                 });
             }
-  
+
             // Find the variant selected by the user
             let variant = product.variants.find(v => v._id.toString() === item.variantId.toString());
             if (variant) {
-                console.log('Variant found:', variant);
-  
-             
-                let itemPrice = variant.price * item.quantity;
+                let itemPrice = variant.discount_price * item.quantity; // Use the discount price
                 totalAmount += itemPrice;
-  
+
                 orderItems.push({
                     product: item.product._id,
                     variantId: variant._id,
                     quantity: item.quantity,
-                    price: variant.price
+                    price: variant.discount_price, // Save the discount price
                 });
-                variant.stock -= item.quantity;
-                if (variant.stock < 0) {
-                    variant.stock = 0;
-                }
-  
-                console.log('Updated variant stock:', variant.stock);
+
+                // Update stock and save product
+                variant.stock = Math.max(0, variant.stock - item.quantity);
                 await product.save();
             } else {
                 return res.status(400).json({
@@ -82,50 +74,78 @@ exports.order_confirmPOST = async (req, res) => {
                 });
             }
         }
-  
-        const order = new Order({
-            user: req.session.user.user,
-            address: addressId,
-            paymentMethod,
-            items: orderItems,
-            totalAmount: totalAmount
+
+        // Apply coupon logic
+        let discountOnOrder = 0;
+        const userId = req.session.user.user;
+
+        const coupon = await Coupon.findOne({
+            "users.userId": userId,
+            "users.isBought": false
         });
-  
+
+        if (coupon) {
+            const discountPercentage = coupon.discount;
+            const discountAmount = (totalAmount * discountPercentage) / 100;
+            discountOnOrder = Math.min(discountAmount, coupon.maximum_coupon_amount);
+        }
+
+        // Calculate the payable amount after discount
+        const payableAmount = Math.max(0, totalAmount - discountOnOrder);
+
+        // Adjust order items to include individual discounts
+        for (let item of orderItems) {
+            const itemTotal = item.price * item.quantity;
+            const itemDiscount = (itemTotal / totalAmount) * discountOnOrder;
+            item.discount = itemDiscount;
+        }
+
+        // Create the order
+        const order = new Order({
+            user: userId,
+            address: addressId,
+            items: orderItems,
+            totalAmount: totalAmount,
+            discountAmount: discountOnOrder,
+            payableAmount,
+            paymentMethod,
+            paymentStatus: 'Pending', // Set the payment status for cash on delivery
+            couponApplied: coupon ? coupon._id : null
+        });
+
         await order.save();
 
+        // Optionally, delete the cart after order confirmation
         await Cart.findByIdAndDelete(cartId);
-  
+
         return res.status(200).json({
             success: true,
             message: 'Order has been confirmed successfully!',
             orderId: order._id,
-            uniqueOrderId: order.orderId, 
+            uniqueOrderId: order.orderId,
         });
-  
+
     } catch (error) {
         console.error('Error occurred while confirming order:', error);
-  
+
         return res.status(500).json({
             success: false,
             message: 'An unexpected error occurred. Please try again later.',
         });
     }
-  };
+};
 
 exports.order_historyGET = async (req, res) => {
   try {
     const userId = req.session.user.user;
 
-    // Fetch orders for the logged-in user and populate product details
     const orders = await Order.find({ user: userId }).populate('items.product');
 
-    // Iterate through each order and its items to find matching variant details
     const order_history = orders.map(order => {
       order.items = order.items.map(item => {
-        // Find the variant that matches the variantId in the item
+
         const matchingVariant = item.product.variants.find(variant => variant._id.toString() === item.variantId.toString());
 
-        // Append the variant details to the item if found
         if (matchingVariant) {
           item.variantDetails = {
             price: matchingVariant.price,
@@ -141,10 +161,8 @@ exports.order_historyGET = async (req, res) => {
       return order;
     });
 
-    // Check if the user is logged in
     const isUserLoggedIn = req.session.user;
 
-    // Render the order history page with filtered order data
     res.render('user/order_history', {
       order_history,
       title: 'Order History',
@@ -152,6 +170,7 @@ exports.order_historyGET = async (req, res) => {
       isUserLoggedIn
     });
 
+    // res.json(order_history);
   } catch (error) {
     console.log('Error occurred while loading order history page:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -187,9 +206,6 @@ exports.order_detailsGET = async (req, res) => {
         res.status(500).send('An error occurred while retrieving order details.');
     }
 };
-
-
-  
 
 exports.create_razor_orderPOST = async (req, res) => {
     try {
@@ -275,8 +291,10 @@ exports.create_razor_orderPOST = async (req, res) => {
             cartId: cartId
         });
 
+        console.log(payableAmount,'payable amount')
+
         const options = {
-            amount: payableAmount * 100,
+            amount:  Math.round(payableAmount * 100),
             currency: "INR",
             receipt: `receipt#${order._id}`,
             payment_capture: 1
@@ -297,6 +315,7 @@ exports.create_razor_orderPOST = async (req, res) => {
                 }
             });
         } catch (error) {
+            console.log(error,'sdfho')
             return res.status(500).json({ status: false, message: "Razorpay order creation failed" });
         }
 
@@ -321,7 +340,6 @@ exports.verify_razorpay_paymentPOST = async (req, res) => {
         if (expectedSignature === signature) {
             console.log('Successful payment');
 
-            // Find and update the order's payment status
             const order = await Order.findOneAndUpdate(
                 { razorpayOrderId: order_id },
                 { paymentStatus: 'Paid' },
@@ -394,5 +412,67 @@ exports.return_productPOST = async (req, res) => {
     } catch (error) {
         console.error('Error occurred while processing return product POST', error);
         res.status(500).json({ success: false, message: 'An error occurred while submitting your return request' });
+    }
+};
+
+const Wallet = require('../models/walletModel'); 
+
+exports.cancel_productPOST = async (req, res) => {
+    try {
+        const { orderId, itemId } = req.body;
+
+        const order = await Order.findOne({ orderId });
+
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        const item = order.items.id(itemId);
+        console.log(item, 'item founded')
+        if (!item) {
+            return res.status(404).json({ success: false, message: 'Item not found in the order' });
+        }
+
+
+        if (item.orderStatus === 'Cancelled') {
+            return res.status(400).json({ success: false, message: 'Item is already cancelled' });
+        } else if (item.orderStatus === 'Delivered') {
+            return res.status(400).json({ success: false, message: 'Delivered items cannot be cancelled' });
+        }
+
+        item.orderStatus = 'Cancelled';
+
+        await order.save();
+
+        if (order.paymentStatus === 'Paid') {
+            const refundAmount = item.price - item.discount;
+
+            // Find or create the user's wallet
+            let wallet = await Wallet.findOne({ user: order.user });
+            if (!wallet) {
+                wallet = new Wallet({
+                    user: order.user,
+                    balance: 0,
+                    wallet_history: []
+                });
+            }
+
+            wallet.balance += refundAmount;
+
+            wallet.wallet_history.push({
+                date: new Date(),
+                amount: refundAmount,
+                description: `Refund for cancelled item (Order ID: ${order.orderId})`,
+                transactionType: 'credited'
+            });
+
+            // Save the wallet
+            await wallet.save();
+        }
+
+        res.status(200).json({ success: true, message: 'Item has been successfully cancelled' });
+    } catch (error) {
+        console.error('Error occurred while processing cancel product POST', error);
+        res.status(500).json({ success: false, message: 'An error occurred while submitting your cancel request' });
     }
 };

@@ -238,7 +238,7 @@
                     <hr>
                     <div class="product-item">
                         <span>Subtotal:</span>
-                        <span>$<%= subtotal.toFixed(2) %></span>
+                        <span>₹<%= subtotal.toFixed(2) %></span>
                     </div>
                     <div class="product-item">
                         <span>Shipping:</span>
@@ -250,7 +250,7 @@
                     </div>
                     <div class="product-item total">
                         <span>Total:</span>
-                        $<span id="total_price"><%= subtotal.toFixed(2) %></span>
+                        ₹<span id="total_price"><%= subtotal.toFixed(2) %></span>
                     </div>
                     <% } else { %>
                     <p>Your cart is empty.</p>
@@ -409,9 +409,9 @@ document.getElementById('removeCouponBtn').addEventListener('click', async funct
 
         if (response.ok) {
             appliedCouponSection.classList.add('d-none');
-            enableCoupons();  // Re-enable coupon selection
+            enableCoupons();
             feedbackElement.innerHTML = '';
-            window.location.reload();  // Refresh to update the total price
+            window.location.reload(); 
         } else {
             feedbackElement.innerHTML = `<span class="text-danger">Failed to remove coupon: ${result.error}</span>`;
         }
@@ -420,7 +420,6 @@ document.getElementById('removeCouponBtn').addEventListener('click', async funct
     }
 });
 
-// Disable all other coupons when a coupon is applied
 function disableCoupons() {
     const radios = document.getElementsByName('couponRadio');
     radios.forEach(radio => {
@@ -428,7 +427,6 @@ function disableCoupons() {
     });
 }
 
-// Enable all coupons when the applied coupon is removed
 function enableCoupons() {
     const radios = document.getElementsByName('couponRadio');
     radios.forEach(radio => {
@@ -436,18 +434,16 @@ function enableCoupons() {
     });
 }
 
-// Dynamically render coupons from the backend
 const couponsList = document.getElementById('couponsList');
 const coupons = JSON.parse(document.getElementById('couponsData').value);
 
-// Render coupons dynamically
 coupons.forEach(coupon => {
     const couponElement = `
         <div class="coupon-item border-bottom pb-2 mb-2">
             <div class="form-check">
                 <input class="form-check-input" type="radio" name="couponRadio" id="${coupon.coupon_code}" value="${coupon.coupon_code}">
                 <label class="form-check-label" for="${coupon.coupon_code}">
-                    <strong>Savings: ₹${coupon.discount.toFixed(2)}</strong><br>
+                    <strong>Savings: %${coupon.discount.toFixed(2)}</strong><br>
                     <span>${coupon.coupon_code}</span><br>
                     <small>${coupon.coupon_description}</small><br>
                     <a href="#" class="text-decoration-none text-primary">View T & C</a>

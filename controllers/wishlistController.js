@@ -76,31 +76,25 @@ exports.postWishlist = async (req, res) => {
         res.status(500).json({ success: false, message: "Something went wrong on the server" });
     }
 };
-
 // DELETE: Remove product from wishlist
 exports.deleteWishlist = async (req, res) => {
     try {
       console.log('dlt function called in wishlist controller');
   
-      const { product_id, variant_id } = req.body;
+      const { wishlistItemId } = req.body; // Now we accept the item ID
       const user_id = req.session.user.user;
-  
-      console.log('user_id:', user_id); // Log user_id for debugging
-      console.log('product_id:', product_id, 'variant_id:', variant_id); // Log product and variant IDs
   
       if (!user_id) {
         return res.status(401).json({ success: false, message: 'User not logged in' });
       }
   
-      // Using $pull to remove the product and variant from the items array
       const result = await Wishlist.updateOne(
-        { user_id: user_id },  // Finding the wishlist by user_id
-        { $pull: { items: { product: product_id, variantId: variant_id } } }  // Pull from items array
+        { user_id: user_id },
+        { $pull: { items: { _id: wishlistItemId } } } // Use the item ID directly
       );
   
-      console.log(result, 'result inside deleteWishlist');  // Log the result from MongoDB
+      console.log(result, 'result inside deleteWishlist');
   
-      // Check if any document was modified
       if (result.modifiedCount === 0) {
         return res.status(404).json({ success: false, message: 'Item not found in wishlist or already deleted' });
       }

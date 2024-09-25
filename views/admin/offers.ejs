@@ -195,7 +195,7 @@
               <tbody>
                 <% categoryData.forEach(category => { %>
                 <tr>
-                  <td><%= category.name %></td>
+                  <td><%= category.category_name %></td>
                   <% if (category.offer) { %>
                   <td><%= category.offer.offer_percentage %>%</td>
                   <td><%= new Date(category.offer.offer_start_date).toLocaleString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true }) %></td>
@@ -354,6 +354,10 @@
 </div>
 </div>
 </div>
+<!-- Include SweetAlert CSS and JS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/1.1.3/sweetalert.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/1.1.3/sweetalert.min.js"></script>
+
 <script>
   function validDetailsModal() {
     var name = document.getElementById("add_coupon_code").value;
@@ -424,30 +428,44 @@
       });
   }
 
-  function updateCategoryOffer(categoryId, offerId) {
-    if (!offerId) return; // Don't do anything if no offer is selected
+  async function updateCategoryOffer(categoryId, offerId) {
+    if (!offerId) return;
 
-    // Send AJAX request to update the offer for the product
-    fetch(`/admin/offerManagement/ChangeCategoryOffer`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ categoryId, offerId }),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.success) {
-          alert("Offer updated successfully");
-          window.location.reload();
-        } else {
-          alert("Failed to update offer");
+    try {
+        const response = await fetch(`/admin/ChangeCategoryOffer`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ categoryId, offerId }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
         }
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-        alert("An error occurred while updating the offer.");
-      });
-  }
-</script>
 
+        const data = await response.json();
+
+        console.log('Response data:', data);
+
+        if (data.success) {
+        await swal({
+            title: "Success!",
+            text: "Offer updated successfully",
+            icon: "success",
+            timer: 5000,
+            buttons: false, 
+        });
+        window.location.reload();
+    } else {
+        swal("Error!", data.message || "Failed to update offer", "error");
+    }
+
+    } catch (error) {
+        console.error("Error:", error);
+        swal("Error!", "An error occurred while updating the offer.", "error");
+    }
+}
+
+
+</script>

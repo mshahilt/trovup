@@ -6,34 +6,48 @@
     <title>Order History</title>
     <link rel="stylesheet" href="your-style.css">
     <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 20px;
+        }
+
         .order-history-container {
-            margin: 20px auto;
-            width: 80%;
-            border-collapse: collapse;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            max-width: 1200px;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
         }
 
         table {
             width: 100%;
-            border-spacing: 0;
+            border-collapse: collapse;
         }
 
         th, td {
-            padding: 10px;
+            padding: 15px;
             text-align: left;
-            border: 1px solid #ddd;
+            border-bottom: 1px solid #ddd;
         }
 
         th {
-            background-color: #f0f0f0;
+            background-color: #f1f1f1;
+            font-weight: 600;
+            color: #555;
+            text-transform: uppercase;
         }
 
-        .status {
-            color: green;
-            border: 1px solid green;
-            padding: 5px 10px;
-            border-radius: 5px;
-            display: inline-block;
-            background-color: #f0fdf0;
+        td {
+            vertical-align: middle;
         }
 
         .order-item {
@@ -42,60 +56,70 @@
         }
 
         .order-item img {
-            width: 80px;
-            margin-right: 10px;
-        }
-
-        .quantity-select {
-            padding: 5px;
-            border: 1px solid #ddd;
             width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 5px;
+            margin-right: 15px;
+            border: 1px solid #ddd;
         }
 
         .price {
             font-weight: bold;
+            color: #333; /* Changed to black for a more neutral look */
         }
 
-        .action-btn {
+        .view-details-btn {
+            background-color: #555; /* Changed to dark grey */
+            color: white;
             padding: 7px 15px;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            font-size: 14px;
-        }
-
-        .cancel-btn {
-            background-color: red;
-            color: white;
-        }
-
-        .return-btn {
-            background-color: blue;
-            color: white;
-        }
-
-        /* New button style for View Details */
-        .view-details-btn {
-            background-color: green;
-            color: white;
-            padding: 7px 15px;
-            border-radius: 5px;
-            cursor: pointer;
             text-decoration: none;
+            display: inline-block;
+            transition: background-color 0.3s;
         }
 
+        .view-details-btn:hover {
+            background-color: #333; /* Darker grey on hover */
+        }
+
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        /* For mobile responsiveness */
+        @media (max-width: 768px) {
+            .order-history-container {
+                width: 95%;
+                padding: 10px;
+            }
+
+            th, td {
+                padding: 10px;
+            }
+
+            .order-item img {
+                width: 50px;
+                height: 50px;
+            }
+
+            .view-details-btn {
+                padding: 5px 10px;
+                font-size: 14px;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="order-history-container">
         <h2>Order History</h2>
-        <table>
+        <table >
             <thead>
                 <tr>
                     <th>Order ID</th>
                     <th>Orders</th>
-                    <th>Status</th>
-                    <th>Quantity</th>
                     <th>Amount</th>
                     <th>Show Details</th>
                 </tr>
@@ -109,15 +133,8 @@
                             <img src="/<%= item.product.variants[0].images[0] || 'default-image.jpg' %>" alt="<%= item.product.product_name %>">
                             <span><%= item.product.product_name %> - <%= item.product.variants[0].variant_name %></span>
                         </td>
-                        <td><span class="status"><%= order.orderStatus %></span></td>
-                        <td>
-                            <select class="quantity-select" disabled>
-                                <option value="<%= item.quantity %>" selected><%= item.quantity %></option>
-                            </select>
-                        </td>
                         <td class="price">₹<%= item.price %></td>
                         <td>
-                            <!-- View Details button with orderId as parameter -->
                             <a href="/order/order-details/<%= order._id %>" class="view-details-btn">View Details</a>
                         </td>
                     </tr>

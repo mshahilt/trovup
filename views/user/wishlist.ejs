@@ -53,9 +53,9 @@
                               <% } %>
                             </div>
                             <div class="col-1 d-flex justify-content-center align-items-center">
-                              <button onclick="deleteItem('<%= wishlistItem._id %>', '<%= variant._id %>')" style="border: none; background: none; padding: 0; cursor: pointer;" class="text-muted">
+                              <button onclick="deleteItem('<%= wishlistItem._id %>')" style="border: none; background: none; padding: 0; cursor: pointer;" class="text-muted">
                                 <i class="fas fa-times"></i>
-                              </button>
+                              </button>                              
                             </div>
                           </div>
                           <hr class="my-4" />
@@ -102,7 +102,7 @@
     
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-      function deleteItem(product_id, variant_id) {
+      function deleteItem(wishlistItemId ) {
         Swal.fire({
           title: "Are you sure to delete this item?",
           showCancelButton: true,
@@ -112,7 +112,7 @@
             fetch("/wishlist/delete-item", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ product_id: product_id , variant_id: variant_id})
+              body: JSON.stringify({ wishlistItemId: wishlistItemId })
             })
             .then(response => response.json())
             .then(data => {

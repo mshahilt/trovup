@@ -75,7 +75,7 @@ exports.registerUser = async (req, res) => {
 
         // Generate OTP and send email
         const otp = Math.floor(1000 + Math.random() * 9000);
-        const otpExpiresAt = Date.now() + 180000; // OTP expires in 3 minutes
+        const otpExpiresAt = Date.now() + 180000;
 
         console.log('sadsafds',otp);
         await sendMail(transporter, {
@@ -229,13 +229,11 @@ exports.loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;
         console.log(`email ${email} password ${password}`);
-        
-        // Find user by email
+       
         const user = await User.findOne({ $and: [{ email: email }, { googleId: null }] });
 
         if (user) {
 
-            // Compare passwords
             const match = await bcrypt.compare(password, user.password);
             console.log(match);
 
@@ -247,11 +245,11 @@ exports.loginUser = async (req, res) => {
             if (match) {
                 if (!user.is_verify) {
                     const userId = user._id;
-                    req.session.user = { user: { user: userId } };  // Store user ID under `user` object in session
+                    req.session.user = { user: { user: userId } }; 
                     
                     // Generate OTP and send email
                     const otp = Math.floor(1000 + Math.random() * 9000);
-                    const otpExpiresAt = Date.now() + 180000; // OTP expires in 3 minutes
+                    const otpExpiresAt = Date.now() + 180000;
 
                     await OTP.findOneAndUpdate(
                         { userId: userId },
@@ -269,7 +267,7 @@ exports.loginUser = async (req, res) => {
                     return res.redirect('/verifyOTP');
 
                 } else {
-                    req.session.user = { user: user._id };  // Store user ID under `user` object in session
+                    req.session.user = { user: user._id };
                     return res.redirect('/');
                 }
             } else {

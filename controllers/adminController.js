@@ -8,6 +8,7 @@ const Products = require('../models/productModel');
 const Orders = require('../models/orderModel');
 const Coupon = require('../models/coupenModel');
 const Offer = require('../models/offerModal');
+const Order = require('../models/orderModel');
 
 // Get All Users (Admin only)
 exports.adminLoginGET = async (req, res) => {
@@ -67,20 +68,71 @@ function validateEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
 }
-
-
-
+const moment = require('moment');
 exports.adminDashboardGET = async (req, res) => {
     try {
-        res.render('admin/dashboard',{
-            layout:'layouts/adminLayout'
-        })
+      const { sortStats, startDate, endDate, page = 1, limit = 6 } = req.query;
+  
+      let query = {};
+  
+      if (startDate && endDate) {
+        query.createdAt = {
+          $gte: moment(startDate).startOf('day').toDate(),
+          $lte: moment(endDate).endOf('day').toDate(),
+        };
+      } else if (sortStats) {
+        switch (sortStats.toLowerCase()) {
+          case 'week':
+            query.createdAt = { $gte: moment().subtract(1, 'week').toDate() };
+            break;
+          case 'month':
+            query.createdAt = { $gte: moment().subtract(1, 'month').toDate() };
+            break;
+          case 'day':
+          default:
+            query.createdAt = { $gte: moment().subtract(1, 'day').toDate() };
+            break;
+        }
+      }
+  
+      // Parse page and limit
+      const pageInt = parseInt(page);
+      const limitInt = parseInt(limit);
+      const skip = (pageInt - 1) * limitInt;
+  
+      // Fetch orders with pagination
+      const totalOrdersCount = await Order.countDocuments(query);
+      const orders = await Order.find(query)
+        .skip(skip)
+        .limit(limitInt)
+        .populate('user', 'name');
+  
+      const totalSales = orders.reduce((sum, order) => sum + order.payableAmount, 0);
+      const totalDiscount = orders.reduce((sum, order) => sum + order.discountAmount, 0);
+      const totalUsers = await User.countDocuments();
+      const totalProducts = await Product.countDocuments();
+  
+      const totalPages = Math.ceil(totalOrdersCount / limitInt);
+  
+      // Render the dashboard with pagination data
+      res.render('admin/dashboard', {
+        layout: 'layouts/adminLayout',
+        orders,
+        totalOrders: totalOrdersCount,
+        totalSales,
+        totalDiscount,
+        totalUsers,
+        totalProducts,
+        currentPage: pageInt,
+        totalPages,
+        limit: limitInt,
+      });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+      res.status(500).json({ error: err.message });
     }
-};
+  };
+  
 
-// Get All Users (Admin only)
 exports.getAllUsers = async (req, res) => {
     try {
         const users = await User.find({ isAdmin: false });
@@ -605,29 +657,21 @@ exports.deleteUser = async (req, res) => {
 };
 exports.orderGET = async (req, res) => {
     try {
-      // Get the current page from the query, default to 1 if not provided
       const page = parseInt(req.query.page) || 1;
   
-      // Set the limit for how many orders per page
       const limit = 5;
   
-      // Calculate the number of documents to skip based on the current page
       const skip = (page - 1) * limit;
   
-      // Fetch the total number of orders (for pagination calculation)
       const totalOrders = await Orders.countDocuments();
-  
-      // Fetch paginated orders with necessary population and skip/limit
       const orders = await Orders.find({})
         .populate('items.product')
         .populate('user')
         .populate('address')
         .skip(skip)
         .limit(limit);
-  
-      // Process the order history (same as before)
+
       const order_history = orders.map(order => {
-        // Map through each order's items to retrieve specific variant details
         order.items = order.items.map(item => {
           const product = item.product;
           const specificVariant = product.variants.find(
@@ -638,29 +682,29 @@ exports.orderGET = async (req, res) => {
             ...item,
             product: {
               ...product._doc,
-              variants: specificVariant, // Only include the specific variant
+              variants: specificVariant,
             },
           };
         });
         return order;
       });
   
-      // Calculate the total number of pages
+
       const totalPages = Math.ceil(totalOrders / limit);
-  
-      // Render the admin orders page with pagination data
       res.render('admin/orders', {
         order_history,
         title: 'Order Management',
         layout: 'layouts/adminLayout',
         currentPage: page,
-        totalPages: totalPages,  // Send totalPages for pagination
+        totalPages: totalPages, 
       });
     } catch (error) {
       console.log('Error occurred while loading admin orders page:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
   };
+
+
   exports.update_order_statusPOST = async (req, res) => {
     try {
         console.log('Update order status request body:', req.body);
@@ -674,7 +718,7 @@ exports.orderGET = async (req, res) => {
 
         if (!order) {
             console.error(`Order not found for item ID: ${itemId}`);
-            return res.status(404).json({ message: 'Order not found.' });
+            return res.status(404).json({success: false, message: 'Order not found.' });
         }
 
         console.log(`Found order: ${JSON.stringify(order)}`);
@@ -684,7 +728,7 @@ exports.orderGET = async (req, res) => {
 
         if (!item) {
             console.error(`Item with ID: ${itemId} not found in order.`);
-            return res.status(404).json({ message: 'Item not found.' });
+            return res.status(404).json({success: false, message: 'Item not found.' });
         }
 
         console.log(`Found item: ${JSON.stringify(item)}`);
@@ -692,7 +736,7 @@ exports.orderGET = async (req, res) => {
         // Prevent cancellation if the item is already delivered
         if (item.orderStatus === 'Delivered' && status === 'Cancelled') {
             console.error(`Cannot cancel an item that is already delivered.`);
-            return res.status(400).json({ message: 'Cannot cancel an item that has already been delivered.' });
+            return res.status(400).json({  success: false, message: 'Cannot cancel an item that has already been delivered.' });
         }
 
         // Update the order status directly
@@ -700,7 +744,7 @@ exports.orderGET = async (req, res) => {
         await order.save();
 
         console.log(`Successfully updated item status. Updated order: ${JSON.stringify(order)}`);
-        res.status(200).json({ message: 'Order status updated successfully.' });
+        res.status(200).json({ success: true, message: 'Order status updated successfully.' });
     } catch (error) {
         console.error('Error updating order status:', error);
         res.status(500).json({ message: 'Internal server error.' });
@@ -750,6 +794,35 @@ exports.add_couponPOST = async (req, res) => {
         res.status(500).json({ message: 'Server error. Please try again later.' });
     }
 };
+exports.edit_couponPOST = async (req, res) => {
+    try {
+        const { id } = req.params; // Get coupon ID from the request parameters
+        const { couponCode, discount, startDate, expiryDate, minimumAmount, maximumAmount, coupon_description } = req.body;
+
+        // Find the coupon by ID
+        const existingCoupon = await Coupon.findById(id);
+        if (!existingCoupon) {
+            return res.status(404).json({ message: 'Coupon not found.' });
+        }
+
+        // Update the coupon details
+        existingCoupon.coupon_code = couponCode;
+        existingCoupon.discount = discount;
+        existingCoupon.start_date = new Date(startDate);
+        existingCoupon.expiry_date = new Date(expiryDate);
+        existingCoupon.minimum_purchase_amount = minimumAmount;
+        existingCoupon.maximum_coupon_amount = maximumAmount;
+        existingCoupon.coupon_description = coupon_description;
+
+        // Save the updated coupon
+        await existingCoupon.save();
+
+        res.status(200).json({ message: 'Coupon updated successfully!' });
+    } catch (err) {
+        console.error('Error updating coupon:', err);
+        res.status(500).json({ message: 'Server error. Please try again later.' });
+    }
+};
 
 exports.offerAdminGET = async (req, res) => {
     try {
@@ -774,11 +847,10 @@ exports.offerAdminGET = async (req, res) => {
             },
           ]);
           
-          console.log(productData, '');
 
         //   res.json({productData});
           
-        const categoryData = await Category.find()
+        const categoryData = await Category.find().populate('offer')
         const referralData = ['']
         offerData ? offerData : []
         productData ? productData : []
@@ -828,8 +900,6 @@ exports.updateOfferPOST = async (req, res) => {
         if (!variant) {
             return res.status(404).json({ error: "Variant not found" });
         }
-
-        // Corrected discount price calculation
         const discountPrice = variant.price - (variant.price * offerData.offer_percentage / 100);
 
         variant.discount_price = discountPrice;
@@ -843,6 +913,80 @@ exports.updateOfferPOST = async (req, res) => {
         res.status(500).json({ error: "Internal server error" });
     }
 };
+exports.updateCategoryOfferPOST = async (req, res) => {
+    try {
+        const { categoryId, offerId } = req.body;
+
+        const categoryOffer = await Offer.findById(offerId);
+        if (!categoryOffer) {
+            return res.status(404).json({ success: false, message: 'No category offer found with the provided ID.' });
+        }
+
+        const products = await Products.find({ category_id: categoryId }).populate('variants.offer');
+
+        if (products.length === 0) {
+            return res.status(404).json({ success: false, message: 'No products found in this category.' });
+        }
+
+        // Apply offer to products
+        for (let product of products) {
+            let hasChanges = false;
+
+            for (let variant of product.variants) {
+                let bestOffer = null;
+
+                if (categoryOffer && !categoryOffer.is_delete) {
+                    bestOffer = {
+                        percentage: categoryOffer.offer_percentage,
+                        type: 'category',
+                    };
+                }
+
+                // Check product-specific offer
+                if (variant.offer) {
+                    const productOffer = variant.offer;
+                    if (!productOffer.is_delete && productOffer.offer_percentage > (bestOffer ? bestOffer.percentage : 0)) {
+                        bestOffer = {
+                            percentage: productOffer.offer_percentage,
+                            type: 'product', 
+                        };
+                    }
+                }
+
+                if (bestOffer) {
+                    const discountPrice = variant.price - (variant.price * bestOffer.percentage / 100);
+                    if (variant.discount_price !== discountPrice || variant.offer !== (bestOffer.type === 'category' ? categoryOffer._id : variant.offer)) {
+                        variant.discount_price = discountPrice;
+                        variant.offer = bestOffer.type === 'category' ? categoryOffer._id : variant.offer;
+                        hasChanges = true; 
+                    }
+                } else {
+                    variant.offer = null;
+                    variant.discount_price = 0;
+                    hasChanges = true;
+                }
+            }
+
+            if (hasChanges) {
+                await product.save();
+            }
+        }
+
+        // After updating the products, update the category to save the offerId
+        const category = await Category.findById(categoryId);
+        if (!category) {
+            return res.status(404).json({ success: false, message: 'Category not found.' });
+        }
+
+        category.offer = offerId;  // Save the offerId in the category
+        await category.save();
+
+        res.status(200).json({ success: true, message: 'Offers updated successfully and saved to category.', products });
+    } catch (error) {
+        console.error('Error updating offers:', error);
+        res.status(500).json({ success: false, message: 'Server error while updating offers.' });
+    }
+};
 
 
 exports.accept_return_requestPOST = async (req, res) => {
@@ -852,25 +996,189 @@ exports.accept_return_requestPOST = async (req, res) => {
         const order = await Orders.findOne({ orderId });
         
         if (!order) {
-            return res.status(404).json({ message: 'Order not found' });
+            return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
         const item = order.items.find(item => item._id.toString() === itemId);
         
         if (!item) {
-            return res.status(404).json({ message: 'Item not found in the order' });
+            return res.status(404).json({ success: false, message: 'Item not found in the order' });
         }
         if (!item.isReturnRequested) {
-            return res.status(400).json({ message: 'Return request has not been made for this item' });
+            return res.status(400).json({   success: false, message: 'Return request has not been made for this item' });
         }
 
         item.isAdminAcceptedReturn = 'Accepted';
 
         await order.save();
 
-        return res.status(200).json({ message: 'Return request accepted successfully', order });
+        return res.status(200).json({success: true, message: 'Return request accepted successfully', order });
     } catch (error) {
         console.error('Error occurred while accepting the return request', error);
         return res.status(500).json({ message: 'Internal server error' });
     }
 };
+
+exports.decline_return_requestPOST = async (req, res) => {
+    const { itemId, orderId } = req.body;
+
+        const order = await Orders.findOne({ orderId });
+        
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        const item = order.items.find(item => item._id.toString() === itemId);
+        
+        if (!item) {
+            return res.status(404).json({ success: false, message: 'Item not found in the order' });
+        }
+        if (!item.isReturnRequested) {
+            return res.status(400).json({   success: false, message: 'Return request has not been made for this item' });
+        }
+
+        item.isAdminAcceptedReturn = 'Rejected';
+
+        await order.save();
+
+        return res.status(200).json({success: true, message: 'Return request Rejected successfully', order });
+}
+const pdf = require('html-pdf');
+
+
+exports.downloadSalesReport = async (req, res) => {
+    try {
+      const { sortStats, startDate, endDate } = req.query;
+      let query = {};
+  
+
+      if (startDate && endDate) {
+        query.createdAt = {
+          $gte: moment(startDate).startOf('day').toDate(),
+          $lte: moment(endDate).endOf('day').toDate()
+        };
+      } else if (startDate) {
+        query.createdAt = { $gte: moment(startDate).startOf('day').toDate() };
+      } else if (endDate) {
+        query.createdAt = { $lte: moment(endDate).endOf('day').toDate() };
+      } else if (sortStats) {
+        switch (sortStats.toLowerCase()) {
+          case 'week':
+            query.createdAt = { $gte: moment().subtract(1, 'week').toDate() };
+            break;
+          case 'month':
+            query.createdAt = { $gte: moment().subtract(1, 'month').toDate() };
+            break;
+          case 'day':
+          default:
+            query.createdAt = { $gte: moment().subtract(1, 'day').toDate() };
+            break;
+        }
+      }
+  
+      const orders = await Order.find(query).populate('user', 'name');
+
+      let totalPayableAmount = 0;
+
+      const html = `
+  <html>
+    <head>
+      <title>Sales Report</title>
+      <style>
+        body { font-family: Arial, sans-serif; font-size: 10px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #000; padding: 4px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .nested-table { margin-left: 10px; width: 95%; }
+      </style>
+    </head>
+    <body>
+      <h1 style="font-size: 16px;">Sales Report</h1>
+      <table>
+        <thead>
+          <tr>
+            <th>Order ID</th>
+            <th>Date</th>
+            <th>Total Amount</th>
+            <th>Status</th>
+            <th>User</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${orders.map(order => {
+            const orderTotal = order.payableAmount || 0;
+            totalPayableAmount += orderTotal;
+
+            return `
+              <tr>
+                <td>${order.orderId}</td>
+                <td>${new Date(order.placedAt).toLocaleDateString()}</td>
+                <td>₹${order.totalAmount.toFixed(2)}</td>
+                <td>${order.paymentStatus}</td>
+                <td>${order.user ? order.user._id.toString() : 'N/A'}</td>
+              </tr>
+              <tr>
+                <td colspan="5">
+                  <table class="nested-table">
+                    <thead>
+                      <tr>
+                        <th>Product</th>
+                        <th>Variant ID</th>
+                        <th>Quantity</th>
+                        <th>Price</th>
+                        <th>Discount</th>
+                        <th>Net Price</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${order.items.map(item => {
+                        const netPrice = (item.price - item.discount) * item.quantity;
+                        return `
+                          <tr>
+                            <td>${item.product}</td>
+                            <td>${item.variantId}</td>
+                            <td>${item.quantity}</td>
+                            <td>₹${item.price.toFixed(2)}</td>
+                            <td>₹${item.discount.toFixed(2)}</td>
+                            <td>₹${netPrice.toFixed(2)}</td>
+                          </tr>
+                        `;
+                      }).join('')}
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+      <h2 style="font-size: 14px;">Total Payable Amount: ₹${totalPayableAmount.toFixed(2)}</h2>
+    </body>
+  </html>
+`;
+
+  
+
+      const options = {
+        format: 'A4',
+        orientation: 'portrait',
+        border: {
+          top: '0.3in',
+          right: '0.3in',
+          bottom: '0.3in',
+          left: '0.3in'
+        }
+      };
+  
+
+      pdf.create(html, options).toBuffer((err, buffer) => {
+        if (err) return res.status(500).send(err);
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename=sales_report.pdf');
+        res.send(buffer);
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  };

@@ -132,29 +132,33 @@ exports.updateCartQuantity = async (req, res) => {
         return res.status(500).json({ success: false, message: 'An error occurred while updating cart quantity' });
     }
 };
-
 exports.cartCheckout = async (req, res) => {
     try {
         const userId = req.session.user.user;
+
         const cart = await Cart.findOne({ user: userId }).populate('items.product');
+
+        if (!cart || cart.items.length === 0) {
+            return res.redirect('/');
+        }
+
+        // Fetch all available coupons
         const coupons = await Coupon.find();
 
+        // Check for any coupon applied by the user
         const appliedCoupon = await Coupon.findOne({
             "users.userId": userId,
             "users.isBought": false
         });
 
+        // Calculate total cart value
         let cartTotal = 0;
-
-        if (cart && cart.items.length > 0) {
-            for (let item of cart.items) {
-                const variant = item.product.variants.find(v => v._id.toString() === item.variantId);
-                if (variant) {
-                    // Use discount_price instead of price
-                    const priceToUse = variant.discount_price || variant.price; // Fallback to original price if discount_price is not set
-                    item.price = priceToUse;
-                    cartTotal += priceToUse * item.quantity;
-                }
+        for (let item of cart.items) {
+            const variant = item.product.variants.find(v => v._id.toString() === item.variantId);
+            if (variant) {
+                const priceToUse = variant.discount_price || variant.price; 
+                item.price = priceToUse;
+                cartTotal += priceToUse * item.quantity;
             }
         }
 
@@ -176,10 +180,13 @@ exports.cartCheckout = async (req, res) => {
             appliedCoupon,
             layout: 'layouts/homeLayout',
         });
+
     } catch (error) {
         console.log('Error occurred while loading proceed to checkout page:', error);
+        res.redirect('/');
     }
 };
+
 
 
 // POST: Save Address for Checkout

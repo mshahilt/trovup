@@ -160,12 +160,12 @@
                                                         <td>₹ <%= parseFloat(element.amount).toFixed(2) %></td>
                                                         <td><%= element.description %></td>
                                                         <td class="text-center">
-                                                            <% if (element.transactioType === "credited") { %>
+                                                            <% if (element.transactionType === "credited") { %>
                                                                 <span class="badge bg-success credit">
                                                                     <i class="bi bi-arrow-down-circle-fill"></i>
                                                                     Credit
                                                                 </span>
-                                                            <% } else if (element.transactioType == "debited") { %>
+                                                            <% } else if (element.transactionType == "debited") { %>
                                                                 <span class="badge bg-danger debit">
                                                                     <i class="bi bi-arrow-up-circle-fill"></i>
                                                                     Debit

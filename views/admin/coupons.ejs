@@ -37,22 +37,22 @@
                             <td><%= coupon.discount %> %</td>
                             <td><%= coupon.start_date.toDateString() %></td>
                             <td><%= coupon.expiry_date.toDateString() %></td>
-                            <td>$<%= coupon.minimum_purchase_amount %></td>
-                            <td>$<%= coupon.maximum_coupon_amount %></td> <!-- Display Max Amount -->
+                            <td>₹<%= coupon.minimum_purchase_amount %></td>
+                            <td>₹<%= coupon.maximum_coupon_amount %></td> <!-- Display Max Amount -->
                             <td>
-                                <form action="/admin/edit-coupon/<%= coupon._id %>" method="GET">
-                                    <button type="submit" class="btn btn-warning">Edit</button>
-                                </form>
-                            </td>
+                                <button type="button" class="btn btn-warning" onclick="openEditModal('<%= coupon._id %>', '<%= coupon.coupon_code %>', <%= coupon.discount %>, '<%= coupon.start_date.toISOString().split('T')[0] %>', '<%= coupon.expiry_date.toISOString().split('T')[0] %>', <%= coupon.minimum_purchase_amount %>, <%= coupon.maximum_coupon_amount %>, '<%= coupon.coupon_description %>')">Edit</button>
+                            </td>                            
                             <td>
                                 <% if (new Date(coupon.expiry_date) < new Date()) { %>
                                     <form action="/admin/delete-coupon/<%= coupon._id %>" method="POST">
                                         <button type="submit" class="btn btn-success">Restore</button>
                                     </form>
                                 <% } else { %>
-                                    <form action="/admin/delete-coupon/<%= coupon._id %>" method="POST">
-                                        <button type="submit" class="btn btn-danger">Delete</button>
-                                    </form>
+                                    <td>
+                                        <form onsubmit="return confirmDelete(event, '<%= coupon._id %>');">
+                                            <button type="submit" class="btn btn-danger">Delete</button>
+                                        </form>
+                                    </td>                                    
                                 <% } %>
                             </td>
                         </tr>
@@ -60,6 +60,51 @@
                     </tbody>
                 </table>
             </div>
+                        <!-- Edit Coupon Modal -->
+                        <div class="modal fade" id="editCouponModal" tabindex="-1" aria-labelledby="editCouponModalLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="editCouponModalLabel">Edit Coupon</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <form id="editCouponForm">
+                                            <input type="hidden" id="editCouponId">
+                                            <div class="mb-3">
+                                                <label for="editCouponCode" class="form-label">Coupon Code</label>
+                                                <input type="text" id="editCouponCode" class="form-control" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="editDiscount" class="form-label">Discount (%)</label>
+                                                <input type="number" id="editDiscount" class="form-control" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="editStartDate" class="form-label">Start Date</label>
+                                                <input type="date" id="editStartDate" class="form-control" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="editExpiryDate" class="form-label">Expiry Date</label>
+                                                <input type="date" id="editExpiryDate" class="form-control" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="editMinimumAmount" class="form-label">Minimum Amount</label>
+                                                <input type="number" id="editMinimumAmount" class="form-control" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="editMaximumAmount" class="form-label">Maximum Coupon Amount</label>
+                                                <input type="number" id="editMaximumAmount" class="form-control" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="editDescription" class="form-label">Coupon Description</label>
+                                                <textarea id="editDescription" class="form-control" rows="2" required></textarea>
+                                            </div>
+                                            <button type="submit" class="btn btn-dark">Update Coupon</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>                        
 
             <!-- Add New Coupon Section -->
             <div class="mt-4">
@@ -82,6 +127,62 @@
 <!-- SweetAlert and Validation Script -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+    function openEditModal(id, code, discount, startDate, expiryDate, minAmount, maxAmount,coupon_description) {
+    // Populate the modal fields with the current coupon details
+    document.getElementById('editCouponId').value = id;
+    document.getElementById('editCouponCode').value = code;
+    document.getElementById('editDiscount').value = discount;
+    document.getElementById('editStartDate').value = startDate;
+    document.getElementById('editExpiryDate').value = expiryDate;
+    document.getElementById('editMinimumAmount').value = minAmount;
+    document.getElementById('editMaximumAmount').value = maxAmount;
+    document.getElementById('editDescription').value = coupon_description;
+    
+
+    // Show the modal
+    const editModal = new bootstrap.Modal(document.getElementById('editCouponModal'));
+    editModal.show();
+}
+
+document.getElementById('editCouponForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const id = document.getElementById('editCouponId').value;
+    const formData = {
+        couponCode: document.getElementById('editCouponCode').value,
+        discount: document.getElementById('editDiscount').value,
+        startDate: document.getElementById('editStartDate').value,
+        expiryDate: document.getElementById('editExpiryDate').value,
+        minimumAmount: document.getElementById('editMinimumAmount').value,
+        maximumAmount: document.getElementById('editMaximumAmount').value,
+        coupon_description: document.getElementById('editDescription').value
+    };
+
+    try {
+        const response = await fetch(`/admin/edit-coupon/${id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            Swal.fire('Success', 'Coupon updated successfully!', 'success').then(() => {
+                window.location.reload();
+            });
+        } else {
+            Swal.fire('Error', result.message || 'Failed to update coupon.', 'error');
+        }
+    } catch (error) {
+        Swal.fire('Error', 'An error occurred while updating the coupon.', 'error');
+    }
+});
+
+</script>
+<script>
 document.addEventListener('DOMContentLoaded', () => {
     const couponForm = document.getElementById('couponForm');
     const startDateInput = document.getElementById('startDate');
@@ -90,7 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const discountInput = document.getElementById('discount');
     const minimumAmountInput = document.getElementById('minimumAmount');
     const maximumAmountInput = document.getElementById('maximumAmount');
-    const descriptionInput = document.getElementById('description');
+    const descriptionInput = document.getElementById('coupon_description');
 
     // Set minimum start date as today
     const today = new Date().toISOString().split('T')[0];
@@ -160,4 +261,38 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+</script>
+<script>
+    function confirmDelete(event, couponId) {
+    event.preventDefault();
+    Swal.fire({
+        title: 'Are you sure?',
+        text: 'This coupon will be permanently deleted!',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'No, cancel!'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const response = await fetch(`/admin/delete-coupon/${couponId}`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    Swal.fire('Deleted!', 'Your coupon has been deleted.', 'success').then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire('Error', result.message || 'Failed to delete coupon.', 'error');
+                }
+            } catch (error) {
+                Swal.fire('Error', 'An error occurred while deleting the coupon.', 'error');
+            }
+        }
+    });
+}
+
 </script>

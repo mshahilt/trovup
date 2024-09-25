@@ -52,13 +52,18 @@ router.post('/update-product-status', isAuthenticatedAdmin, adminControllers.upd
 // -------------------------
 router.get('/coupons', isAuthenticatedAdmin, adminControllers.couponGET);
 router.post('/add-coupon', isAuthenticatedAdmin, adminControllers.add_couponPOST);
+router.post('/edit-coupon/:id',isAuthenticatedAdmin, adminControllers.edit_couponPOST)
+
 
 // Offer Management Routes
 // -------------------------
 router.get('/offers', isAuthenticatedAdmin, adminControllers.offerAdminGET);
 router.post('/addOffer',isAuthenticatedAdmin, adminControllers.addOfferPOST);
 router.post('/updateOffer',isAuthenticatedAdmin, adminControllers.updateOfferPOST);
+router.post('/ChangeCategoryOffer', isAuthenticatedAdmin, adminControllers.updateCategoryOfferPOST)
 
 router.post('/accept-return-request',isAuthenticatedAdmin, adminControllers.accept_return_requestPOST);
+router.post('/decline-return-request',isAuthenticatedAdmin, adminControllers.decline_return_requestPOST);
+router.get('/download-sales-report', isAuthenticatedAdmin,adminControllers.downloadSalesReport); 
 module.exports = router;
 
