@@ -64,6 +64,6 @@ router.post('/ChangeCategoryOffer', isAuthenticatedAdmin, adminControllers.updat
 
 router.post('/accept-return-request',isAuthenticatedAdmin, adminControllers.accept_return_requestPOST);
 router.post('/decline-return-request',isAuthenticatedAdmin, adminControllers.decline_return_requestPOST);
-router.get('/download-sales-report', isAuthenticatedAdmin,adminControllers.downloadSalesReport); 
+router.post('/download-sales-report', isAuthenticatedAdmin,adminControllers.downloadSalesReport); 
 module.exports = router;
 

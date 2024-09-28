@@ -47,72 +47,79 @@
 <div class="container mt-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Products</h2>
-
         <form class="d-flex" method="GET" id="filterForm" action="/products">
             <input class="form-control me-2" type="search" name="search" placeholder="Search products" value="<%= search || '' %>">
             <button class="btn btn-outline-dark" type="submit">Search</button>
             <!-- Hidden field to handle sort -->
             <input type="hidden" id="sortField" name="sort" value="<%= sort || '' %>">
         </form>
+        
     </div>
 
     <div class="row mb-4">
         <div class="col-md-3">
             <h5>Filter by</h5>
-            <form id="filterForm" method="GET" action="/products">
-                <div class="mb-3">
-                    <label for="colorFilter" class="form-label">Color</label>
-                    <select id="colorFilter" class="form-select" name="color">
-                        <option value="">All</option>
-                        <% colors.forEach(color => { %>
-                            <option value="<%= color %>" <%= color === selectedColor ? 'selected' : '' %>><%= color %></option>
-                        <% }) %>
-                    </select>
-                </div>
+            
+<!-- Filters Sidebar -->
+<form id="filterForm" method="GET" action="/products">
+    <input type="hidden" name="search" value="<%= search || '' %>"> <!-- Retain search term -->
+    <input type="hidden" name="sort" value="<%= sort || '' %>"> <!-- Retain sort order -->
 
-                <div class="mb-3">
-                    <label for="brandFilter" class="form-label">Brand</label>
-                    <select id="brandFilter" class="form-select" name="brand">
-                        <option value="">All</option>
-                        <% brands.forEach(brand => { %>
-                            <option value="<%= brand %>" <%= brand === selectedBrand ? 'selected' : '' %>><%= brand %></option>
-                        <% }) %>
-                    </select>
-                </div>
+    <div class="mb-3">
+        <label for="colorFilter" class="form-label">Color</label>
+        <select id="colorFilter" class="form-select" name="color">
+            <option value="">All</option>
+            <% colors.forEach(color => { %>
+                <option value="<%= color %>" <%= color === selectedColor ? 'selected' : '' %>><%= color %></option>
+            <% }) %>
+        </select>
+    </div>
 
-                <div class="mb-3">
-                    <label for="categoryFilter" class="form-label">Category</label>
-                    <select id="categoryFilter" class="form-select" name="category">
-                        <option value="">All</option>
-                        <% categories.forEach(category => { %>
-                            <option value="<%= category %>" <%= category === selectedCategory ? 'selected' : '' %>><%= category %></option>
-                        <% }) %>
-                    </select>
-                </div>
+    <div class="mb-3">
+        <label for="brandFilter" class="form-label">Brand</label>
+        <select id="brandFilter" class="form-select" name="brand">
+            <option value="">All</option>
+            <% brands.forEach(brand => { %>
+                <option value="<%= brand %>" <%= brand === selectedBrand ? 'selected' : '' %>><%= brand %></option>
+            <% }) %>
+        </select>
+    </div>
 
-                <div class="mb-3">
-                    <label for="priceFilter" class="form-label">Price Range</label>
-                    <input type="number" class="form-control" id="minPrice" name="minPrice" placeholder="Min Price" value="<%= minPrice || '' %>">
-                    <input type="number" class="form-control mt-2" id="maxPrice" name="maxPrice" placeholder="Max Price" value="<%= maxPrice || '' %>">
-                </div>
+    <div class="mb-3">
+        <label for="categoryFilter" class="form-label">Category</label>
+        <select id="categoryFilter" class="form-select" name="category">
+            <option value="">All</option>
+            <% categories.forEach(category => { %>
+                <option value="<%= category %>" <%= category === selectedCategory ? 'selected' : '' %>><%= category %></option>
+            <% }) %>
+        </select>
+    </div>
 
-                <button type="submit" class="btn btn-dark">Apply Filters</button>
-            </form>
+    <div class="mb-3">
+        <label for="priceFilter" class="form-label">Price Range</label>
+        <input type="number" class="form-control" id="minPrice" name="minPrice" placeholder="Min Price" value="<%= minPrice || '' %>">
+        <input type="number" class="form-control mt-2" id="maxPrice" name="maxPrice" placeholder="Max Price" value="<%= maxPrice || '' %>">
+    </div>
+
+    <button type="submit" class="btn btn-dark">Apply Filters</button>
+</form>
         </div>
 
         <div class="col-md-9">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div class="form-group">
-                    <label for="sortProducts" class="form-label">Sort by:</label>
-                    <select id="sortProducts" class="form-select" onchange="sortProducts()">
-                        <option value="">Default</option>
-                        <option value="priceLowHigh" <%= sort === 'priceLowHigh' ? 'selected' : '' %>>Price: Low to High</option>
-                        <option value="priceHighLow" <%= sort === 'priceHighLow' ? 'selected' : '' %>>Price: High to Low</option>
-                        <option value="nameAZ" <%= sort === 'nameAZ' ? 'selected' : '' %>>Name: A to Z</option>
-                        <option value="nameZA" <%= sort === 'nameZA' ? 'selected' : '' %>>Name: Z to A</option>
-                    </select>
-                </div>
-            </div>
+            
+<!-- Sort Dropdown -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="form-group">
+        <label for="sortProducts" class="form-label">Sort by:</label>
+        <select id="sortProducts" class="form-select" onchange="sortProducts()">
+            <option value="">Default</option>
+            <option value="priceLowHigh" <%= sort === 'priceLowHigh' ? 'selected' : '' %>>Price: Low to High</option>
+            <option value="priceHighLow" <%= sort === 'priceHighLow' ? 'selected' : '' %>>Price: High to Low</option>
+            <option value="nameAZ" <%= sort === 'nameAZ' ? 'selected' : '' %>>Name: A to Z</option>
+            <option value="nameZA" <%= sort === 'nameZA' ? 'selected' : '' %>>Name: Z to A</option>
+        </select>
+    </div>
+</div>
 
             <div class="row">
                 <% if (products.length > 0) { %>
@@ -155,7 +162,7 @@
 </div>
 
 <script>
-    function sortProducts() {
+     function sortProducts() {
         const sortOption = document.getElementById('sortProducts').value;
         document.getElementById('sortField').value = sortOption; // Update hidden sort field
         document.getElementById('filterForm').submit(); // Submit the form with the updated sort value

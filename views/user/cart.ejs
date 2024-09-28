@@ -4,6 +4,13 @@
         <div class="row justify-content-center">
             <div class="col-12 mb-4">
                 <table class="table table-borderless text-white">
+                    <% if (messages.error && messages.error.length > 0) { %>
+                        <div class="alert alert-danger">
+                            <% messages.error.forEach(function(error) { %>
+                                <p><%= error %></p>
+                            <% }) %>
+                        </div>
+                    <% } %>                
                     <thead>
                         <tr class="text-uppercase text-muted">
                             <th scope="col">Items</th>
@@ -94,7 +101,7 @@ function deleteCart(id) {
     }).then((result) => {
         if (result.isConfirmed) {
             fetch(`/cart/deleteCart/${id}`, {
-                method: "DELETE",
+                method: "POST",
                 headers: { "Content-Type": "application/json" }
             }).then((res) => {
                 if (res.ok) {

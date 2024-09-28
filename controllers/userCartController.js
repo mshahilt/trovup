@@ -131,8 +131,7 @@ exports.updateCartQuantity = async (req, res) => {
         console.error('Error updating cart quantity:', err);
         return res.status(500).json({ success: false, message: 'An error occurred while updating cart quantity' });
     }
-};
-exports.cartCheckout = async (req, res) => {
+};exports.cartCheckout = async (req, res) => {
     try {
         const userId = req.session.user.user;
 
@@ -142,16 +141,13 @@ exports.cartCheckout = async (req, res) => {
             return res.redirect('/');
         }
 
-        // Fetch all available coupons
         const coupons = await Coupon.find();
 
-        // Check for any coupon applied by the user
         const appliedCoupon = await Coupon.findOne({
             "users.userId": userId,
             "users.isBought": false
         });
 
-        // Calculate total cart value
         let cartTotal = 0;
         for (let item of cart.items) {
             const variant = item.product.variants.find(v => v._id.toString() === item.variantId);
@@ -159,6 +155,12 @@ exports.cartCheckout = async (req, res) => {
                 const priceToUse = variant.discount_price || variant.price; 
                 item.price = priceToUse;
                 cartTotal += priceToUse * item.quantity;
+
+                if (variant.stock < item.quantity) {
+
+                    req.flash('error', `Insufficient stock for product ${item.product.product_name} (Variant: ${variant.color}).`);
+                    return res.redirect('/cart');
+                }
             }
         }
 
@@ -252,24 +254,29 @@ exports.place_orderPOST = async (req, res) => {
 
 
 exports.deleteCart = async (req, res) => {
+    console.log('deleteCart function called');
     try {
         const { id: itemId } = req.params;
-        const userId = req.session.userId;
+        const userId = req.session.user.user;
 
-        console.log('cart function delete called')
+        console.log('userId:', userId);
+        console.log('itemId:', itemId);
+
         const cart = await Cart.findOneAndUpdate(
-            { userId }, 
+            { user: userId }, 
             { $pull: { items: { _id: itemId } } },
             { new: true } 
         );
 
         if (cart) {
+            console.log('Cart updated successfully');
             return res.status(200).json({ success: true, cart });
         } else {
+            console.log('Cart not found');
             return res.status(404).json({ success: false, message: 'Cart not found' });
         }
     } catch (error) {
-        console.log('Error occurred while deleting cart items:', error);
+        console.error('Error occurred while deleting cart items:', error);
         return res.status(500).json({ success: false, message: 'Server error' });
     }
 };

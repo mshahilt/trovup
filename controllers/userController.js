@@ -5,6 +5,7 @@ const nodemailer = require('nodemailer');
 const sendMail = require('../config/sendMail');
 const Products = require('../models/productModel');
 const Category = require('../models/catogeryModel');
+const Brands = require('../models/brandModel');
 
 // Configure nodemailer transporter
 const transporter = nodemailer.createTransport({
@@ -452,86 +453,95 @@ exports.logout = async (req, res) => {
             }
           };
           
-  // Controller
-exports.productPageGET = async (req, res) => {
-    const { search, color, brand, category, minPrice, maxPrice, sort } = req.query;
-
-    console.log('sort:', sort);
-    // Build the query object for MongoDB
-    let query = {};
-    if (search) {
-        query.product_name = { $regex: new RegExp(search, 'i') };
-    }
-    if (color) {
-        query['variants.color'] = color;
-    }
-    if (brand) {
-        query['brand_id.brand_name'] = brand;
-    }
-    if (category) {
-        query['category_id.category_name'] = category;
-    }
-    if (minPrice || maxPrice) {
-        query['variants.price'] = {};
-        if (minPrice) query['variants.price'].$gte = Number(minPrice);
-        if (maxPrice) query['variants.price'].$lte = Number(maxPrice);
-    }
-
-    // Sorting options
-    let sortQuery = {};
-    switch (sort) {
-        case 'priceLowHigh':
-            sortQuery['variants.price'] = 1;
-            break;
-        case 'priceHighLow':
-            sortQuery['variants.price'] = -1;
-            break;
-        case 'nameAZ':
-            sortQuery['product_name'] = 1;
-            break;
-        case 'nameZA':
-            sortQuery['product_name'] = -1;
-            break;
-        default:
-            sortQuery = {}; // Default sort (no specific sorting)
-    }
-
-    try {
-        // Fetch products with filters and sorting
-        const products = await Products.find(query)
-            .sort(sortQuery)
-            .populate('category_id', 'category_name') // Only populate category_name
-            .populate('brand_id', 'brand_name'); // Only populate brand_name
-
-        console.log('Products found:', products);
-
-        // Check if the user is logged in
-        const isUserLoggedIn = req.session.user;
-
-        // Fetch distinct values for filters
-        const colors = await Products.distinct('variants.color');
-        const brands = await Products.distinct('brand_id.brand_name');
-        const categories = await Products.distinct('category_id.category_name');
-
-        // Render the products page with filters and product data
-        res.render('user/products', {
-            isUserLoggedIn,
-            title: 'Shop',
-            layout: 'layouts/homeLayout',
-            products,
-            search,
-            colors,
-            brands,
-            categories,
-            selectedColor: color,
-            selectedBrand: brand,
-            selectedCategory: category,
-            minPrice,
-            maxPrice,
-            sort
-        });
-    } catch (error) {
-        console.error('Error fetching products:', error);
-        res.status(500).send('Server Error');
-    }
-};
+          // Controller
+          exports.productPageGET = async (req, res) => {
+              const { search, color, brand, category, minPrice, maxPrice, sort } = req.query;
+          
+              // Build the query object for MongoDB
+              let query = {};
+          
+              // Search filter
+              if (search) {
+                  query.product_name = { $regex: new RegExp(search, 'i') };
+              }
+          
+              // Color filter
+              if (color) {
+                  query['variants.color'] = color;
+              }
+          
+              // Brand filter
+              if (brand) {
+                  query['brand_id.brand_name'] = brand;
+              }
+          
+              // Category filter
+              if (category) {
+                  query['category_id.category_name'] = category;
+              }
+          
+              // Price filter
+              if (minPrice || maxPrice) {
+                  query['variants.price'] = {};
+                  if (minPrice) query['variants.price'].$gte = Number(minPrice);
+                  if (maxPrice) query['variants.price'].$lte = Number(maxPrice);
+              }
+          
+              // Sorting options
+              let sortQuery = {};
+              switch (sort) {
+                  case 'priceLowHigh':
+                      sortQuery['variants.price'] = 1;
+                      break;
+                  case 'priceHighLow':
+                      sortQuery['variants.price'] = -1;
+                      break;
+                  case 'nameAZ':
+                      sortQuery['product_name'] = 1;
+                      break;
+                  case 'nameZA':
+                      sortQuery['product_name'] = -1;
+                      break;
+                  default:
+                      sortQuery = {}; // Default sort (no specific sorting)
+              }
+          
+              try {
+                  // Fetch products with filters and sorting
+                  const products = await Products.find(query)
+                      .sort(sortQuery)
+                      .populate('category_id', 'category_name') // Only populate category_name
+                      .populate('brand_id', 'brand_name'); // Only populate brand_name
+          
+                  // Check if the user is logged in
+                  const isUserLoggedIn = req.session.user;
+          
+                  // Fetch distinct values for filters (colors, brands, categories)
+                  const colors = await Products.distinct('variants.color');
+                  const brands = await Products.distinct('brand_id.brand_name');
+                  const categories = await Products.distinct('category_id.category_name');
+          
+                  // Render the products page with filters and product data
+                  res.render('user/products', {
+                      isUserLoggedIn,
+                      title: 'Shop',
+                      layout: 'layouts/homeLayout',
+                      products,
+                      search,
+                      colors,
+                      brands,
+                      categories,
+                      selectedColor: color,
+                      selectedBrand: brand,
+                      selectedCategory: category,
+                      minPrice,
+                      maxPrice,
+                      sort
+                  });
+              } catch (error) {
+                  console.error('Error fetching products:', error);
+                  res.status(500).send('Server Error');
+              }
+          };
+          
+        

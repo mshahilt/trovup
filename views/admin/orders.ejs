@@ -1,11 +1,11 @@
 <div class="grid-margin stretch-card">
   <div class="card">
     <div class="card-body">
-      <h4 class="card-title">Order History</h4>
+      <h4 class="card-title text-primary">Order History</h4>
       <div class="table-responsive">
         <table class="table table-hover">
           <thead class="thead-dark">
-            <tr>
+            <tr class="bg-primary text-white">
               <th>Order ID</th>
               <th>User</th>
               <th>Payment Type</th>
@@ -15,12 +15,17 @@
           </thead>
           <tbody>
             <% order_history.forEach(order => { %>
-              <tr class="order-row">
+              <tr>
                 <td><%= order.orderId %></td>
                 <td><%= order.user.username %></td>
                 <td><%= order.paymentMethod %></td>
                 <td>
-                  <span class="badge badge-info"><%= order.orderStatus %></span>
+                  <span class="badge 
+                      <%= order.orderStatus === 'Delivered' ? 'badge-success' :
+                            order.orderStatus === 'Processing' ? 'badge-warning' : 
+                            order.orderStatus === 'Cancelled' ? 'badge-danger' : 'badge-info' %>">
+                    <%= order.orderStatus %>
+                  </span>
                 </td>
                 <td>
                   <button class="btn btn-outline-info btn-sm toggle-details-btn" data-order-id="<%= order.orderId %>">
@@ -30,23 +35,31 @@
               </tr>
               <tr class="order-details-row" data-order-id="<%= order.orderId %>" style="display:none;">
                 <td colspan="5">
-                  <div class="order-details p-3 border rounded bg-light">
+                  <div class="order-details p-3 border rounded shadow-sm" style="background-color: rgb(249, 249, 249);">
                     <div class="row">
                       <div class="col-lg-6">
                         <h5>Ordered Products</h5>
                         <% order.items.forEach(item => { 
                             const variant = item.product.variants.find(v => v._id.toString() === item.variantId.toString()); %>
-                          <div class="item-details p-2 mb-2 border rounded">
+                          <div class="item-details p-3 mb-3 border rounded shadow-sm bg-white">
                             <div class="d-flex align-items-center">
-                              <img src="/<%= variant.images[0] %>" alt="Product Image" width="60px" class="me-3">
+                              <img src="/<%= variant.images[0] %>" alt="Product Image" width="60px" class="me-3 rounded shadow-sm">
                               <div>
                                 <p><strong>Product:</strong> <%= item.product.product_name %></p>
                                 <p><strong>Color:</strong> <%= variant.color %>, <strong>Storage:</strong> <%= variant.storage_size %></p>
+                                <p><strong>Price:</strong> ₹<%= item.price.toFixed(2) %></p>
+                                <% if (item.discount > 0) { %>
+                                  <p><strong>Discount:</strong> ₹<%= item.discount.toFixed(2) %></p>
+                                <% } %>
+                                <p><strong>Final Price:</strong> ₹<%= (item.price - item.discount).toFixed(2) %></p>
+                                <p><strong>Quantity:</strong> <%= item.quantity %></p>
+                                <p><strong>Total:</strong> ₹<%= ((item.price - item.discount) * item.quantity).toFixed(2) %></p>
                               </div>
                             </div>
                             <div class="mt-2">
                               <label><strong>Status:</strong></label>
-                              <select class="form-select form-select-sm order-status-dropdown" data-item-id="<%= item._id %>"
+                              <select class="form-select form-select-sm order-status-dropdown"
+                                      data-item-id="<%= item._id %>"
                                       <%= item.orderStatus === 'Delivered' || item.orderStatus === 'Cancelled' ? 'disabled' : '' %>>
                                   <% ['Processing', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled'].forEach(status => { %>
                                       <option value="<%= status %>" <%= item.orderStatus === status ? 'selected' : '' %>>
@@ -54,10 +67,8 @@
                                       </option>
                                   <% }); %>
                               </select>
-
-                              
                               <% if (item.isReturnRequested) { %>
-                                <button class="btn btn-sm mt-2 btn-return-request 
+                                <button class="btn btn-sm mt-2 
                                               <%= item.isAdminAcceptedReturn === 'Accepted' ? 'btn-success' : 
                                                   item.isAdminAcceptedReturn === 'Rejected' ? 'btn-danger' : 'btn-warning' %>"
                                         data-item-id="<%= item._id %>"
@@ -67,21 +78,32 @@
                                     <%= item.isAdminAcceptedReturn === 'Accepted' ? 'Return Request Accepted' : 
                                         item.isAdminAcceptedReturn === 'Rejected' ? 'Return Request Rejected' : 'View Return Request' %>
                                 </button>
-                            <% } %>
-
+                              <% } %>
                             </div>
-
                           </div>
                         <% }) %>
                       </div>
                       <div class="col-lg-6">
                         <h5>Shipping Address</h5>
-                        <div class="border p-2 rounded bg-white">
+                        <div class="border p-3 rounded bg-white shadow-sm">
                           <p><strong>Name:</strong> <%= order.address.fullName %></p>
                           <p><strong>Address:</strong> <%= order.address.streetAddress %></p>
                           <p><strong>City:</strong> <%= order.address.city %></p>
                           <p><strong>Phone:</strong> <%= order.address.phoneNumber %></p>
                           <p><strong>Email:</strong> <%= order.address.emailAddress %></p>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="row mt-3">
+                      <div class="col-lg-6">
+                        <h5>Price Breakdown</h5>
+                        <div class="border p-3 rounded bg-white shadow-sm">
+                          <p><strong>Total Amount:</strong> ₹<%= order.totalAmount.toFixed(2) %></p>
+                          <p><strong>Discount:</strong> ₹<%= order.discountAmount.toFixed(2) %></p>
+                          <p><strong>Payable Amount:</strong> ₹<%= order.payableAmount.toFixed(2) %></p>
+                          <% if (order.couponApplied) { %>
+                            <p><strong>Coupon Applied:</strong> <%= order.couponApplied.couponCode %></p>
+                          <% } %>
                         </div>
                       </div>
                     </div>
@@ -116,6 +138,7 @@
     </div>
   </div>
 </div>
+
 <nav aria-label="Page navigation">
   <ul class="pagination justify-content-center">
     <% if (currentPage > 1) { %>
@@ -139,8 +162,6 @@
     <% } %>
   </ul>
 </nav>
-
-
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 
 
@@ -197,97 +218,115 @@
       });
     });
   });
+// Return request modal handler
+document.querySelectorAll('.btn-warning').forEach(button => {
+  button.addEventListener('click', function() {
+    const itemId = this.dataset.itemId;
+    const orderId = button.closest('.order-details-row').dataset.orderId;
+    const reason = this.dataset.reason;
+    const additionalReason = this.dataset.additionalReason;
 
-  // View return request modal
-  document.querySelectorAll('.btn-return-request').forEach(button => {
-    button.addEventListener('click', function() {
-      const reason = this.dataset.reason;
-      const additionalReason = this.dataset.additionalReason;
-      const itemId = this.dataset.itemId;
-      const orderId = button.closest('.order-details-row').dataset.orderId; // Fetch the orderId
+    console.log('itemId:', itemId);
+    console.log('orderId:', orderId);
+    console.log('reason:', reason);
+    console.log('additionalReason:', additionalReason);
 
-      document.getElementById('return-reason').textContent = reason;
-      document.getElementById('additional-reason').textContent = additionalReason;
-      const returnRequestModal = document.getElementById('returnRequestModal');
-      returnRequestModal.dataset.itemId = itemId;
-      returnRequestModal.dataset.orderId = orderId;
-      $(returnRequestModal).modal('show');
-    });
+    // Set itemId and orderId in modal's dataset
+    const modal = document.getElementById('returnRequestModal');
+    modal.dataset.itemId = itemId;
+    modal.dataset.orderId = orderId;
+
+    // Set the reasons in the modal
+    document.getElementById('return-reason').textContent = reason;
+    document.getElementById('additional-reason').textContent = additionalReason;
+
+    // Show the modal
+    const modalInstance = new bootstrap.Modal(modal);
+    modalInstance.show();
   });
+});
 
-  // Accept return request
-  document.getElementById('accept-return').addEventListener('click', function() {
-    const itemId = document.getElementById('returnRequestModal').dataset.itemId;
-    const orderId = document.getElementById('returnRequestModal').dataset.orderId;
-    Swal.fire({
-      title: 'Are you sure?',
-      text: "You are about to accept this return request!",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#28a745',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Yes, accept it!'
-    }).then(result => {
-      if (result.isConfirmed) {
-        fetch('/admin/accept-return-request', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ itemId, orderId })
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            Swal.fire('Accepted!', 'The return request has been accepted.', 'success')
-              .then(() => location.reload());
-          } else {
-            Swal.fire('Error!', data.message || 'Failed to accept the return request. Try again.', 'error');
-          }
-        })
-        .catch(error => {
-          Swal.fire('Failed!', 'Unable to accept the return request. Try again later.', 'error');
-        });
-      }
-    });
+// Accept return request
+document.getElementById('accept-return').addEventListener('click', function() {
+  // Retrieve itemId and orderId from the modal's dataset
+  const modal = document.getElementById('returnRequestModal');
+  const itemId = modal.dataset.itemId;
+  const orderId = modal.dataset.orderId;
+
+  Swal.fire({
+    title: 'Are you sure?',
+    text: "You are about to accept this return request!",
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#28a745',
+    cancelButtonColor: '#d33',
+    confirmButtonText: 'Yes, accept it!'
+  }).then(result => {
+    if (result.isConfirmed) {
+      fetch('/admin/accept-return-request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ itemId, orderId })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          Swal.fire('Accepted!', 'The return request has been accepted.', 'success')
+            .then(() => location.reload());
+        } else {
+          Swal.fire('Error!', data.message || 'Failed to accept the return request. Try again.', 'error');
+        }
+      })
+      .catch(error => {
+        Swal.fire('Failed!', 'Unable to accept the return request. Try again later.', 'error');
+      });
+    }
   });
+});
 
-  // Decline return request
-  document.getElementById('decline-return').addEventListener('click', function() {
-    const itemId = document.getElementById('returnRequestModal').dataset.itemId;
-    const orderId = document.getElementById('returnRequestModal').dataset.orderId; // Get orderId from modal
+// Decline return request
+document.getElementById('decline-return').addEventListener('click', function() {
+  // Retrieve itemId and orderId from the modal's dataset
+  const modal = document.getElementById('returnRequestModal');
+  const itemId = modal.dataset.itemId;
+  const orderId = modal.dataset.orderId;
 
-    Swal.fire({
-      title: 'Are you sure?',
-      text: "You are about to decline this return request!",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Yes, decline it!'
-    }).then(result => {
-      if (result.isConfirmed) {
-        fetch('/admin/decline-return-request', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ itemId, orderId })
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            Swal.fire('Declined!', 'The return request has been declined.', 'success')
-              .then(() => location.reload());
-          } else {
-            Swal.fire('Error!', data.message || 'Failed to decline the return request. Try again.', 'error');
-          }
-        })
-        .catch(error => {
-          Swal.fire('Failed!', 'Unable to decline the return request. Try again later.', 'error');
-        });
-      }
-    });
+  console.log('itemId:', itemId);
+  console.log('orderId:', orderId);
+
+  Swal.fire({
+    title: 'Are you sure?',
+    text: "You are about to decline this return request!",
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#3085d6',
+    confirmButtonText: 'Yes, decline it!'
+  }).then(result => {
+    if (result.isConfirmed) {
+      fetch('/admin/decline-return-request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ itemId, orderId })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          Swal.fire('Declined!', 'The return request has been declined.', 'success')
+            .then(() => location.reload());
+        } else {
+          Swal.fire('Error!', data.message || 'Failed to decline the return request. Try again.', 'error');
+        }
+      })
+      .catch(error => {
+        Swal.fire('Failed!', 'Unable to decline the return request. Try again later.', 'error');
+      });
+    }
   });
+});
 });
 </script>

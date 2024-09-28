@@ -30,7 +30,7 @@
                                             <p class="text-muted mb-0 small">Qty: <%= item.quantity %></p>
                                         </div>
                                         <div class="col-md-2 text-center d-flex justify-content-center align-items-center">
-                                            <p class="text-muted mb-0 small">$<%= item.price %></p>
+                                            <p class="text-muted mb-0 small">₹<%= item.price %></p>
                                         </div>
                                     </div>
                                     <hr class="mb-4" style="background-color: #e0e0e0; opacity: 1;">
@@ -59,22 +59,24 @@
                                     </div>
                                     
                                     <!-- Check Order Status -->
-                                    <% if (item.orderStatus !== 'Delivered') { %>
-                                        <button class="btn btn-danger mt-3" onclick="cancelOrder('<%= item._id %>')">Cancel Order</button>
-                                    <% } else { %>
-                                        <% if (item.isReturnRequested) { %>
-                                            <% if (item.isAdminAcceptedReturn === 'Pending') { %>
-                                                <button class="btn btn-warning mt-3" disabled>Return Requested</button>
-                                            <% } else if (item.isAdminAcceptedReturn === 'Accepted') { %>
-                                                <button class="btn btn-success mt-3" disabled>Return Accepted</button>
-                                            <% } else if (item.isAdminAcceptedReturn === 'Rejected') { %>
-                                                <button class="btn btn-danger mt-3" disabled>Return Rejected</button>
-                                            <% } %>
-                                        <% } else { %>
-                                            <button class="btn btn-warning mt-3" data-bs-toggle="modal" data-bs-target="#returnModal-<%= item._id %>">Return</button>
+                                <% if (item.orderStatus === 'Cancelled') { %>
+                                    <button class="btn btn-secondary mt-3" disabled>Order Canceled</button>
+                                <% } else if (item.orderStatus !== 'Delivered') { %>
+                                    <button class="btn btn-danger mt-3" onclick="cancelOrder('<%= item._id %>')">Cancel Order</button>
+                                <% } else { %>
+                                    <% if (item.isReturnRequested) { %>
+                                        <% if (item.isAdminAcceptedReturn === 'Pending') { %>
+                                            <button class="btn btn-warning mt-3" disabled>Return Requested</button>
+                                        <% } else if (item.isAdminAcceptedReturn === 'Accepted') { %>
+                                            <button class="btn btn-success mt-3" disabled>Return Accepted</button>
+                                        <% } else if (item.isAdminAcceptedReturn === 'Rejected') { %>
+                                            <button class="btn btn-danger mt-3" disabled>Return Rejected</button>
                                         <% } %>
+                                    <% } else { %>
+                                        <button class="btn btn-warning mt-3" data-bs-toggle="modal" data-bs-target="#returnModal-<%= item._id %>">Return</button>
                                     <% } %>
-                            
+                                <% } %>
+
                                     <!-- Return Modal as before -->
                                     <div class="modal fade" id="returnModal-<%= item._id %>" tabindex="-1" aria-labelledby="returnModalLabel-<%= item._id %>" aria-hidden="true">
                                         <div class="modal-dialog">
@@ -116,7 +118,7 @@
 
                         <div class="d-flex justify-content-between pt-2">
                             <p class="fw-bold mb-0">Order Details</p>
-                            <p class="text-muted mb-0"><span class="fw-bold me-4">Total</span> $<%= order.totalAmount %></p>
+                            <p class="text-muted mb-0"><span class="fw-bold me-4">Total</span> ₹<%= order.totalAmount %></p>
                         </div>
                         <!-- Additional order details here... -->
                     </div>

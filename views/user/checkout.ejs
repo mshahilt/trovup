@@ -454,7 +454,6 @@ coupons.forEach(coupon => {
     couponsList.insertAdjacentHTML('beforeend', couponElement);
 });
 
-// Set input field when a coupon is selected
 document.getElementById('couponsList').addEventListener('change', function(event) {
     if (event.target.name === 'couponRadio') {
         document.getElementById('couponCode').value = event.target.value;
@@ -658,6 +657,7 @@ document.getElementById('couponsList').addEventListener('change', function(event
                                             "Content-type": "application/json",
                                         },
                                         body: JSON.stringify({
+                                        orderData: orderData,
                                         payment_id: response.razorpay_payment_id,
                                         order_id: response.razorpay_order_id,
                                         signature: response.razorpay_signature

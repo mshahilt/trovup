@@ -17,7 +17,7 @@ router.post('/remove_coupon_from_user',isLoggedIn, userCartController.remove_cou
 router.post('/place_order',isLoggedIn,userCartController.place_orderPOST);
 router.post('/save_address',isLoggedIn, userCartController.save_addressPOST)
 
-router.delete('/deleteCart/:id', isLoggedIn,userCartController.deleteCart);
+router.post('/deleteCart/:id', isLoggedIn,userCartController.deleteCart);
 
 
 module.exports = router;

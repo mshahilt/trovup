@@ -84,6 +84,31 @@
                           </tbody>
                         </table>
                       </div>
+                                          <!-- Modal for Date Selection -->
+                    <div class="modal fade" id="dateSelectionModal" tabindex="-1" aria-labelledby="dateSelectionModalLabel" aria-hidden="true">
+                      <div class="modal-dialog">
+                        <div class="modal-content">
+                          <div class="modal-header">
+                            <h5 class="modal-title" id="dateSelectionModalLabel">Select Date Range</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                          </div>
+                          <div class="modal-body">
+                            <form id="dateSelectionForm">
+                              <div class="mb-3">
+                                <label for="modalStartDate" class="form-label">Start Date:</label>
+                                <input type="date" id="modalStartDate" class="form-control" max="<%= new Date().toISOString().split('T')[0] %>" required />
+                              </div>
+                              <div class="mb-3">
+                                <label for="modalEndDate" class="form-label">End Date:</label>
+                                <input type="date" id="modalEndDate" class="form-control" max="<%= new Date().toISOString().split('T')[0] %>" required />
+                              </div>
+                              <button type="submit" class="btn btn-primary">Download Report</button>
+                            </form>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
 
                         <!-- Pagination Controls -->
                         <div class="pagination-wrapper">
@@ -113,8 +138,10 @@
                             </ul>
                           </nav>
                         </div>
-                      <!-- Place the Download button here -->
-                      <a id="downloadReport" class="btn btn-primary text-white mt-3"><i class="icon-download"></i> Download Sales Report</a>
+                        <a id="downloadReport" class="btn btn-primary text-white mt-3" data-bs-toggle="modal" data-bs-target="#dateSelectionModal">
+                          <i class="icon-download"></i> Download Sales Report
+                        </a>
+                        
                     </div>
                   </div>
                 </div>
@@ -126,56 +153,85 @@
     </div>
   </div>
 </div>
+<!-- SweetAlert CSS and JS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
 <script>
-  const sortSelect = document.getElementById("sortStats");
-  const customDateInputs = document.getElementById("customDateInputs");
-  const downloadReportButton = document.getElementById("downloadReport");
+  // Wait for the DOM to be fully loaded
+  document.addEventListener("DOMContentLoaded", () => {
+    // Get references to the modal elements
+    const downloadReportButton = document.getElementById("downloadReport");
+    const dateSelectionForm = document.getElementById("dateSelectionForm");
+    const startDateInput = document.getElementById("modalStartDate");
+    const endDateInput = document.getElementById("modalEndDate");
 
-  // Handle sort selection change
-  sortSelect.addEventListener("change", () => {
-    const query = sortSelect.value;
+    // Set the maximum date as today for both start and end date inputs
+    const today = new Date().toISOString().split('T')[0];
+    startDateInput.setAttribute("max", today);
+    endDateInput.setAttribute("max", today);
 
-    if (query === 'custom') {
-      customDateInputs.classList.remove('d-none');
-    } else {
-      customDateInputs.classList.add('d-none');
-      let url = new URL(window.location.href);
-      url.searchParams.set('sortStats', query);
-      window.location.href = url.toString();
-    }
-  });
+    // Listen for form submission
+    dateSelectionForm.addEventListener("submit", async (event) => {
+      event.preventDefault(); // Prevent the default form submission
 
-  // Handle apply date range
-  document.getElementById("applyDateRange").addEventListener("click", () => {
-    const startDate = document.getElementById('startDate').value;
-    const endDate = document.getElementById('endDate').value;
+      // Get the selected start and end dates
+      const startDate = startDateInput.value;
+      const endDate = endDateInput.value;
 
-    let url = new URL(window.location.href);
-    if (startDate) {
-      url.searchParams.set('startDate', startDate);
-    }
-    if (endDate) {
-      url.searchParams.set('endDate', endDate);
-    }
+      // Validate the date range
+      if (new Date(startDate) > new Date(endDate)) {
+        alert("Start date must be before the end date.");
+        return;
+      }
 
-    // Update the download report URL
-    downloadReportButton.href = `/admin/download-sales-report?sortStats=custom&startDate=${startDate}&endDate=${endDate}`;
-    
-    window.location.href = url.toString();
-  });
+      try {
+        // Send a POST request to the backend with the selected date range
+        const response = await fetch('/admin/download-sales-report', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ startDate, endDate })
+        });
 
-  // Handle download report click
-  downloadReportButton.addEventListener("click", (event) => {
-    const startDate = document.getElementById('startDate').value;
-    const endDate = document.getElementById('endDate').value;
-    const sortValue = sortSelect.value;
+        // Check if the response is OK
+        if (!response.ok) {
+          const errorData = await response.json();
+          if (errorData.error === "No orders found for the selected date range.") {
+            Swal.fire({
+              icon: 'info',
+              title: 'No Orders Found',
+              text: 'There are no orders in the specified date range.',
+              confirmButtonText: 'OK'
+            });
+            return;
+          }
+          throw new Error("Failed to download the report.");
+        }
 
-    // Allow download if no sort or dates are selected
-    if (!startDate && !endDate && !sortValue) {
-      downloadReportButton.href = '/admin/download-sales-report'; // URL for downloading all orders
-    } else if (!startDate || !endDate) {
-      event.preventDefault(); // Prevent default action if only one date is missing
-      alert("Please apply a valid date range to download the report.");
-    }
+        // Convert the response into a Blob object
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(new Blob([blob]));
+
+        // Create a link element to trigger the file download
+        const downloadLink = document.createElement('a');
+        downloadLink.href = downloadUrl;
+        downloadLink.download = `sales_report_${startDate}_to_${endDate}.pdf`; // Customize the filename
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+
+        // Revoke the object URL to free up memory
+        window.URL.revokeObjectURL(downloadUrl);
+
+        // Close the modal after successful download
+        const modal = bootstrap.Modal.getInstance(document.getElementById("dateSelectionModal"));
+        modal.hide();
+      } catch (error) {
+        console.error("Error downloading the report:", error);
+        alert("An error occurred while downloading the report. Please try again.");
+      }
+    });
   });
 </script>

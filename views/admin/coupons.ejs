@@ -182,8 +182,7 @@ document.getElementById('editCouponForm').addEventListener('submit', async (e) =
 });
 
 </script>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
+<script>document.addEventListener('DOMContentLoaded', () => {
     const couponForm = document.getElementById('couponForm');
     const startDateInput = document.getElementById('startDate');
     const expiryDateInput = document.getElementById('expiryDate');
@@ -191,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const discountInput = document.getElementById('discount');
     const minimumAmountInput = document.getElementById('minimumAmount');
     const maximumAmountInput = document.getElementById('maximumAmount');
-    const descriptionInput = document.getElementById('coupon_description');
+    const descriptionInput = document.getElementById('description'); // Fixed ID
 
     // Set minimum start date as today
     const today = new Date().toISOString().split('T')[0];
@@ -202,7 +201,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const startDateString = startDate.toISOString().split('T')[0];
         expiryDateInput.setAttribute('min', startDateString);
     });
-
 
     couponForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -216,6 +214,9 @@ document.addEventListener('DOMContentLoaded', () => {
             maximumAmount: maximumAmountInput.value,
             description: descriptionInput.value
         };
+
+        // Logging form data for debugging
+        console.log(formData);
 
         // Front-end validation
         if (!formData.couponCode || !formData.discount || !formData.startDate || !formData.expiryDate || !formData.minimumAmount || !formData.maximumAmount) {
@@ -251,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (response.ok) {
                 Swal.fire('Success', 'Coupon added successfully!', 'success').then(() => {
-                    window.location.reload();
+                    setTimeout(() => window.location.reload(), 1000);
                 });
             } else {
                 Swal.fire('Error', result.message || 'Failed to add coupon.', 'error');
@@ -261,6 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
 </script>
 <script>
     function confirmDelete(event, couponId) {
@@ -294,5 +296,4 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 }
-
 </script>
