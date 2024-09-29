@@ -59,6 +59,7 @@ exports.addToCartPost = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Variant not found' });
         }
 
+        // Check the stock of the variant
         if (variant.stock <= 0) {
             return res.status(400).json({ success: false, message: 'Variant is out of stock' });
         }
@@ -74,16 +75,18 @@ exports.addToCartPost = async (req, res) => {
         if (existingItemIndex > -1) {
             const currentQuantity = cart.items[existingItemIndex].quantity;
 
-            // Check if adding another item exceeds the maximum quantity allowed
+            if (currentQuantity >= variant.stock) {
+                return res.status(400).json({ success: false, message: 'Not enough stock available' });
+            }
+
             if (currentQuantity >= maxQuantity) {
                 return res.status(400).json({ success: false, message: 'Cannot add more than 5 of the same item' });
             }
 
             cart.items[existingItemIndex].quantity += 1;
         } else {
-            // Check if adding this new item exceeds the maximum quantity allowed
-            if (1 > maxQuantity) {
-                return res.status(400).json({ success: false, message: 'Cannot add more than 5 of the same item' });
+            if (1 > variant.stock) {
+                return res.status(400).json({ success: false, message: 'Not enough stock available' });
             }
 
             cart.items.push({ product: product_Id, variantId, quantity: 1 });
@@ -96,6 +99,7 @@ exports.addToCartPost = async (req, res) => {
         res.status(500).json({ success: false, message: 'An error occurred' });
     }
 };
+
 
 // PUT: Update Cart Quantity
 exports.updateCartQuantity = async (req, res) => {

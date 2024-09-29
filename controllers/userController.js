@@ -6,6 +6,7 @@ const sendMail = require('../config/sendMail');
 const Products = require('../models/productModel');
 const Category = require('../models/catogeryModel');
 const Brands = require('../models/brandModel');
+const generateUniqueRefferalId = require('../config/generateUniqueReferal');
 
 // Configure nodemailer transporter
 const transporter = nodemailer.createTransport({
@@ -296,6 +297,7 @@ exports.loginUserGet = async (req, res) => {
         layout: 'layouts/authLayout'
     });
 };
+
 // POST: Get home page data
 exports.getHomePagePOST = async (req, res) => {
     try {
@@ -452,96 +454,157 @@ exports.logout = async (req, res) => {
               });
             }
           };
-          
-          // Controller
           exports.productPageGET = async (req, res) => {
-              const { search, color, brand, category, minPrice, maxPrice, sort } = req.query;
-          
-              // Build the query object for MongoDB
-              let query = {};
-          
-              // Search filter
-              if (search) {
-                  query.product_name = { $regex: new RegExp(search, 'i') };
-              }
-          
-              // Color filter
-              if (color) {
-                  query['variants.color'] = color;
-              }
-          
-              // Brand filter
-              if (brand) {
-                  query['brand_id.brand_name'] = brand;
-              }
-          
-              // Category filter
-              if (category) {
-                  query['category_id.category_name'] = category;
-              }
-          
-              // Price filter
-              if (minPrice || maxPrice) {
-                  query['variants.price'] = {};
-                  if (minPrice) query['variants.price'].$gte = Number(minPrice);
-                  if (maxPrice) query['variants.price'].$lte = Number(maxPrice);
-              }
-          
-              // Sorting options
-              let sortQuery = {};
-              switch (sort) {
-                  case 'priceLowHigh':
-                      sortQuery['variants.price'] = 1;
-                      break;
-                  case 'priceHighLow':
-                      sortQuery['variants.price'] = -1;
-                      break;
-                  case 'nameAZ':
-                      sortQuery['product_name'] = 1;
-                      break;
-                  case 'nameZA':
-                      sortQuery['product_name'] = -1;
-                      break;
-                  default:
-                      sortQuery = {}; // Default sort (no specific sorting)
-              }
-          
-              try {
-                  // Fetch products with filters and sorting
-                  const products = await Products.find(query)
-                      .sort(sortQuery)
-                      .populate('category_id', 'category_name') // Only populate category_name
-                      .populate('brand_id', 'brand_name'); // Only populate brand_name
-          
-                  // Check if the user is logged in
-                  const isUserLoggedIn = req.session.user;
-          
-                  // Fetch distinct values for filters (colors, brands, categories)
-                  const colors = await Products.distinct('variants.color');
-                  const brands = await Products.distinct('brand_id.brand_name');
-                  const categories = await Products.distinct('category_id.category_name');
-          
-                  // Render the products page with filters and product data
-                  res.render('user/products', {
-                      isUserLoggedIn,
-                      title: 'Shop',
-                      layout: 'layouts/homeLayout',
-                      products,
-                      search,
-                      colors,
-                      brands,
-                      categories,
-                      selectedColor: color,
-                      selectedBrand: brand,
-                      selectedCategory: category,
-                      minPrice,
-                      maxPrice,
-                      sort
-                  });
-              } catch (error) {
-                  console.error('Error fetching products:', error);
-                  res.status(500).send('Server Error');
-              }
-          };
-          
+            const { search, color, brand, category, minPrice, maxPrice, sort } = req.query;
         
+            try {
+                let query = {
+                    isDelete: false,
+                };
+                if (search) {
+                    query.product_name = { $regex: new RegExp(search, 'i') };
+                }
+                if (brand) {
+                    const brandDoc = await Brands.findOne({ brand_name: brand });
+                    if (brandDoc) {
+                        query.brand_id = brandDoc._id;
+                    }
+                }
+                if (category) {
+                    const categoryDoc = await Category.findOne({ category_name: category });
+                    if (categoryDoc) {
+                        query.category_id = categoryDoc._id;
+                    }
+                }
+                const pipeline = [
+                    { $match: query },
+                    { $unwind: "$variants" }, 
+                ];
+                if (color) {
+                    pipeline.push({
+                        $match: {
+                            "variants.color": color
+                        }
+                    });
+                }
+                if (minPrice || maxPrice) {
+                    let priceMatch = {};
+                    if (minPrice) priceMatch.$gte = Number(minPrice);
+                    if (maxPrice) priceMatch.$lte = Number(maxPrice);
+        
+                    pipeline.push({
+                        $match: {
+                            "variants.price": priceMatch
+                        }
+                    });
+                }
+                let sortQuery = {};
+                switch (sort) {
+                    case 'priceLowHigh':
+                        sortQuery['variants.price'] = 1;
+                        break;
+                    case 'priceHighLow':
+                        sortQuery['variants.price'] = -1;
+                        break;
+                    case 'nameAZ':
+                        sortQuery['product_name'] = 1;
+                        break;
+                    case 'nameZA':
+                        sortQuery['product_name'] = -1;
+                        break;
+                    default:
+                        sortQuery = {}; 
+                }
+                if (Object.keys(sortQuery).length > 0) {
+                    pipeline.push({ $sort: sortQuery });
+                }
+                pipeline.push({
+                    $lookup: {
+                        from: "offers", 
+                        localField: "variants.offer", 
+                        foreignField: "_id", 
+                        as: "variants.offer"
+                    }
+                });
+                pipeline.push({
+                    $unwind: {
+                        path: "$variants.offer",
+                        preserveNullAndEmptyArrays: true
+                    }
+                });
+                const products = await Products.aggregate(pipeline);
+                const colors = await Products.distinct('variants.color', query);
+                const brandsData = await Brands.find({}, 'brand_name');
+                const categoriesData = await Category.find({}, 'category_name');
+        
+                const brands = brandsData.map(brand => brand.brand_name);
+                const categories = categoriesData.map(category => category.category_name);
+        
+                if (products.length === 0) {
+                    return res.render('user/products', {
+                        isUserLoggedIn: req.session.user,
+                        title: 'Shop',
+                        layout: 'layouts/homeLayout',
+                        products: [],
+                        search,
+                        colors,
+                        brands,
+                        categories,
+                        selectedColor: color,
+                        selectedBrand: brand,
+                        selectedCategory: category,
+                        minPrice,
+                        maxPrice,
+                        sort,
+                        noProducts: true, 
+                    });
+                }
+                res.render('user/products', {
+                    isUserLoggedIn: req.session.user,
+                    title: 'Shop',
+                    layout: 'layouts/homeLayout',
+                    products,
+                    search,
+                    colors,
+                    brands,
+                    categories,
+                    selectedColor: color,
+                    selectedBrand: brand,
+                    selectedCategory: category,
+                    minPrice,
+                    maxPrice,
+                    sort,
+                    noProducts: false,
+                });
+            } catch (error) {
+                console.error('Error fetching products:', error);
+                res.status(500).send('Server Error');
+            }
+        };
+
+
+exports.getReferralCode = async (req, res) => {
+    try {
+        const userId = req.session.user.user;
+        const user = await User.findById(userId); // await added to ensure the user is fetched
+        console.log(user, 'User available at referral');
+
+        let referralCode;
+
+        if (user.referralId) {
+            referralCode = user.referralId;
+        } else {
+
+            referralCode = await generateUniqueRefferalId();
+            user.referralId = referralCode;
+            await user.save(); 
+        }
+
+        const referralUrl = `http://localhost:5000/register?refer_code=${referralCode}`;
+
+        res.json({ referralUrl });
+    } catch (error) {
+        console.error('Error fetching referral code:', error);
+        res.status(500).json({ message: 'Error fetching referral code' });
+    }
+};

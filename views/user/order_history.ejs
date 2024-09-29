@@ -115,33 +115,48 @@
 <body>
     <div class="order-history-container">
         <h2>Order History</h2>
-        <table >
+        <table>
             <thead>
                 <tr>
                     <th>Order ID</th>
-                    <th>Orders</th>
-                    <th>Amount</th>
+                    <th>Date</th>
+                    <th>Paid Amount</th>
+                    <th>Order Qty</th>
                     <th>Show Details</th>
                 </tr>
             </thead>
             <tbody>
                 <% order_history.forEach(order => { %>
-                    <% order.items.forEach(item => { %>
                     <tr>
+                        <!-- Order ID -->
                         <td><%= order.orderId %></td>
-                        <td class="order-item">
-                            <img src="/<%= item.product.variants[0].images[0] || 'default-image.jpg' %>" alt="<%= item.product.product_name %>">
-                            <span><%= item.product.product_name %> - <%= item.product.variants[0].variant_name %></span>
+                        
+                        <!-- Date (formatted) -->
+                        <td><%= new Date(order.placedAt).toLocaleDateString('en-US') %></td>
+                        
+                        <!-- Paid Amount -->
+                        <td><%= order.payableAmount.toFixed(2) %></td>
+                        
+                        <!-- Order Quantity (sum of item quantities) -->
+                        <td>
+                            <% 
+                                let totalQty = 0;
+                                order.items.forEach(item => { 
+                                    totalQty += item.quantity; // Assuming each item has a 'quantity' field
+                                });
+                            %>
+                            <%= totalQty %>
                         </td>
-                        <td class="price">₹<%= item.price %></td>
+                        
+                        <!-- Show Details Button/Link -->
                         <td>
                             <a href="/order/order-details/<%= order._id %>" class="view-details-btn">View Details</a>
                         </td>
                     </tr>
-                    <% }) %>
                 <% }) %>
             </tbody>
         </table>
     </div>
+    
 </body>
 </html>

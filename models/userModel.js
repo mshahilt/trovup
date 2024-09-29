@@ -8,6 +8,10 @@ const userSchema = new mongoose.Schema({
             return !this.googleId;
         }
     },
+    referralId: {
+        type: String,
+        unique: true
+    },
     email: {
         type: String,
         required: true,

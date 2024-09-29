@@ -1,14 +1,11 @@
 const mongoose = require('mongoose');
-const { v4: uuidv4 } = require('uuid');
 
-const generateShortUUID = () => uuidv4().split('-')[0];
 
 const orderSchema = new mongoose.Schema({
     orderId: {
         type: String,
-        default: generateShortUUID,
         unique: true,
-        required: true
+        required: true,
     },
     cartId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -50,7 +47,7 @@ const orderSchema = new mongoose.Schema({
         orderStatus: {  
             type: String,
             default: 'Pending',
-            enum: ['Pending', 'Processing', 'Shipped','Out for Delivery','Delivered', 'Cancelled']
+            enum: ['Pending', 'Processing', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled']
         },
         isReturnRequested: {
             type: Boolean,
@@ -64,7 +61,7 @@ const orderSchema = new mongoose.Schema({
         reasonOfReturn: {
             type: String
         },
-        additionalReason : {
+        additionalReason: {
             type: String
         }
     }],

@@ -7,6 +7,8 @@ const Order = require('../models/orderModel');
 const razorpay = require('../config/razorPay');
 const crypto = require('crypto');
 const Coupon = require('../models/coupenModel');
+const generateUniqueOrderId = require('../config/generateUniqueId');
+
 exports.order_confirmPOST = async (req, res) => {
     try {
         const { addressId, cartId } = req.body;
@@ -139,30 +141,10 @@ exports.order_historyGET = async (req, res) => {
   try {
     const userId = req.session.user.user;
 
-    const orders = await Order.find({ user: userId }).populate('items.product');
-
-    const order_history = orders.map(order => {
-      order.items = order.items.map(item => {
-
-        const matchingVariant = item.product.variants.find(variant => variant._id.toString() === item.variantId.toString());
-
-        if (matchingVariant) {
-          item.variantDetails = {
-            price: matchingVariant.price,
-            storage_size: matchingVariant.storage_size,
-            color: matchingVariant.color,
-            images: matchingVariant.images,
-          };
-        }
-
-        return item;
-      });
-
-      return order;
-    });
-
+    const order_history = await Order.find({ user: userId }).populate('items.product');
     const isUserLoggedIn = req.session.user;
 
+    console.log(order_history)
     res.render('user/order_history', {
       order_history,
       title: 'Order History',
@@ -176,29 +158,40 @@ exports.order_historyGET = async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
-
 exports.order_detailsGET = async (req, res) => {
     try {
         const order = await Order.findById(req.params.id)
             .populate('items.product')
             .populate('address');
 
-        order.items.forEach(item => {
+        order.items = order.items.map(item => {
+            const product = item.product;
             if (item.product && item.product.variants) {
-                item.product.variants = item.product.variants.find(variant => 
-                    variant._id.toString() === item.variantId.toString()
+                const specificVariant = item.product.variants.find(
+                    (variant) => variant._id.toString() === item.variantId.toString()
                 );
-                // Optionally log if no matching variant was found
-                if (!item.product.variants) {
+
+                if (!specificVariant) {
                     console.log(`No matching variant found for product ID: ${item.product._id}`);
                 }
+
+                return {
+                    ...item,
+                    product: {
+                        ...product._doc,
+                        variants: specificVariant,
+                    }
+                    
+                };
             }
+            return item;
         });
-  
+
         const userId = req.session.user.user;
         const user = await User.findById(userId);
         const isUserLoggedIn = req.session.user;
 
+       
         // res.json(order)
         res.render('user/orderDetails', { user, order, title: 'Order Details', layout: 'layouts/homeLayout', isUserLoggedIn });
     } catch (error) {
@@ -206,6 +199,7 @@ exports.order_detailsGET = async (req, res) => {
         res.status(500).send('An error occurred while retrieving order details.');
     }
 };
+
 
 exports.create_razor_orderPOST = async (req, res) => {
     try {
@@ -384,7 +378,9 @@ exports.verify_razorpay_paymentPOST = async (req, res) => {
                 item.discount = itemDiscount;
             }
 
+            const generatedOrderId = await generateUniqueOrderId();
             const order = new Order({
+                orderId: generatedOrderId,
                 user: cart.user,
                 address: addressId,
                 items: orderItems,

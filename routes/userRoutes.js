@@ -26,6 +26,8 @@ router.post('/resendOTP',userController.resendOTP)
 
 router.post('/otpLogin',userController.resendOTP)
 
+router.get('/getReferralCode',userController.getReferralCode)
+
 router.post('/logout',userController.logout)
 
 
