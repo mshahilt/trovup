@@ -7,6 +7,7 @@ const Products = require('../models/productModel');
 const Category = require('../models/catogeryModel');
 const Brands = require('../models/brandModel');
 const generateUniqueRefferalId = require('../config/generateUniqueReferal');
+const Wallet = require('../models/walletModel');
 
 // Configure nodemailer transporter
 const transporter = nodemailer.createTransport({
@@ -43,39 +44,38 @@ exports.registerUserGet = async (req, res) => {
 // POST: Handle user registration
 exports.registerUser = async (req, res) => {
     const { username, email, phone_number, password } = req.body;
-
-    // Validate input fields
+    const {refer_code} = req.query;
+    console.log(refer_code,'referred code', req.query)
     if (!email || !password || !username || !phone_number) {
         req.flash('error', 'All fields are required');
         return res.render('user/register', {
+            refer_code,
             title: "Sign Up",
-            messages: req.flash(),  // Pass all flash messages
+            messages: req.flash(), 
             layout: 'layouts/authLayout'
         });
     }
 
     try {
-        // Check if the user already exists
         const existingUser = await User.findOne({ email });
         if (existingUser) {
             req.flash('error', 'User already exists');
             return res.render('user/register', {
                 title: "Sign Up",
-                messages: req.flash(),  // Pass all flash messages
+                messages: req.flash(),
                 layout: 'layouts/authLayout'
             });
         }
 
-        // Create a new user and hash the password
         const newUser = new User({
             username,
+            refferedById: refer_code,
             email,
             phone_number,
             password: await bcrypt.hash(password, 10),
             is_verify: false
         });
 
-        // Generate OTP and send email
         const otp = Math.floor(1000 + Math.random() * 9000);
         const otpExpiresAt = Date.now() + 180000;
 
@@ -86,7 +86,6 @@ exports.registerUser = async (req, res) => {
             text: `Your OTP is ${otp}`
         });
 
-        // Save OTP in the database
         const newOTP = new OTP({
             userId: newUser._id,
             otp,
@@ -96,7 +95,6 @@ exports.registerUser = async (req, res) => {
         await newUser.save(); 
         await newOTP.save();
 
-        // Save user details to the session
         req.session.user = {
             user: newUser._id,
             is_verify: newUser.is_verify
@@ -105,7 +103,7 @@ exports.registerUser = async (req, res) => {
         req.flash('success', 'OTP sent to your email');
         res.render('user/otp_verification', {
             title: 'Verify OTP',
-            messages: req.flash(),  // Pass all flash messages
+            messages: req.flash(),
             layout: 'layouts/authLayout'
         });
 
@@ -114,19 +112,17 @@ exports.registerUser = async (req, res) => {
         req.flash('error', 'Server Error. Please try again later.');
         res.render('user/register', {
             title: "Sign Up",
-            messages: req.flash(),  // Pass all flash messages
+            messages: req.flash(), 
             layout: 'layouts/authLayout'
         });
     }
 };
 exports.getVerifyOTP = (req, res) => {
-    // Check if the user session exists
     if (!req.session.user) {
         req.flash('error', 'Session expired. Please register again.');
         return res.redirect('/register');
     }
 
-    // Render the OTP verification page
     res.render('user/otp_verification', {
         title: 'Verify OTP',
         messages: req.flash(),
@@ -161,16 +157,51 @@ exports.verifyOTP = async (req, res) => {
         }
 
         await OTP.deleteOne({ _id: otpRecord._id }); 
-        await User.findByIdAndUpdate(userId, { is_verify: true }); 
+        await User.findByIdAndUpdate(userId, { is_verify: true });
+        const user = await User.findById(userId)
 
-        const newUser = await User.findById(req.session.user.user);
-
-         req.session.user = {
-            user:newUser._id,
-            username: newUser.username,
-            email: newUser.email,
-            phone_number: newUser.phone_number,
-            is_verify: newUser.is_verify
+        if (user.refferedById) {
+            const referredUser = await User.findOne({ referralId: user.refferedById });
+            if (referredUser) {
+                console.log(referredUser, 'founded')
+                const referredUserWallet = await Wallet.findOne({ user: referredUser._id }); 
+                
+                if (referredUserWallet) {
+                    console.log('wallet founded')
+                    referredUserWallet.balance += 500;
+        
+                    referredUserWallet.wallet_history.push({
+                        amount: 500,
+                        description: `Referral bonus credited by referring ${user.username}`,
+                        transactionType: 'credited'
+                    });
+                    await referredUserWallet.save();
+                } else {
+                    const newWallet = new Wallet({
+                        user: referredUser._id,
+                        balance: 500,
+                        wallet_history: [{
+                            amount: 500,
+                            description: 'Referral bonus credited',
+                            transactionType: 'credited'
+                        }]
+                    });
+        
+                    await newWallet.save(); 
+                }
+        
+                console.log('500 credited to referred user\'s wallet');
+            } else {
+                console.log('Referred user not found');
+            }
+        }
+        
+            req.session.user = {
+            user:user._id,
+            username: user.username,
+            email: user.email,
+            phone_number: user.phone_number,
+            is_verify: user.is_verify
         };
 
         console.log('data stored to session',req.session.user);
@@ -324,6 +355,9 @@ exports.getHomePagePOST = async (req, res) => {
                 preserveNullAndEmptyArrays: true 
               }
             },
+            {
+                $limit: 8
+            }
           ]);
 
         // res.json(products)
@@ -348,12 +382,10 @@ exports.getHomePagePOST = async (req, res) => {
     }
 };
 
-// GET: View a single product
 exports.viewProductGET = async (req, res) => {
     try {
         const id = req.params.id;
         
-        // Find the product by ID and populate related fields
         const product = await Products.findById(id)
             .populate({
                 path: 'variants.offer',
@@ -362,26 +394,21 @@ exports.viewProductGET = async (req, res) => {
             .populate('brand_id')  
             .populate('category_id');
 
-        // If product not found or marked as deleted, send a 404 response
         if (!product || product.isDelete) {
             return res.status(404).send('Product not found');
         }
 
-        // Fetch related products based on the same category
         const relatedCategory = product.category_id._id;
         const relatedProducts = await Products.find({
             category_id: relatedCategory,
             isDelete: false,
-            _id: { $ne: id }  // Exclude the current product
+            _id: { $ne: id } 
         });
 
-        // Determine if the user is logged in
         const isUserLoggedIn = req.session.user ? true : false;
 
-        // Set the default selected variant as the first variant in the product
         const selectedVariant = product.variants[0];
 
-        // Render the product EJS page with the required data
         res.render('user/product', {
             product,
             selectedVariant,
@@ -426,161 +453,173 @@ exports.logout = async (req, res) => {
     };
     
         const sort = ''; 
-        exports.searchPageGET = async (req, res) => {
-            try {
-              const searchQuery = req.query.query;
-              const query = searchQuery ? searchQuery.trim() : '';
-          
-              let products = [];
-              if (query) {
-                products = await Products.find({
-                  isDelete: false,
-                  product_name: { $regex: query, $options: 'i' }
-                })
-                .populate('category_id', 'category_name')
-                .populate('brand_id', 'brand_name');
-              }
-          
-              res.status(200).json({
-                success: true,
-                products: products,  // Send the products array
-                message: 'Search completed successfully.'
-              });
-            } catch (error) {
-              console.error('Error occurred during product search:', error);
-              res.status(500).json({
-                success: false,
-                message: 'An error occurred while searching for products.'
-              });
-            }
-          };
-          exports.productPageGET = async (req, res) => {
-            const { search, color, brand, category, minPrice, maxPrice, sort } = req.query;
-        
-            try {
-                let query = {
-                    isDelete: false,
-                };
-                if (search) {
-                    query.product_name = { $regex: new RegExp(search, 'i') };
-                }
-                if (brand) {
-                    const brandDoc = await Brands.findOne({ brand_name: brand });
-                    if (brandDoc) {
-                        query.brand_id = brandDoc._id;
-                    }
-                }
-                if (category) {
-                    const categoryDoc = await Category.findOne({ category_name: category });
-                    if (categoryDoc) {
-                        query.category_id = categoryDoc._id;
-                    }
-                }
-                const pipeline = [
-                    { $match: query },
-                    { $unwind: "$variants" }, 
-                ];
-                if (color) {
-                    pipeline.push({
-                        $match: {
-                            "variants.color": color
-                        }
-                    });
-                }
-                if (minPrice || maxPrice) {
-                    let priceMatch = {};
-                    if (minPrice) priceMatch.$gte = Number(minPrice);
-                    if (maxPrice) priceMatch.$lte = Number(maxPrice);
-        
-                    pipeline.push({
-                        $match: {
-                            "variants.price": priceMatch
-                        }
-                    });
-                }
-                let sortQuery = {};
-                switch (sort) {
-                    case 'priceLowHigh':
-                        sortQuery['variants.price'] = 1;
-                        break;
-                    case 'priceHighLow':
-                        sortQuery['variants.price'] = -1;
-                        break;
-                    case 'nameAZ':
-                        sortQuery['product_name'] = 1;
-                        break;
-                    case 'nameZA':
-                        sortQuery['product_name'] = -1;
-                        break;
-                    default:
-                        sortQuery = {}; 
-                }
-                if (Object.keys(sortQuery).length > 0) {
-                    pipeline.push({ $sort: sortQuery });
-                }
-                pipeline.push({
-                    $lookup: {
-                        from: "offers", 
-                        localField: "variants.offer", 
-                        foreignField: "_id", 
-                        as: "variants.offer"
-                    }
-                });
-                pipeline.push({
-                    $unwind: {
-                        path: "$variants.offer",
-                        preserveNullAndEmptyArrays: true
-                    }
-                });
-                const products = await Products.aggregate(pipeline);
-                const colors = await Products.distinct('variants.color', query);
-                const brandsData = await Brands.find({}, 'brand_name');
-                const categoriesData = await Category.find({}, 'category_name');
-        
-                const brands = brandsData.map(brand => brand.brand_name);
-                const categories = categoriesData.map(category => category.category_name);
-        
-                if (products.length === 0) {
-                    return res.render('user/products', {
-                        isUserLoggedIn: req.session.user,
-                        title: 'Shop',
-                        layout: 'layouts/homeLayout',
-                        products: [],
-                        search,
-                        colors,
-                        brands,
-                        categories,
-                        selectedColor: color,
-                        selectedBrand: brand,
-                        selectedCategory: category,
-                        minPrice,
-                        maxPrice,
-                        sort,
-                        noProducts: true, 
-                    });
-                }
-                res.render('user/products', {
-                    isUserLoggedIn: req.session.user,
-                    title: 'Shop',
-                    layout: 'layouts/homeLayout',
-                    products,
-                    search,
-                    colors,
-                    brands,
-                    categories,
-                    selectedColor: color,
-                    selectedBrand: brand,
-                    selectedCategory: category,
-                    minPrice,
-                    maxPrice,
-                    sort,
-                    noProducts: false,
-                });
-            } catch (error) {
-                console.error('Error fetching products:', error);
-                res.status(500).send('Server Error');
-            }
+exports.searchPageGET = async (req, res) => {
+    try {
+        const searchQuery = req.query.query;
+        const query = searchQuery ? searchQuery.trim() : '';
+    
+        let products = [];
+        if (query) {
+        products = await Products.find({
+            isDelete: false,
+            product_name: { $regex: query, $options: 'i' }
+        })
+        .populate('category_id', 'category_name')
+        .populate('brand_id', 'brand_name');
+        }
+    
+        res.status(200).json({
+        success: true,
+        products: products,  // Send the products array
+        message: 'Search completed successfully.'
+        });
+    } catch (error) {
+        console.error('Error occurred during product search:', error);
+        res.status(500).json({
+        success: false,
+        message: 'An error occurred while searching for products.'
+        });
+    }
+};
+exports.productPageGET = async (req, res) => {
+    const { search, color, brand, category, minPrice, maxPrice, sort, page = 1, limit = 6 } = req.query;
+
+    try {
+        let query = {
+            isDelete: false,
         };
+
+        // Search filter
+        if (search) {
+            query.product_name = { $regex: new RegExp(search, 'i') };
+        }
+
+        // Brand filter
+        if (brand) {
+            const brandDoc = await Brands.findOne({ brand_name: brand });
+            if (brandDoc) {
+                query.brand_id = brandDoc._id;
+            }
+        }
+
+        // Category filter
+        if (category) {
+            const categoryDoc = await Category.findOne({ category_name: category });
+            if (categoryDoc) {
+                query.category_id = categoryDoc._id;
+            }
+        }
+
+        // Create pipeline
+        const pipeline = [
+            { $match: query },
+            { $unwind: "$variants" },
+        ];
+
+        // Color filter
+        if (color) {
+            pipeline.push({
+                $match: {
+                    "variants.color": color
+                }
+            });
+        }
+
+        // Price filter
+        if (minPrice || maxPrice) {
+            let priceMatch = {};
+            if (minPrice) priceMatch.$gte = Number(minPrice);
+            if (maxPrice) priceMatch.$lte = Number(maxPrice);
+
+            pipeline.push({
+                $match: {
+                    "variants.price": priceMatch
+                }
+            });
+        }
+
+        // Sorting logic
+        let sortQuery = {};
+        switch (sort) {
+            case 'priceLowHigh':
+                sortQuery['variants.price'] = 1;
+                break;
+            case 'priceHighLow':
+                sortQuery['variants.price'] = -1;
+                break;
+            case 'nameAZ':
+                sortQuery['product_name'] = 1;
+                break;
+            case 'nameZA':
+                sortQuery['product_name'] = -1;
+                break;
+            default:
+                sortQuery = {};
+        }
+        if (Object.keys(sortQuery).length > 0) {
+            pipeline.push({ $sort: sortQuery });
+        }
+
+        // Pagination setup
+        const skip = (page - 1) * limit;
+        const totalProducts = await Products.countDocuments(query);
+        const totalPages = Math.ceil(totalProducts / limit);
+
+        // Add pagination to pipeline
+        pipeline.push(
+            { $skip: skip },
+            { $limit: Number(limit) }
+        );
+
+        pipeline.push({
+            $lookup: {
+                from: "offers",
+                localField: "variants.offer",
+                foreignField: "_id",
+                as: "variants.offer"
+            }
+        });
+
+        pipeline.push({
+            $unwind: {
+                path: "$variants.offer",
+                preserveNullAndEmptyArrays: true
+            }
+        });
+
+        const products = await Products.aggregate(pipeline);
+        const colors = await Products.distinct('variants.color', query);
+        const brandsData = await Brands.find({}, 'brand_name');
+        const categoriesData = await Category.find({}, 'category_name');
+
+        const brands = brandsData.map(brand => brand.brand_name);
+        const categories = categoriesData.map(category => category.category_name);
+
+        res.render('user/products', {
+            isUserLoggedIn: req.session.user,
+            title: 'Shop',
+            layout: 'layouts/homeLayout',
+            products,
+            search,
+            colors,
+            brands,
+            categories,
+            selectedColor: color,
+            selectedBrand: brand,
+            selectedCategory: category,
+            minPrice,
+            maxPrice,
+            sort,
+            noProducts: products.length === 0,
+            currentPage: Number(page),
+            totalPages,
+            limit: Number(limit),
+        });
+    } catch (error) {
+        console.error('Error fetching products:', error);
+        res.status(500).send('Server Error');
+    }
+};
 
 
 exports.getReferralCode = async (req, res) => {

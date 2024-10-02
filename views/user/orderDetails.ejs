@@ -1,3 +1,22 @@
+<style>
+    .loader {
+      border: 8px solid #f3f3f3;
+      border-radius: 50%;
+      border-top: 8px solid #3498db;
+      width: 50px;
+      height: 50px;
+      animation: spin 2s linear infinite;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+  
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
 <section class="h-100 gradient-custom">
     <div class="container py-5 h-100">
         <div class="row d-flex justify-content-center align-items-center h-100">
@@ -49,34 +68,50 @@
                                                     aria-valuemax="100">
                                                 </div>
                                             </div>
+                                            <% if (item.orderStatus === 'Cancelled') { %>
+                                                <div class="d-flex justify-content-around mt-1">
+                                                    <p class="text-danger small">Cancelled</p>
+                                                </div>
+                                            <% } else {%>
                                             <div class="d-flex justify-content-around mt-1">
                                                 <p class="text-muted small">Ordered</p>
                                                 <p class="text-muted small">Shipped</p>
                                                 <p class="text-muted small">Out for Delivery</p>
                                                 <p class="text-muted small">Delivered</p>
                                             </div>
+                                            <% } %>
                                         </div>
                                     </div>
-                                    
-                                    <!-- Check Order Status -->
-                                <% if (item.orderStatus === 'Cancelled') { %>
-                                    <button class="btn btn-secondary mt-3" disabled>Order Canceled</button>
-                                <% } else if (item.orderStatus !== 'Delivered') { %>
-                                    <button class="btn btn-danger mt-3" onclick="cancelOrder('<%= item._id %>')">Cancel Order</button>
-                                <% } else { %>
-                                    <% if (item.isReturnRequested) { %>
-                                        <% if (item.isAdminAcceptedReturn === 'Pending') { %>
-                                            <button class="btn btn-warning mt-3" disabled>Return Requested</button>
-                                        <% } else if (item.isAdminAcceptedReturn === 'Accepted') { %>
-                                            <button class="btn btn-success mt-3" disabled>Return Accepted</button>
-                                        <% } else if (item.isAdminAcceptedReturn === 'Rejected') { %>
-                                            <button class="btn btn-danger mt-3" disabled>Return Rejected</button>
-                                        <% } %>
-                                    <% } else { %>
-                                        <button class="btn btn-warning mt-3" data-bs-toggle="modal" data-bs-target="#returnModal-<%= item._id %>">Return</button>
-                                    <% } %>
-                                <% } %>
+                                    <div class="container">
+                                        <div class="row">
+                                            <div class="col-6">
+                                                 <!-- Check Order Status -->
+                                                <% if (item.orderStatus === 'Cancelled') { %>
+                                                    <button class="btn btn-secondary mt-3" disabled>Order Canceled</button>
+                                                <% } else if (item.orderStatus !== 'Delivered') { %>
+                                                    <button class="btn btn-danger mt-3" onclick="cancelOrder('<%= item._id %>')">Cancel Order</button>
+                                                <% } else { %>
+                                                    <% if (item.isReturnRequested) { %>
+                                                        <% if (item.isAdminAcceptedReturn === 'Pending') { %>
+                                                            <button class="btn btn-warning mt-3" disabled>Return Requested</button>
+                                                        <% } else if (item.isAdminAcceptedReturn === 'Accepted') { %>
+                                                            <button class="btn btn-success mt-3" disabled>Return Accepted</button>
+                                                        <% } else if (item.isAdminAcceptedReturn === 'Rejected') { %>
+                                                            <button class="btn btn-danger mt-3" disabled>Return Rejected</button>
+                                                        <% } %>
+                                                    <% } else { %>
+                                                        <button class="btn btn-warning mt-3" data-bs-toggle="modal" data-bs-target="#returnModal-<%= item._id %>">Return</button>
+                                                    <% } %>
+                                                <% } %>
+                                            </div>
+                                            <div class="col-6 d-flex justify-content-end">
+                                                <button class="btn btn-dark mt-3" onclick="downloadInvoice('<%= item._id %>')">Download Invoice</button>
+                                            </div>
 
+                                            <!-- Loader (Initially hidden) -->
+                                            <div id="loader" class="loader" style="display: none;"></div>
+                                        </div>
+                                    </div>
                                     <!-- Return Modal as before -->
                                     <div class="modal fade" id="returnModal-<%= item._id %>" tabindex="-1" aria-labelledby="returnModalLabel-<%= item._id %>" aria-hidden="true">
                                         <div class="modal-dialog">
@@ -219,6 +254,47 @@ function submitReturnRequest(itemId) {
             });
         });
 }
+function downloadInvoice(itemId) {
+    const orderId = document.getElementById('orderIdHidden').value;
+    const payload = {
+        orderId: orderId,
+        itemId: itemId
+    };
+
+    // Show the loader
+    document.getElementById('loader').style.display = 'block';
+
+    fetch('/order/download-invoice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to download invoice');
+        }
+        return response.blob();
+    })
+    .then(blob => {
+        document.getElementById('loader').style.display = 'none';
+
+        const url = window.URL.createObjectURL(new Blob([blob]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `invoice_${orderId}_${itemId}.pdf`); // Set the file name for download
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+    })
+    .catch(error => {
+        // Hide the loader
+        document.getElementById('loader').style.display = 'none';
+
+        console.error('Error downloading invoice:', error);
+        alert('Error downloading invoice, please try again later.');
+    });
+}
+
 
 function cancelOrder(itemId) {
     const orderId = document.getElementById('orderIdHidden').value;

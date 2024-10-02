@@ -15,4 +15,5 @@ router.post('/verify_razorpay_payment',isLoggedIn,userOrderController.verify_raz
 router.post('/return-product',isLoggedIn,userOrderController.return_productPOST);
 
 router.post('/cancel-product', isLoggedIn, userOrderController.cancel_productPOST);
+router.post('/download-invoice', isLoggedIn, userOrderController.download_invoicePOST)
 module.exports = router;

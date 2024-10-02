@@ -108,6 +108,17 @@
         height: auto;
     }
 </style>
+<script>
+    document.getElementById('signupForm').addEventListener('submit', function(e) {
+   
+        const urlParams = new URLSearchParams(window.location.search);
+        const referCode = urlParams.get('refer_code');
+        console.log(urlParams, referCode)
+        if (referCode) {
+            this.action = `/register?refer_code=${referCode}`;
+        }
+    });
+</script>
 
 <script>
     document.getElementById('signupForm').addEventListener('submit', function(e) {

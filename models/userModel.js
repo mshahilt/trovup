@@ -12,6 +12,9 @@ const userSchema = new mongoose.Schema({
         type: String,
         unique: true
     },
+    refferedById: {
+        type: String,
+    },
     email: {
         type: String,
         required: true,

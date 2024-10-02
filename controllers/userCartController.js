@@ -8,6 +8,7 @@ const Addresses = require('../models/addressModel');
 const { isLoggedIn } = require('../middleware/userAuth');
 const { storeUserSession } = require('../utility/sessionUtil');
 const Coupon = require('../models/coupenModel');
+const Order = require('../models/orderModel');
 // GET: Add to Cart Page
 exports.addToCartGET = async (req, res) => {
     try {
@@ -382,3 +383,4 @@ exports.remove_coupon_from_userPOST = async (req, res) => {
         return res.status(500).json({ coupon: false, message: "An error occurred while removing the coupon" });
     }
 };
+

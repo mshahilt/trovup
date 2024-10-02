@@ -726,6 +726,7 @@ exports.orderGET = async (req, res) => {
       .populate("items.product")
       .populate("user")
       .populate("address")
+      .sort({createdAt:-1})
       .skip(skip)
       .limit(limit);
 
@@ -760,7 +761,6 @@ exports.orderGET = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
-
 exports.update_order_statusPOST = async (req, res) => {
   try {
     console.log("Update order status request body:", req.body);
@@ -769,7 +769,6 @@ exports.update_order_statusPOST = async (req, res) => {
 
     console.log(`Updating order status for item ${itemId} to ${status}`);
 
-    // Find the order containing the specified item
     const order = await Orders.findOne({ "items._id": itemId });
 
     if (!order) {
@@ -781,7 +780,6 @@ exports.update_order_statusPOST = async (req, res) => {
 
     console.log(`Found order: ${JSON.stringify(order)}`);
 
-    // Find the specific item within the order
     const item = order.items.id(itemId);
 
     if (!item) {
@@ -793,7 +791,7 @@ exports.update_order_statusPOST = async (req, res) => {
 
     console.log(`Found item: ${JSON.stringify(item)}`);
 
-    // Prevent cancellation if the item is already delivered
+    // Prevent cancellation if the item is delivered or ordered
     if (item.orderStatus === "Delivered" && status === "Cancelled") {
       console.error(`Cannot cancel an item that is already delivered.`);
       return res
@@ -804,14 +802,28 @@ exports.update_order_statusPOST = async (req, res) => {
         });
     }
 
-    // Update the order status directly
+    if (status === "Cancelled") {
+      const product = await Product.findById(item.product);
+      if (product) {
+        const variant = product.variants.id(item.variantId);
+        if (variant) {
+          variant.stock += item.quantity;
+          await product.save();
+
+          console.log(`Inventory updated for product ${item.product}, variant ${item.variantId}`);
+        } else {
+          console.error(`Variant not found for product ${item.product}`);
+        }
+      } else {
+        console.error(`Product not found for item ${item.product}`);
+      }
+    }
+
     item.orderStatus = status;
     await order.save();
 
     console.log(
-      `Successfully updated item status. Updated order: ${JSON.stringify(
-        order
-      )}`
+      `Successfully updated item status. Updated order: ${JSON.stringify(order)}`
     );
     res
       .status(200)
@@ -1125,51 +1137,78 @@ exports.updateCategoryOfferPOST = async (req, res) => {
       .json({ success: false, message: "Server error while updating offers." });
   }
 };
-
 exports.accept_return_requestPOST = async (req, res) => {
   try {
     const { itemId, orderId } = req.body;
 
     const order = await Orders.findOne({ orderId });
-
     if (!order) {
       return res
         .status(404)
         .json({ success: false, message: "Order not found" });
     }
 
-    const item = order.items.find((item) => item._id.toString() === itemId);
+    let wallet = await Wallet.findOne({ user: order.user });
+    if (!wallet) {
+      wallet = new Wallet({
+        user: order.user,
+        balance: 0,
+        wallet_history: []
+      });
+    }
 
+    const item = order.items.find((item) => item._id.toString() === itemId);
     if (!item) {
       return res
         .status(404)
         .json({ success: false, message: "Item not found in the order" });
     }
+
     if (!item.isReturnRequested) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Return request has not been made for this item",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Return request has not been made for this item",
+      });
     }
 
     item.isAdminAcceptedReturn = "Accepted";
 
-    await order.save();
+    console.log("orderId:", orderId);
+    console.log("itemId:", itemId);
+    console.log("order:", order);
+    console.log("item:", item);
+    console.log("item.price:", item.price);
+    console.log("item.discount:", item.discount);
+    console.log("item.qty:", item.quantity);
+    const refundAmount = (item.price - item.discount )* item.quantity;
+    console.log("refundAmount:", refundAmount);
 
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message: "Return request accepted successfully",
-        order,
-      });
+
+    wallet.balance += refundAmount;
+
+    wallet.wallet_history.push({
+      date: new Date(),
+      amount: refundAmount,
+      description: `Refund for returned item on an item on ${orderId}`,
+      transactionType: 'credited'
+    });
+
+
+    await order.save();
+    await wallet.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Return request accepted and funds added to the wallet",
+      order,
+      wallet,
+    });
   } catch (error) {
     console.error("Error occurred while accepting the return request", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+
 
 exports.decline_return_requestPOST = async (req, res) => {
   const { itemId, orderId } = req.body;
@@ -1211,6 +1250,7 @@ exports.decline_return_requestPOST = async (req, res) => {
 };
 
 const pdf = require("html-pdf");
+const Wallet = require("../models/walletModel");
 exports.downloadSalesReport = async (req, res) => {
     try {
       console.log("Function executed");

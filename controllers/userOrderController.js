@@ -8,13 +8,16 @@ const razorpay = require('../config/razorPay');
 const crypto = require('crypto');
 const Coupon = require('../models/coupenModel');
 const generateUniqueOrderId = require('../config/generateUniqueId');
+const pdf = require('html-pdf');
+const fs = require('fs');
+
 
 exports.order_confirmPOST = async (req, res) => {
     try {
         const { addressId, cartId } = req.body;
         let { paymentMethod } = req.body;
 
-        // Validate the address
+        // Validate address
         const address = await Address.findById(addressId);
         if (!address) {
             return res.status(400).json({
@@ -23,7 +26,7 @@ exports.order_confirmPOST = async (req, res) => {
             });
         }
 
-        // Validate the cart and populate items
+        // Fetch the cart and populate items with products
         let cart = await Cart.findById(cartId).populate('items.product');
         if (!cart) {
             return res.status(400).json({
@@ -32,18 +35,19 @@ exports.order_confirmPOST = async (req, res) => {
             });
         }
 
-        // Handle payment method
+        // Convert payment method for COD
         if (paymentMethod === 'cod') {
             paymentMethod = 'Cash on Delivery';
         }
 
-        // Calculate the total amount and prepare order items
         let totalAmount = 0;
         const orderItems = [];
 
+        // Get products from cart
         const productIds = cart.items.map(item => item.product._id);
         const products = await Products.find({ _id: { $in: productIds } });
 
+        // Calculate total amount and prepare order items
         for (let item of cart.items) {
             const product = products.find(p => p._id.toString() === item.product._id.toString());
             if (!product) {
@@ -53,20 +57,21 @@ exports.order_confirmPOST = async (req, res) => {
                 });
             }
 
-            // Find the variant selected by the user
+            // Find matching variant
             let variant = product.variants.find(v => v._id.toString() === item.variantId.toString());
             if (variant) {
-                let itemPrice = variant.discount_price * item.quantity; // Use the discount price
+                let itemPrice = variant.discount_price * item.quantity; // Use discount price for calculation
                 totalAmount += itemPrice;
 
+                // Push item into orderItems array
                 orderItems.push({
                     product: item.product._id,
                     variantId: variant._id,
                     quantity: item.quantity,
-                    price: variant.discount_price, // Save the discount price
+                    price: variant.discount_price,
                 });
 
-                // Update stock and save product
+                // Deduct stock from the variant
                 variant.stock = Math.max(0, variant.stock - item.quantity);
                 await product.save();
             } else {
@@ -77,10 +82,8 @@ exports.order_confirmPOST = async (req, res) => {
             }
         }
 
-        // Apply coupon logic
         let discountOnOrder = 0;
         const userId = req.session.user.user;
-
         const coupon = await Coupon.findOne({
             "users.userId": userId,
             "users.isBought": false
@@ -92,32 +95,36 @@ exports.order_confirmPOST = async (req, res) => {
             discountOnOrder = Math.min(discountAmount, coupon.maximum_coupon_amount);
         }
 
-        // Calculate the payable amount after discount
         const payableAmount = Math.max(0, totalAmount - discountOnOrder);
 
-        // Adjust order items to include individual discounts
+        // Adjust discount for each item proportionally
         for (let item of orderItems) {
             const itemTotal = item.price * item.quantity;
             const itemDiscount = (itemTotal / totalAmount) * discountOnOrder;
             item.discount = itemDiscount;
         }
 
-        // Create the order
+        // Generate unique orderId
+        const orderId = await generateUniqueOrderId();
+
+        // Create new order document
         const order = new Order({
+            orderId,  // Use the generated orderId
             user: userId,
             address: addressId,
             items: orderItems,
-            totalAmount: totalAmount,
+            totalAmount,
             discountAmount: discountOnOrder,
             payableAmount,
             paymentMethod,
-            paymentStatus: 'Pending', // Set the payment status for cash on delivery
+            paymentStatus: 'Pending',
             couponApplied: coupon ? coupon._id : null
         });
 
+        // Save the order
         await order.save();
 
-        // Optionally, delete the cart after order confirmation
+        // Clear the cart after order is placed
         await Cart.findByIdAndDelete(cartId);
 
         return res.status(200).json({
@@ -141,10 +148,9 @@ exports.order_historyGET = async (req, res) => {
   try {
     const userId = req.session.user.user;
 
-    const order_history = await Order.find({ user: userId }).populate('items.product');
+    const order_history = await Order.find({ user: userId }).populate('items.product').sort({createdAt: -1})
     const isUserLoggedIn = req.session.user;
 
-    console.log(order_history)
     res.render('user/order_history', {
       order_history,
       title: 'Order History',
@@ -446,60 +452,176 @@ const Wallet = require('../models/walletModel');
 
 exports.cancel_productPOST = async (req, res) => {
     try {
+      const { orderId, itemId } = req.body;
+  
+      const order = await Order.findOne({ orderId });
+  
+      if (!order) {
+        return res.status(404).json({ success: false, message: 'Order not found' });
+      }
+  
+      const item = order.items.id(itemId);
+      if (!item) {
+        return res.status(404).json({ success: false, message: 'Item not found in the order' });
+      }
+  
+      if (item.orderStatus === 'Cancelled') {
+        return res.status(400).json({ success: false, message: 'Item is already cancelled' });
+      } else if (item.orderStatus === 'Delivered') {
+        return res.status(400).json({ success: false, message: 'Delivered items cannot be cancelled' });
+      }
+  
+      item.orderStatus = 'Cancelled';
+  
+      await order.save();
+  
+      if (order.paymentStatus === 'Paid') {
+        const refundAmount = item.price - item.discount;
+  
+        let wallet = await Wallet.findOne({ user: order.user });
+        if (!wallet) {
+          wallet = new Wallet({
+            user: order.user,
+            balance: 0,
+            wallet_history: []
+          });
+        }
+  
+        wallet.balance += refundAmount;
+  
+        wallet.wallet_history.push({
+          date: new Date(),
+          amount: refundAmount,
+          description: `Refund for cancelled item (Order ID: ${order.orderId})`,
+          transactionType: 'credited'
+        });
+  
+        await wallet.save();
+      }
+  
+      // Handle inventory management for the canceled item
+      const product = await Products.findById(item.product);
+      if (product) {
+        const variant = product.variants.id(item.variantId);
+        if (variant) {
+          variant.stock += item.quantity;
+          await product.save();
+        }
+      }
+  
+      res.status(200).json({ success: true, message: 'Item has been successfully cancelled' });
+    } catch (error) {
+      console.error('Error occurred while processing cancel product POST', error);
+      res.status(500).json({ success: false, message: 'An error occurred while submitting your cancel request' });
+    }
+  };
+  
+exports.download_invoicePOST = async (req, res) => {
+    try {
         const { orderId, itemId } = req.body;
 
-        const order = await Order.findOne({ orderId });
-
+        // Fetch order and populate address details
+        const order = await Order.findOne({ orderId }).populate('address')
+        
         if (!order) {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
+        // Find the specific item in the order
         const item = order.items.id(itemId);
-        console.log(item, 'item founded')
+        const product = await Products.findOne({_id: item.product});
+        const specificVariant = product.variants.find( v => v._id.toString() === item.variantId);
+
+        console.log(specificVariant,'dsfhjkagshjke')
         if (!item) {
             return res.status(404).json({ success: false, message: 'Item not found in the order' });
         }
 
+        const address = order.address;
+// Create the HTML for the invoice
+const html = `
+<html>
+    <head>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; }
+        .invoice-box { max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; background: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.15); }
+        .invoice-box h2 { text-align: center; margin: 0 0 20px; color: #333; }
+        .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .invoice-table th, .invoice-table td { border: 1px solid #eee; padding: 10px; text-align: left; }
+        .invoice-table th { background-color: #f2f2f2; }
+        .totals { text-align: right; margin-top: 20px; }
+        .seal { text-align: center; margin-top: 30px; border: 2px dashed red; padding: 20px; display: inline-block; }
+        .seal img { width: 100px; }
+        .seal h4 { margin: 5px 0; }
+        .seal p { font-size: 12px; color: #777; }
+    </style>
+    </head>
+    <body>
+    <div class="invoice-box">
+        <h2>Invoice</h2>
+        <p><strong>Order ID:</strong> ${order.orderId}</p>
+        <p><strong>Payment Status:</strong> ${order.paymentStatus}</p>
+        <p><strong>Payment Method:</strong> ${order.paymentMethod}</p>
+        
+        <h3>Shipping Address</h3>
+        <p>${address.fullName}</p>
+        <p>${address.streetAddress}, ${address.city}</p>
+        <p>${address.phoneNumber}</p>
+        <p>${address.emailAddress}</p>
+        
+        <h3>Item Details</h3>
+        <table class="invoice-table">
+        <tr>
+            <th>Product Name</th>
+            <th>Variant Details</th>
+            <th>Quantity</th>
+            <th>Price</th>
+            <th>Discount</th>
+            <th>Total</th>
+        </tr>
+        <tr>
+            <td>${product.product_name}</td>
+            <td>Color: ${specificVariant.color}<br>Storage: ${specificVariant.storage_size}</td>
+            <td>${item.quantity}</td>
+            <td>${item.price}</td>
+            <td>${item.discount}</td>
+            <td>${((item.price - item.discount).toFixed(2))*item.quantity}</td>
+        </tr>
+        </table>
+        
+        <div class="totals">
+        <p><strong>Total Amount:</strong> ${(item.price + item.discount).toFixed(2)}</p>
+        <p><strong>Discount Amount:</strong> ${item.discount.toFixed(2)}</p>
+        <p><strong>Payable Amount:</strong> ${(item.price - item.discount).toFixed(2)}</p>
+        </div>
+        <div class="seal">
+        
+        <h4>Trovup</h4>
+        <p>Your trusted partner in quality.</p>
+        </div>
 
-        if (item.orderStatus === 'Cancelled') {
-            return res.status(400).json({ success: false, message: 'Item is already cancelled' });
-        } else if (item.orderStatus === 'Delivered') {
-            return res.status(400).json({ success: false, message: 'Delivered items cannot be cancelled' });
-        }
+    </div>
+    </body>
+</html>
+`;
 
-        item.orderStatus = 'Cancelled';
+        // Create the PDF file from the HTML
+        const options = { format: 'A4' };
+        const pdfFilePath = `./invoices/invoice_${orderId}_${itemId}.pdf`;
 
-        await order.save();
-
-        if (order.paymentStatus === 'Paid') {
-            const refundAmount = item.price - item.discount;
-
-            // Find or create the user's wallet
-            let wallet = await Wallet.findOne({ user: order.user });
-            if (!wallet) {
-                wallet = new Wallet({
-                    user: order.user,
-                    balance: 0,
-                    wallet_history: []
-                });
+        pdf.create(html, options).toFile(pdfFilePath, (err, result) => {
+            if (err) {
+                console.error('PDF generation error:', err);
+                return res.status(500).json({ success: false, message: 'Error generating invoice PDF' });
             }
 
-            wallet.balance += refundAmount;
+            // Send the PDF as response
+            res.setHeader('Content-Disposition', `attachment; filename=invoice_${orderId}_${itemId}.pdf`);
+            fs.createReadStream(result.filename).pipe(res);
+        });
 
-            wallet.wallet_history.push({
-                date: new Date(),
-                amount: refundAmount,
-                description: `Refund for cancelled item (Order ID: ${order.orderId})`,
-                transactionType: 'credited'
-            });
-
-            // Save the wallet
-            await wallet.save();
-        }
-
-        res.status(200).json({ success: true, message: 'Item has been successfully cancelled' });
     } catch (error) {
-        console.error('Error occurred while processing cancel product POST', error);
-        res.status(500).json({ success: false, message: 'An error occurred while submitting your cancel request' });
+        console.log('Error occurred while downloading invoice for single product', error);
+        res.status(500).json({ success: false, message: 'Server error occurred' });
     }
 };
