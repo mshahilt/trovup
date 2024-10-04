@@ -12,6 +12,9 @@ router.get('/order-details/:id',isLoggedIn,userOrderController.order_detailsGET)
 router.post('/create_razor_order',isLoggedIn,userOrderController.create_razor_orderPOST);
 router.post('/verify_razorpay_payment',isLoggedIn,userOrderController.verify_razorpay_paymentPOST);
 
+router.post('/repayment-razorpay',isLoggedIn,userOrderController.repayment_razorpayPOST);
+router.post('/verifyRepayment', isLoggedIn, userOrderController.verifyRepaymentPOST)
+
 router.post('/return-product',isLoggedIn,userOrderController.return_productPOST);
 
 router.post('/cancel-product', isLoggedIn, userOrderController.cancel_productPOST);

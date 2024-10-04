@@ -72,8 +72,8 @@ const orderSchema = new mongoose.Schema({
     },
     razorpayOrderId: {
         type: String,
-        required: function() { return this.paymentMethod === 'Razorpay'; },
-        default: null
+        default: null,
+        sparse: true
     },
     paymentStatus: {
         type: String,

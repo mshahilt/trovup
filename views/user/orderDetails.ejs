@@ -17,14 +17,23 @@
       100% { transform: rotate(360deg); }
     }
   </style>
+
 <section class="h-100 gradient-custom">
     <div class="container py-5 h-100">
         <div class="row d-flex justify-content-center align-items-center h-100">
             <div class="col-lg-10 col-xl-8">
                 <div class="card" style="border-radius: 10px;">
-                    <div class="card-header px-4 py-5">
-                        <h5 class="text-muted mb-0">Thanks for your Order, <span style="color: #a8729a;"><%= user.username %></span>!</h5>
-                    </div>
+                    <div class="card-header px-4 py-5" style="background-color: #f8f9fa; border-radius: 8px;">
+                        <h4 class="text-muted mb-1">Thank you for your order, <span style="color: #a8729a;"><%= user.username %></span>!</h4>
+                        <% if (order.paymentStatus === 'Failed') { %>
+                            <p class="mb-3" style="font-size: 1.1rem; color: #6c757d;">
+                                Unfortunately, your payment has failed. Please try again by clicking the button below.
+                            </p>
+                            <button class="btn btn-dark btn-md mt-3 px-4" onclick="repaymentRazorpay('<%= order._id %>')">
+                                Retry Payment
+                            </button>
+                        <% } %>
+                    </div>                    
                     <div class="card-body p-4">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <p class="lead fw-normal mb-0" style="color: #a8729a;">Receipt</p>
@@ -153,7 +162,7 @@
 
                         <div class="d-flex justify-content-between pt-2">
                             <p class="fw-bold mb-0">Order Details</p>
-                            <p class="text-muted mb-0"><span class="fw-bold me-4">Total</span> ₹<%= order.totalAmount %></p>
+                            <p class="text-muted mb-0"><span class="fw-bold me-4">Total</span> ₹<%= order.totalAmount - order.discountAmount %></p>
                         </div>
                         <!-- Additional order details here... -->
                     </div>
@@ -162,6 +171,7 @@
         </div>
     </div>
 </section>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
    document.addEventListener("DOMContentLoaded", function () {
@@ -260,8 +270,7 @@ function downloadInvoice(itemId) {
         orderId: orderId,
         itemId: itemId
     };
-
-    // Show the loader
+    
     document.getElementById('loader').style.display = 'block';
 
     fetch('/order/download-invoice', {
@@ -346,5 +355,65 @@ function cancelOrder(itemId) {
     });
 }
 
+function repaymentRazorpay(orderId) {
+        fetch('/order/repayment-razorpay', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ orderId: orderId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const options = {
+                    key: data.key,
+                    amount: data.amount,
+                    currency: data.currency,
+                    name: data.name,
+                    description: data.description,
+                    order_id: data.orderId, 
+                    handler: function (response) {
+                        fetch('/order/verifyRepayment', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                orderId: data.orderReceipt,
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_order_id: response.razorpay_order_id,
+                                razorpay_signature: response.razorpay_signature
+                            })
+                        }).then(res => res.json())
+                          .then(result => {
+                              if(result.success) {
+                                  alert('Payment Successful!');
+                                  location.reload();
+                              } else {
+                                  alert('Payment verification failed!');
+                              }
+                          });
+                    },
+                    prefill: {
+                        name: "<%= user.username %>",
+                        email: "<%= user.email %>",
+                    },
+                    theme: {
+                        color: '#3399cc'
+                    }
+                };
+
+                const rzp = new Razorpay(options);
+                rzp.open();
+            } else {
+                alert('Unable to initiate payment.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Something went wrong. Please try again.');
+        });
+    }
 
 </script>
