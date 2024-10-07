@@ -61,7 +61,113 @@
                   </div>
                 </div>
               </div>
+                  <!-- Performance Line Chart with dropdown for sorting -->
+              <div class="row">
+                <div class="col-lg-12 d-flex flex-column">
+                  <div class="row flex-grow">
+                    <div class="col-12 col-lg-4 col-lg-12 grid-margin stretch-card">
+                      <div class="card card-rounded">
+                        <div class="card-body">
+                          <div class="d-sm-flex justify-content-between align-items-start">
+                            <div>
+                              <h4 class="card-title card-title-dash">Performance Line Chart</h4>
+                              <h5 class="card-subtitle card-subtitle-dash">Our main performance indicators</h5>
+                            </div>
+                            <div id="performanceLine-legend"></div>
+                            <div>
+                              <div class="dropdown">
+                                <button
+                                  class="btn btn-light dropdown-toggle toggle-dark btn-lg mb-0 me-0"
+                                  type="button"
+                                  id="dropdownMenuButton2"
+                                  data-bs-toggle="dropdown"
+                                  aria-haspopup="true"
+                                  aria-expanded="false"
+                                >
+                                  Sort by:
+                                </button>
 
+                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton2">
+                                  <a class="dropdown-item chart-sort" data-sort="year">Year</a>
+                                  <a class="dropdown-item chart-sort" data-sort="month">Month</a>
+                                  <a class="dropdown-item chart-sort" data-sort="week">Week</a>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="chartjs-wrapper mt-4">
+                            <canvas id="performanceLine"></canvas>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- Cards for Top Selling Products, Categories, and Brands -->
+<div class="row mt-4">
+  <!-- Top Selling Products -->
+  <div class="col-lg-4 grid-margin stretch-card">
+    <div class="card card-rounded">
+      <div class="card-body">
+        <h4 class="card-title">Top 10 Selling Products</h4>
+        <ul class="list-group">
+          <% if (topProducts && topProducts.length > 0) { %>
+            <% topProducts.forEach((product, index) => { %>
+              <li class="list-group-item">
+                <%= product.product.product_name   %> - Sold: <%= product.totalSold %> times
+              </li>
+            <% }) %>
+          <% } else { %>
+            <li class="list-group-item">No products sold yet.</li>
+          <% } %>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Selling Categories -->
+  <div class="col-lg-4 grid-margin stretch-card">
+    <div class="card card-rounded">
+      <div class="card-body">
+        <h4 class="card-title">Top 10 Selling Categories</h4>
+        <ul class="list-group">
+          <% if (topCategories && topCategories.length > 0) { %>
+            <% topCategories.forEach((category, index) => { %>
+              <li class="list-group-item">
+                <%= category.category.category_name %> - Sold: <%= category.totalSold %> items
+              </li>
+            <% }) %>
+          <% } else { %>
+            <li class="list-group-item">No categories sold yet.</li>
+          <% } %>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Brands -->
+  <div class="col-lg-4 grid-margin stretch-card">
+    <div class="card card-rounded">
+      <div class="card-body">
+        <h4 class="card-title">Top 10 Brands</h4>
+        <ul class="list-group">
+          <% if (topBrands && topBrands.length > 0) { %>
+            <% topBrands.forEach((brand, index) => { %>
+              <li class="list-group-item">
+                <%= brand.brand.brand_name %> - Sold: <%= brand.totalSold %> items
+              </li>
+            <% }) %>
+          <% } else { %>
+            <li class="list-group-item">No brands sold yet.</li>
+          <% } %>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+              
               <div class="row flex-grow">
                 <div class="col-12 grid-margin stretch-card">
                   <div class="card card-rounded">
@@ -158,6 +264,10 @@
 <!-- SweetAlert CSS and JS -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script src="/assets/js/dashboard.js"></script>
 <script>
   document.addEventListener("DOMContentLoaded", async () => {
     const sortSelect = document.getElementById("sortStats");
@@ -236,7 +346,6 @@
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(new Blob([blob]));
 
-      // Create a link element to trigger the file download
       const downloadLink = document.createElement("a");
       downloadLink.href = downloadUrl;
       downloadLink.download = `sales_report_${startDate}_to_${endDate}.pdf`; // Customize the filename
@@ -244,10 +353,7 @@
       downloadLink.click();
       document.body.removeChild(downloadLink);
 
-      // Revoke the object URL to free up memory
       window.URL.revokeObjectURL(downloadUrl);
-
-      // Close the modal after successful download
       if (typeof bootstrap !== "undefined" && bootstrap.Modal) {
         const modal = bootstrap.Modal.getInstance(document.getElementById("dateSelectionModal"));
         modal.hide();

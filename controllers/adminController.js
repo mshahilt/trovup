@@ -9,6 +9,8 @@ const Orders = require("../models/orderModel");
 const Coupon = require("../models/coupenModel");
 const Offer = require("../models/offerModal");
 const Order = require("../models/orderModel");
+const restoreStock = require('../utility/restoreStock');
+const refundToWallet = require('../utility/refundToWallet');
 
 // Get All Users (Admin only)
 exports.adminLoginGET = async (req, res) => {
@@ -69,61 +71,59 @@ function validateEmail(email) {
 }
 
 const moment = require("moment");
+
+// Get Admin Dashboard
 exports.adminDashboardGET = async (req, res) => {
   try {
     const { sortStats, startDate, endDate, page = 1, limit = 6 } = req.query;
 
     let query = {};
-
     if (startDate && endDate) {
       query.createdAt = {
         $gte: moment(startDate).startOf("day").toDate(),
         $lte: moment(endDate).endOf("day").toDate(),
       };
     } else if (sortStats) {
-      switch (sortStats.toLowerCase()) {
-        case "week":
-          query.createdAt = { $gte: moment().subtract(1, "week").toDate() };
-          break;
-        case "month":
-          query.createdAt = { $gte: moment().subtract(1, "month").toDate() };
-          break;
-        case "day":
-        default:
-          query.createdAt = { $gte: moment().subtract(1, "day").toDate() };
-          break;
-      }
+      const timeFrames = {
+        week: moment().subtract(1, "week").toDate(),
+        month: moment().subtract(1, "month").toDate(),
+        year: moment().subtract(1, "year").toDate(),
+        day: moment().subtract(1, "day").toDate(),
+      };
+      query.createdAt = { $gte: timeFrames[sortStats.toLowerCase()] || timeFrames["day"] };
     }
 
-    // Parse page and limit
     const pageInt = parseInt(page);
     const limitInt = parseInt(limit);
     const skip = (pageInt - 1) * limitInt;
 
-    // Fetch orders with pagination
-    const totalOrdersCount = await Order.countDocuments(query);
-    const orders = await Order.find(query)
-      .skip(skip)
-      .limit(limitInt)
-      .populate("user", "name");
+    const [totalOrdersCount, ordersForStats] = await Promise.all([
+      Order.countDocuments(query),
+      Order.find(query)
+        .populate("user", "username")
+        .populate("items.product", "name category brand"),
+    ]);
 
-    const totalSales = orders.reduce(
-      (sum, order) => sum + order.payableAmount,
-      0
-    );
-    const totalDiscount = orders.reduce(
-      (sum, order) => sum + order.discountAmount,
-      0
-    );
-    const totalUsers = await User.countDocuments();
-    const totalProducts = await Product.countDocuments();
+    const totalSales = ordersForStats.reduce((sum, order) => sum + order.payableAmount, 0);
+    const totalDiscount = ordersForStats.reduce((sum, order) => sum + (order.discountAmount || 0), 0);
+
+    const [totalUsers, totalProducts] = await Promise.all([
+      User.countDocuments(),
+      Product.countDocuments(),
+    ]);
 
     const totalPages = Math.ceil(totalOrdersCount / limitInt);
 
-    // Render the dashboard with pagination data
+    const [topProducts, topCategories, topBrands] = await Promise.all([
+      getTopSellingProducts(),
+      getTopSellingCategories(),
+      getTopSellingBrands(),
+    ]);
+
+    // Render the admin dashboard with the collected data
     res.render("admin/dashboard", {
       layout: "layouts/adminLayout",
-      orders,
+      orders: ordersForStats.slice(skip, skip + limitInt), // Use pagination here
       totalOrders: totalOrdersCount,
       totalSales,
       totalDiscount,
@@ -132,11 +132,143 @@ exports.adminDashboardGET = async (req, res) => {
       currentPage: pageInt,
       totalPages,
       limit: limitInt,
+      topProducts,
+      topCategories,
+      topBrands,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
+// Helper function to get top-selling products
+async function getTopSellingProducts() {
+  return Order.aggregate([
+    { $unwind: "$items" },
+    {
+      $group: {
+        _id: "$items.product",
+        totalSold: { $sum: "$items.quantity" },
+      },
+    },
+    {
+      $lookup: {
+        from: "products",
+        localField: "_id",
+        foreignField: "_id",
+        as: "product",
+      },
+    },
+    { $unwind: "$product" },
+    { $sort: { totalSold: -1 } },
+    { $limit: 5 },
+  ]);
+}
+
+async function getTopSellingCategories() {
+  return Order.aggregate([
+    { $unwind: "$items" },
+    {
+      $lookup: {
+        from: "products",
+        localField: "items.product",
+        foreignField: "_id",
+        as: "product",
+      },
+    },
+    { $unwind: "$product" },
+    {
+      $group: {
+        _id: "$product.category_id",
+        totalSold: { $sum: "$items.quantity" },
+      },
+    },
+    {
+      $lookup: {
+        from: "categories",
+        localField: "_id",
+        foreignField: "_id",
+        as: "category",
+      },
+    },
+    { $unwind: "$category" },
+    { $sort: { totalSold: -1 } },
+    { $limit: 5 },
+  ]);
+}
+
+async function getTopSellingBrands() {
+  return Order.aggregate([
+    { $unwind: "$items" },
+    {
+      $lookup: {
+        from: "products",
+        localField: "items.product",
+        foreignField: "_id",
+        as: "product",
+      },
+    },
+    { $unwind: "$product" },
+    {
+      $group: {
+        _id: "$product.brand_id",
+        totalSold: { $sum: "$items.quantity" },
+      },
+    },
+    {
+      $lookup: {
+        from: "brands",
+        localField: "_id",
+        foreignField: "_id",
+        as: "brand",
+      },
+    },
+    { $unwind: "$brand" },
+    { $sort: { totalSold: -1 } },
+    { $limit: 5 },
+  ]);
+}
+
+// Fetch chart data
+exports.getChartData = async (req, res) => {
+  try {
+    const { chart } = req.query;
+
+    let query = {};
+    let groupBy = { $dayOfWeek: "$createdAt" }; 
+    switch (chart) {
+      case "month":
+        query.createdAt = { $gte: moment().subtract(1, "month").toDate() };
+        groupBy = { $dayOfMonth: "$createdAt" }; 
+        break;
+      case "year":
+        query.createdAt = { $gte: moment().subtract(1, "year").toDate() };
+        groupBy = { $month: "$createdAt" }; 
+        break;
+      case "week":
+      default:
+        query.createdAt = { $gte: moment().subtract(1, "week").toDate() };
+        groupBy = { $dayOfWeek: "$createdAt" };
+        break;
+    }
+
+    const chartData = await Order.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: groupBy,
+          totalOrders: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+
+    res.json({ data: chartData });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 
 exports.getAllUsers = async (req, res) => {
   try {
@@ -414,6 +546,7 @@ exports.submit_productPOST = async (req, res) => {
     res.status(500).send("Error submitting product");
   }
 };
+
 exports.update_productPOST = async (req, res) => {
   try {
     const { id: product_id } = req.params;
@@ -761,78 +894,58 @@ exports.orderGET = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
 exports.update_order_statusPOST = async (req, res) => {
   try {
     console.log("Update order status request body:", req.body);
 
     const { itemId, status } = req.body;
-
     console.log(`Updating order status for item ${itemId} to ${status}`);
 
     const order = await Orders.findOne({ "items._id": itemId });
-
     if (!order) {
       console.error(`Order not found for item ID: ${itemId}`);
-      return res
-        .status(404)
-        .json({ success: false, message: "Order not found." });
+      return res.status(404).json({ success: false, message: "Order not found." });
     }
-
-    console.log(`Found order: ${JSON.stringify(order)}`);
 
     const item = order.items.id(itemId);
-
     if (!item) {
       console.error(`Item with ID: ${itemId} not found in order.`);
-      return res
-        .status(404)
-        .json({ success: false, message: "Item not found." });
+      return res.status(404).json({ success: false, message: "Item not found." });
     }
 
-    console.log(`Found item: ${JSON.stringify(item)}`);
-
-    // Prevent cancellation if the item is delivered or ordered
     if (item.orderStatus === "Delivered" && status === "Cancelled") {
-      console.error(`Cannot cancel an item that is already delivered.`);
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Cannot cancel an item that has already been delivered.",
-        });
+      return res.status(400).json({ success: false, message: "Cannot cancel an item that has already been delivered." });
     }
 
     if (status === "Cancelled") {
-      const product = await Product.findById(item.product);
-      if (product) {
-        const variant = product.variants.id(item.variantId);
-        if (variant) {
-          variant.stock += item.quantity;
-          await product.save();
+      const stockRestored = await restoreStock(item);
+      if (!stockRestored) {
+        return res.status(500).json({ success: false, message: "Failed to restore stock." });
+      }
 
-          console.log(`Inventory updated for product ${item.product}, variant ${item.variantId}`);
-        } else {
-          console.error(`Variant not found for product ${item.product}`);
-        }
-      } else {
-        console.error(`Product not found for item ${item.product}`);
+      if(order.paymentStatus === "Paid") {
+        const amount = item.price - item.discount;
+        console.log("Refunding amount:", amount);
+        const refundSuccessful = await refundToWallet(order.user, amount, status);
+        if (!refundSuccessful) {
+          return res.status(500).json({ success: false, message: "Failed to refund to wallet." });
+        } 
       }
     }
 
     item.orderStatus = status;
     await order.save();
 
-    console.log(
-      `Successfully updated item status. Updated order: ${JSON.stringify(order)}`
-    );
-    res
-      .status(200)
-      .json({ success: true, message: "Order status updated successfully." });
+    return res.status(200).json({ success: true, message: "Order status updated successfully." });
+
   } catch (error) {
     console.error("Error updating order status:", error);
-    res.status(500).json({ message: "Internal server error." });
+    return res.status(500).json({ message: "Internal server error." });
   }
 };
+
+
 
 exports.couponGET = async (req, res) => {
   try {

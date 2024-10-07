@@ -11,7 +11,6 @@ const generateUniqueOrderId = require('../config/generateUniqueId');
 const pdf = require('html-pdf');
 const fs = require('fs');
 
-
 exports.order_confirmPOST = async (req, res) => {
     try {
         const { addressId, cartId } = req.body;
@@ -97,17 +96,13 @@ exports.order_confirmPOST = async (req, res) => {
 
         const payableAmount = Math.max(0, totalAmount - discountOnOrder);
 
-        // Adjust discount for each item proportionally
         for (let item of orderItems) {
             const itemTotal = item.price * item.quantity;
             const itemDiscount = (itemTotal / totalAmount) * discountOnOrder;
             item.discount = itemDiscount;
         }
-
-        // Generate unique orderId
         const orderId = await generateUniqueOrderId();
 
-        // Create new order document
         const order = new Order({
             orderId,  // Use the generated orderId
             user: userId,
@@ -121,10 +116,7 @@ exports.order_confirmPOST = async (req, res) => {
             couponApplied: coupon ? coupon._id : null
         });
 
-        // Save the order
         await order.save();
-
-        // Clear the cart after order is placed
         await Cart.findByIdAndDelete(cartId);
 
         return res.status(200).json({
@@ -510,7 +502,6 @@ exports.cancel_productPOST = async (req, res) => {
       if (!item) {
         return res.status(404).json({ success: false, message: 'Item not found in the order' });
       }
-  
       if (item.orderStatus === 'Cancelled') {
         return res.status(400).json({ success: false, message: 'Item is already cancelled' });
       } else if (item.orderStatus === 'Delivered') {
@@ -522,7 +513,7 @@ exports.cancel_productPOST = async (req, res) => {
       await order.save();
   
       if (order.paymentStatus === 'Paid') {
-        const refundAmount = item.price - item.discount;
+        const refundAmount = (item.price * item.quantity) - item.discount;
   
         let wallet = await Wallet.findOne({ user: order.user });
         if (!wallet) {
@@ -561,99 +552,106 @@ exports.cancel_productPOST = async (req, res) => {
       res.status(500).json({ success: false, message: 'An error occurred while submitting your cancel request' });
     }
   };
-  
-exports.download_invoicePOST = async (req, res) => {
-    try {
-        const { orderId, itemId } = req.body;
 
-        // Fetch order and populate address details
-        const order = await Order.findOne({ orderId }).populate('address')
-        
+  exports.download_invoicePOST = async (req, res) => {
+    try {
+        const { orderId } = req.body;
+
+        const order = await Order.findOne({ orderId }).populate('address items.product');
+
         if (!order) {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
-        // Find the specific item in the order
-        const item = order.items.id(itemId);
-        const product = await Products.findOne({_id: item.product});
-        const specificVariant = product.variants.find( v => v._id.toString() === item.variantId);
-
-        console.log(specificVariant,'dsfhjkagshjke')
-        if (!item) {
-            return res.status(404).json({ success: false, message: 'Item not found in the order' });
-        }
-
         const address = order.address;
-// Create the HTML for the invoice
-const html = `
-<html>
-    <head>
-    <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f4f4; }
-        .invoice-box { max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; background: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.15); }
-        .invoice-box h2 { text-align: center; margin: 0 0 20px; color: #333; }
-        .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        .invoice-table th, .invoice-table td { border: 1px solid #eee; padding: 10px; text-align: left; }
-        .invoice-table th { background-color: #f2f2f2; }
-        .totals { text-align: right; margin-top: 20px; }
-        .seal { text-align: center; margin-top: 30px; border: 2px dashed red; padding: 20px; display: inline-block; }
-        .seal img { width: 100px; }
-        .seal h4 { margin: 5px 0; }
-        .seal p { font-size: 12px; color: #777; }
-    </style>
-    </head>
-    <body>
-    <div class="invoice-box">
-        <h2>Invoice</h2>
-        <p><strong>Order ID:</strong> ${order.orderId}</p>
-        <p><strong>Payment Status:</strong> ${order.paymentStatus}</p>
-        <p><strong>Payment Method:</strong> ${order.paymentMethod}</p>
-        
-        <h3>Shipping Address</h3>
-        <p>${address.fullName}</p>
-        <p>${address.streetAddress}, ${address.city}</p>
-        <p>${address.phoneNumber}</p>
-        <p>${address.emailAddress}</p>
-        
-        <h3>Item Details</h3>
-        <table class="invoice-table">
-        <tr>
-            <th>Product Name</th>
-            <th>Variant Details</th>
-            <th>Quantity</th>
-            <th>Price</th>
-            <th>Discount</th>
-            <th>Total</th>
-        </tr>
-        <tr>
-            <td>${product.product_name}</td>
-            <td>Color: ${specificVariant.color}<br>Storage: ${specificVariant.storage_size}</td>
-            <td>${item.quantity}</td>
-            <td>${item.price}</td>
-            <td>${item.discount}</td>
-            <td>${((item.price - item.discount).toFixed(2))*item.quantity}</td>
-        </tr>
-        </table>
-        
-        <div class="totals">
-        <p><strong>Total Amount:</strong> ${(item.price + item.discount).toFixed(2)}</p>
-        <p><strong>Discount Amount:</strong> ${item.discount.toFixed(2)}</p>
-        <p><strong>Payable Amount:</strong> ${(item.price - item.discount).toFixed(2)}</p>
-        </div>
-        <div class="seal">
-        
-        <h4>Trovup</h4>
-        <p>Your trusted partner in quality.</p>
-        </div>
 
-    </div>
-    </body>
-</html>
-`;
+        let itemsHtml = '';
+        let totalAmount = 0;
+        let totalDiscount = 0;
+
+        order.items.forEach(item => {
+            const product = item.product;
+            const specificVariant = product.variants.find(v => v._id.toString() === item.variantId);
+            const itemTotal = (item.price - item.discount) * item.quantity;
+
+            totalAmount += itemTotal;
+            totalDiscount += item.discount * item.quantity;
+
+            itemsHtml += `
+            <tr>
+                <td>${product.product_name}</td>
+                <td>Color: ${specificVariant.color}<br>Storage: ${specificVariant.storage_size}</td>
+                <td>${item.quantity}</td>
+                <td>${item.price}</td>
+                <td>${item.discount.toFixed(2)}</td>
+                <td>${itemTotal.toFixed(2)}</td>
+            </tr>
+            `;
+        });
+
+        const payableAmount = totalAmount;
+
+        const html = `
+                    <html>
+                        <head>
+                        <style>
+                            body { font-family: Arial, sans-serif; background-color: #f4f4f4; }
+                            .invoice-box { max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; background: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.15); }
+                            .invoice-box h2 { text-align: center; margin: 0 0 20px; color: #333; }
+                            .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                            .invoice-table th, .invoice-table td { border: 1px solid #eee; padding: 10px; text-align: left; }
+                            .invoice-table th { background-color: #f2f2f2; }
+                            .totals { text-align: right; margin-top: 20px; }
+                            .seal { text-align: center; margin-top: 30px; border: 2px dashed red; padding: 20px; display: inline-block; }
+                            .seal img { width: 100px; }
+                            .seal h4 { margin: 5px 0; }
+                            .seal p { font-size: 12px; color: #777; }
+                        </style>
+                        </head>
+                        <body>
+                        <div class="invoice-box">
+                            <h2>Invoice</h2>
+                            <p><strong>Order ID:</strong> ${order.orderId}</p>
+                            <p><strong>Payment Status:</strong> ${order.paymentStatus}</p>
+                            <p><strong>Payment Method:</strong> ${order.paymentMethod}</p>
+                            
+                            <h3>Shipping Address</h3>
+                            <p>${address.fullName}</p>
+                            <p>${address.streetAddress}, ${address.city}</p>
+                            <p>${address.phoneNumber}</p>
+                            <p>${address.emailAddress}</p>
+                            
+                            <h3>Order Details</h3>
+                            <table class="invoice-table">
+                            <tr>
+                                <th>Product Name</th>
+                                <th>Variant Details</th>
+                                <th>Quantity</th>
+                                <th>Price</th>
+                                <th>Discount</th>
+                                <th>Total</th>
+                            </tr>
+                            ${itemsHtml}
+                            </table>
+                            
+                            <div class="totals">
+                            <p><strong>Total Amount:</strong> ${order.totalAmount.toFixed(2)}</p>
+                            <p><strong>Total Discount:</strong> ${totalDiscount.toFixed(2)}</p>
+                            <p><strong>Payable Amount:</strong> ${payableAmount.toFixed(2)}</p>
+                            </div>
+                            <div class="seal">
+                            <h4>Trovup</h4>
+                            <p>Your trusted partner in quality.</p>
+                            </div>
+
+                        </div>
+                        </body>
+                    </html>
+                    `;
 
         // Create the PDF file from the HTML
         const options = { format: 'A4' };
-        const pdfFilePath = `./invoices/invoice_${orderId}_${itemId}.pdf`;
+        const pdfFilePath = `./invoices/invoice_${orderId}.pdf`;
 
         pdf.create(html, options).toFile(pdfFilePath, (err, result) => {
             if (err) {
@@ -662,15 +660,16 @@ const html = `
             }
 
             // Send the PDF as response
-            res.setHeader('Content-Disposition', `attachment; filename=invoice_${orderId}_${itemId}.pdf`);
+            res.setHeader('Content-Disposition', `attachment; filename=invoice_${orderId}.pdf`);
             fs.createReadStream(result.filename).pipe(res);
         });
 
     } catch (error) {
-        console.log('Error occurred while downloading invoice for single product', error);
+        console.log('Error occurred while downloading invoice for the order', error);
         res.status(500).json({ success: false, message: 'Server error occurred' });
     }
 };
+
 
 
 exports.repayment_razorpayPOST = async (req, res) => {

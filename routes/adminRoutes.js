@@ -12,6 +12,7 @@ router.post('/login', redirectIfAuthenticatedAdmin, adminControllers.adminLoginP
 // Admin Dashboard
 // ---------------
 router.get('/dashboard', isAuthenticatedAdmin, adminControllers.adminDashboardGET); 
+router.get("/chart-data", isAuthenticatedAdmin, adminControllers.getChartData);
 
 // User Management Routes
 // ----------------------
