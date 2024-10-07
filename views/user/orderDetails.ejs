@@ -58,7 +58,7 @@
                                             <p class="text-muted mb-0 small">Qty: <%= item.quantity %></p>
                                         </div>
                                         <div class="col-md-2 text-center d-flex justify-content-center align-items-center">
-                                            <p class="text-muted mb-0 small">₹<%= item.price %></p>
+                                            <p class="text-muted mb-0 small">₹<%= ((item.price * item.quantity) - item.discount).toFixed(2) %></p>
                                         </div>
                                     </div>
                                     <hr class="mb-4" style="background-color: #e0e0e0; opacity: 1;">
@@ -94,27 +94,26 @@
                                     <div class="container">
                                         <div class="row">
                                             <div class="col-6">
-                                                 <!-- Check Order Status -->
-                                                <% if (item.orderStatus === 'Cancelled') { %>
-                                                    <button class="btn btn-secondary mt-3" disabled>Order Canceled</button>
-                                                <% } else if (item.orderStatus !== 'Delivered') { %>
-                                                    <button class="btn btn-danger mt-3" onclick="cancelOrder('<%= item._id %>')">Cancel Order</button>
-                                                <% } else { %>
-                                                    <% if (item.isReturnRequested) { %>
-                                                        <% if (item.isAdminAcceptedReturn === 'Pending') { %>
-                                                            <button class="btn btn-warning mt-3" disabled>Return Requested</button>
-                                                        <% } else if (item.isAdminAcceptedReturn === 'Accepted') { %>
-                                                            <button class="btn btn-success mt-3" disabled>Return Accepted</button>
-                                                        <% } else if (item.isAdminAcceptedReturn === 'Rejected') { %>
-                                                            <button class="btn btn-danger mt-3" disabled>Return Rejected</button>
-                                                        <% } %>
+                                                <% if (order.paymentMethod === 'Razorpay' && order.paymentStatus !== 'Failed') { %>
+                                                    <!-- Check Order Status -->
+                                                    <% if (item.orderStatus === 'Cancelled') { %>
+                                                        <button class="btn btn-secondary mt-3" disabled>Order Canceled</button>
+                                                    <% } else if (item.orderStatus !== 'Delivered') { %>
+                                                        <button class="btn btn-danger mt-3" onclick="cancelOrder('<%= item._id %>')">Cancel Order</button>
                                                     <% } else { %>
-                                                        <button class="btn btn-warning mt-3" data-bs-toggle="modal" data-bs-target="#returnModal-<%= item._id %>">Return</button>
+                                                        <% if (item.isReturnRequested) { %>
+                                                            <% if (item.isAdminAcceptedReturn === 'Pending') { %>
+                                                                <button class="btn btn-warning mt-3" disabled>Return Requested</button>
+                                                            <% } else if (item.isAdminAcceptedReturn === 'Accepted') { %>
+                                                                <button class="btn btn-success mt-3" disabled>Return Accepted</button>
+                                                            <% } else if (item.isAdminAcceptedReturn === 'Rejected') { %>
+                                                                <button class="btn btn-danger mt-3" disabled>Return Rejected</button>
+                                                            <% } %>
+                                                        <% } else { %>
+                                                            <button class="btn btn-warning mt-3" data-bs-toggle="modal" data-bs-target="#returnModal-<%= item._id %>">Return</button>
+                                                        <% } %>
                                                     <% } %>
-                                                <% } %>
-                                            </div>
-                                            <div class="col-6 d-flex justify-content-end">
-                                                <button class="btn btn-dark mt-3" onclick="downloadInvoice('<%= item._id %>')">Download Invoice</button>
+                                                    <% } %>
                                             </div>
 
                                             <!-- Loader (Initially hidden) -->
@@ -159,11 +158,34 @@
                                 </div>
                             </div>
                             <% }); %>
-
-                        <div class="d-flex justify-content-between pt-2">
-                            <p class="fw-bold mb-0">Order Details</p>
-                            <p class="text-muted mb-0"><span class="fw-bold me-4">Total</span> ₹<%= order.totalAmount - order.discountAmount %></p>
-                        </div>
+                            <div class="col-6 d-flex justify-content-end">
+                                <button class="btn btn-dark mt-3" onclick="downloadInvoice('')">Download Invoice</button>
+                            </div>
+                            
+                            <div class="row pt-2">
+                                <div class="col-12">
+                                    <p class="fw-bold mb-2">Price Details</p>
+                                </div>
+                                
+                                <!-- Selling Price -->
+                                <div class="col-12 d-flex justify-content-between">
+                                    <p class="text-muted mb-1">Selling Price (1 item)</p>
+                                    <p class="text-muted mb-1">₹<%= order.totalAmount %></p>
+                                </div>
+                                
+                                <!-- Discount -->
+                                <div class="col-12 d-flex justify-content-between">
+                                    <p class="text-muted mb-1">Discount</p>
+                                    <p class="text-success mb-1">- ₹<%= order.discountAmount %></p>
+                                </div>
+                            
+                                <!-- Total Amount -->
+                                <div class="col-12 d-flex justify-content-between fw-bold border-top mt-2 pt-2">
+                                    <p class="mb-0">Total Amount</p>
+                                    <p class="mb-0">₹<%= order.totalAmount - order.discountAmount %></p>
+                                </div>
+                            </div>
+                            
                         <!-- Additional order details here... -->
                     </div>
                 </div>
@@ -290,13 +312,12 @@ function downloadInvoice(itemId) {
         const url = window.URL.createObjectURL(new Blob([blob]));
         const link = document.createElement('a');
         link.href = url;
-        link.setAttribute('download', `invoice_${orderId}_${itemId}.pdf`); // Set the file name for download
+        link.setAttribute('download', `invoice_${orderId}_${itemId}.pdf`);
         document.body.appendChild(link);
         link.click();
         link.parentNode.removeChild(link);
     })
     .catch(error => {
-        // Hide the loader
         document.getElementById('loader').style.display = 'none';
 
         console.error('Error downloading invoice:', error);

@@ -231,14 +231,14 @@
                                 <small>Color: <%= variant ? variant.color : 'N/A' %></small>
                             </div>
                         </div>
-                        <span>$<%= (item.price * item.quantity) %></span>
+                        <span>₹ <%= (item.price * item.quantity) %></span>
                     </div>
                     <% subtotal += item.price * item.quantity; %>
                     <% }); %>
                     <hr>
                     <div class="product-item">
                         <span>Subtotal:</span>
-                        <span>₹<%= subtotal.toFixed(2) %></span>
+                        <span>₹ <%= subtotal.toFixed(2) %></span>
                     </div>
                     <div class="product-item">
                         <span>Shipping:</span>
@@ -250,7 +250,7 @@
                     </div>
                     <div class="product-item total">
                         <span>Total:</span>
-                        ₹<span id="total_price"><%= subtotal.toFixed(2) %></span>
+                        <span id="total_price">₹ <%= subtotal.toFixed(2) %></span>
                     </div>
                     <% } else { %>
                     <p>Your cart is empty.</p>
@@ -282,7 +282,7 @@
         <div id="appliedCouponSection" class="d-none border-dashed p-3 mb-4">
             <div class="d-flex justify-content-between">
                 <div>
-                    <strong>You Save: ₹<span id="appliedCouponDiscount"></span></strong><br>
+                    <strong>You Save: <span id="appliedCouponDiscount"></span></strong><br>
                     <span>Coupon applied: <span id="appliedCouponCode"></span></span>
                 </div>
                 <button class="btn btn-outline-danger btn-sm" id="removeCouponBtn">Remove</button>
@@ -294,7 +294,7 @@
             <form id="couponForm">
                 <div class="input-group">
                     <input type="text" id="couponCode" class="form-control" placeholder="Enter Coupon Code" required>
-                    <button type="submit" class="btn btn-dark">Apply</button>
+                    <button  id="couponCodeButton" type="submit" class="btn btn-dark">Apply</button>
                 </div>
             </form>
             <div id="couponFeedback" class="mt-2"></div>
@@ -425,6 +425,11 @@ function disableCoupons() {
     radios.forEach(radio => {
         radio.disabled = true;
     });
+    const inputField = document.getElementById('couponCode');
+    inputField.disabled = true;
+
+    const button = document.getElementById('couponCodeButton');
+    button.disabled = true;
 }
 
 function enableCoupons() {
@@ -443,7 +448,7 @@ coupons.forEach(coupon => {
             <div class="form-check">
                 <input class="form-check-input" type="radio" name="couponRadio" id="${coupon.coupon_code}" value="${coupon.coupon_code}">
                 <label class="form-check-label" for="${coupon.coupon_code}">
-                    <strong>Savings: %${coupon.discount.toFixed(2)}</strong><br>
+                    <strong>Savings: ${coupon.discount} %</strong><br>
                     <span>${coupon.coupon_code}</span><br>
                     <small>${coupon.coupon_description}</small><br>
                     <a href="#" class="text-decoration-none text-primary">View T & C</a>

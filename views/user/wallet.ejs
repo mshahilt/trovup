@@ -236,7 +236,7 @@
                 },
                 method: 'POST',
                 body: JSON.stringify({
-                    amount: amount // Send amount in rupees
+                    amount: amount
                 })
             });
 
@@ -247,17 +247,18 @@
                 return;
             }
 
-            const orderData = await response.json(); // Retrieve the order details
-            console.log(orderData, 'jkhkjhkjhjk'); // Log to check what data you're receiving
-
+            const orderData = await response.json();
+            console.log(orderData, 'jkhkjhkjhjk');
+            console.log(response,'[yfygvhbjn]');
+            
             const options = {
-                key: 'rzp_test_0cBu6RNEEzVgUn', // Your Razorpay key
-                amount: orderData.amount, // Amount in paise as returned by backend
+                key: 'rzp_test_0cBu6RNEEzVgUn',
+                amount: orderData.amount,
                 currency: 'INR',
                 name: 'Your Wallet',
                 order_id :orderData.id,
                 description: 'Adding funds to your wallet',
-                handler: async function (response) { // Razorpay response object
+                handler: async function (response) {
                     try {
                         console.log(response, 'Payment details');
                         const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = response;
@@ -306,6 +307,4 @@
     });
 </script>
 
-
-<!-- Include Razorpay SDK -->
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>

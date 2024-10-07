@@ -113,6 +113,9 @@ exports.updateCartQuantity = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Cart item not found' });
         }
 
+        if (quantity < 1) {
+            return res.status(400).json({ success: false, message: 'Quantity must be greater than 0' });
+        }
         const item = cart.items.id(id);
         const product = await Products.findById(item.product._id);
 
