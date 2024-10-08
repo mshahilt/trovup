@@ -563,10 +563,39 @@ exports.update_productPOST = async (req, res) => {
       color,
     } = req.body;
 
-    const images = req.files;
-    console.log("req.body", req.body);
-    console.log("req.files:", images);
+    console.log("req.body", price);
 
+    const images = req.files;
+
+    let errors = [];
+
+    if (!product_name || product_name.trim().length < 3) {
+      errors.push("Product name must be at least 3 characters long.");
+    }
+    if (!product_description) {
+      errors.push("Product description is required.");
+    }
+    price.forEach((p) => {
+      if (!p || isNaN(p) || p <= 0) { 
+        errors.push("All prices are required.")
+      }
+    })
+    if (!category_id) {
+      errors.push("Category ID is required.");
+    }
+    if (!brand_id) {
+      errors.push("Brand ID is required.");
+    }
+
+    // Validate variants
+    if (!variant_count || isNaN(variant_count) || variant_count <= 0) {
+      errors.push("You must provide a valid number of variants.");
+    }
+
+    if (errors.length > 0) {
+      req.flash("error", errors);
+      return res.redirect(`/admin/edit-product/${product_id}`);
+    }
     const product = await Product.findById(product_id);
     if (!product) {
       return res

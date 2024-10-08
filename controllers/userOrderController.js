@@ -10,7 +10,6 @@ const Coupon = require('../models/coupenModel');
 const generateUniqueOrderId = require('../config/generateUniqueId');
 const pdf = require('html-pdf');
 const fs = require('fs');
-
 exports.order_confirmPOST = async (req, res) => {
     try {
         const { addressId, cartId } = req.body;
@@ -46,7 +45,16 @@ exports.order_confirmPOST = async (req, res) => {
         const productIds = cart.items.map(item => item.product._id);
         const products = await Products.find({ _id: { $in: productIds } });
 
-        // Calculate total amount and prepare order items
+
+        for (const product of products) {
+            if (product.isDelete) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Product not found',
+                });
+            }
+        }
+
         for (let item of cart.items) {
             const product = products.find(p => p._id.toString() === item.product._id.toString());
             if (!product) {
@@ -56,21 +64,18 @@ exports.order_confirmPOST = async (req, res) => {
                 });
             }
 
-            // Find matching variant
             let variant = product.variants.find(v => v._id.toString() === item.variantId.toString());
             if (variant) {
-                let itemPrice = variant.discount_price * item.quantity; // Use discount price for calculation
+                let itemPrice = variant.discount_price || variant.price * item.quantity; 
                 totalAmount += itemPrice;
 
-                // Push item into orderItems array
                 orderItems.push({
                     product: item.product._id,
                     variantId: variant._id,
                     quantity: item.quantity,
-                    price: variant.discount_price,
+                    price: variant.discount_price || variant.price,
                 });
 
-                // Deduct stock from the variant
                 variant.stock = Math.max(0, variant.stock - item.quantity);
                 await product.save();
             } else {
@@ -104,7 +109,7 @@ exports.order_confirmPOST = async (req, res) => {
         const orderId = await generateUniqueOrderId();
 
         const order = new Order({
-            orderId,  // Use the generated orderId
+            orderId,
             user: userId,
             address: addressId,
             items: orderItems,
@@ -135,6 +140,7 @@ exports.order_confirmPOST = async (req, res) => {
         });
     }
 };
+
 
 exports.order_historyGET = async (req, res) => {
   try {
@@ -224,6 +230,15 @@ exports.create_razor_orderPOST = async (req, res) => {
         const productIds = cart.items.map(item => item.product._id);
         const products = await Products.find({ _id: { $in: productIds } });
 
+        for (const product of products) {
+            if (product.isDelete) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Product not found',
+                });
+            }
+        }
+
         for (let item of cart.items) {
             const product = products.find(p => p._id.toString() === item.product._id.toString());
             if (!product) {
@@ -290,6 +305,7 @@ exports.create_razor_orderPOST = async (req, res) => {
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 };
+
 exports.verify_razorpay_paymentPOST = async (req, res) => {
     try {
         const { payment_id, order_id, signature } = req.body;
@@ -325,7 +341,14 @@ exports.verify_razorpay_paymentPOST = async (req, res) => {
         const orderItems = [];
         const productIds = cart.items.map(item => item.product._id);
         const products = await Products.find({ _id: { $in: productIds } });
-
+        for (const product of products) {
+            if (product.isDelete) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Product not found',
+                });
+            }
+        }
         for (let item of cart.items) {
             const product = products.find(p => p._id.toString() === item.product._id.toString());
             if (!product) {
@@ -513,7 +536,7 @@ exports.cancel_productPOST = async (req, res) => {
       await order.save();
   
       if (order.paymentStatus === 'Paid') {
-        const refundAmount = (item.price * item.quantity) - item.discount;
+        const refundAmount = (item.price * item.quantity) - item.discount ;
   
         let wallet = await Wallet.findOne({ user: order.user });
         if (!wallet) {
@@ -523,6 +546,7 @@ exports.cancel_productPOST = async (req, res) => {
             wallet_history: []
           });
         }
+
   
         wallet.balance += refundAmount;
   
@@ -741,3 +765,301 @@ exports.verifyRepaymentPOST = async (req, res) => {
         res.status(500).json({ success: false, message: 'Server error' });
     }
 }
+
+// pay_with_walletPOST: Handles wallet and Razorpay payments
+exports.pay_with_walletPOST = async (req, res) => {
+    try {
+        const { cartId, addressId } = req.body.orderData;
+        const userId = req.session.user.user;
+
+        if (!cartId || !addressId) {
+            return res.status(400).json({ error: 'Missing cart or address information' });
+        }
+
+        const cart = await Cart.findById(cartId).populate('items.product');
+        const address = await Address.findById(addressId);
+        const wallet = await Wallet.findOne({ user: userId });
+
+        if (!cart) return res.status(404).json({ error: 'Cart not found' });
+        if (!address) return res.status(404).json({ error: 'Address not found' });
+        if (!wallet) return res.status(400).json({ error: 'Wallet not found for user' });
+
+        let totalAmount = 0;
+        const orderItems = [];
+
+        const productIds = cart.items.map(item => item.product._id);
+        const products = await Products.find({ _id: { $in: productIds } });
+
+        for (let item of cart.items) {
+            const product = products.find(p => p._id.toString() === item.product._id.toString());
+            if (!product) return res.status(400).json({ error: 'Product not found' });
+
+            const variant = product.variants.find(v => v._id.toString() === item.variantId.toString());
+            if (!variant) return res.status(400).json({ error: 'Variant not found' });
+
+            const variantPrice = variant.discount_price || variant.price;
+            totalAmount += variantPrice * item.quantity;
+
+            orderItems.push({
+                product: item.product._id,
+                variantId: variant._id,
+                quantity: item.quantity,
+                price: variantPrice
+            });
+        }
+
+
+        let discountOnOrder = 0;
+        const coupon = await Coupon.findOne({
+            "users.userId": cart.user,
+            "users.isBought": false
+        });
+
+        if (coupon) {
+            const discountPercentage = coupon.discount;
+            const discountAmount = (totalAmount * discountPercentage) / 100;
+            discountOnOrder = Math.min(discountAmount, coupon.maximum_coupon_amount);
+
+            await Coupon.findOneAndUpdate(
+                { "users.userId": cart.user, "users.isBought": false },
+                { $set: { "users.$.isBought": true } },
+                { new: true }
+            );
+        }
+        
+
+        // Adjust total amount after applying the discount
+        const discountedTotalAmount = totalAmount - discountOnOrder;
+
+        console.log('orderItems 1', orderItems);
+        for (let item of orderItems) {
+            const itemTotal = item.price * item.quantity;
+            const itemDiscount = (itemTotal / totalAmount) * discountOnOrder;
+            item.discount = itemDiscount;
+        }
+        console.log('orderItems 2', orderItems);
+        // Apply wallet balance
+        const walletBalance = wallet.balance || 0;
+        let walletUsedAmount = Math.min(walletBalance, discountedTotalAmount);
+        let payableAmount = discountedTotalAmount - walletUsedAmount;
+
+        if (payableAmount <= 0) {
+            const generatedOrderId = await generateUniqueOrderId();
+
+            // Create and save the order in the database
+            const newOrder = new Order({
+                orderId: generatedOrderId,
+                user: userId,
+                cartId,
+                address: addressId,
+                items: orderItems,
+                totalAmount,
+                discountAmount: discountOnOrder,
+                payableAmount: 0,
+                walletUsedAmount,
+                paymentMethod: 'Wallet',
+                paymentStatus: 'Paid',
+                placedAt: new Date()
+            });
+
+            await newOrder.save();
+
+            // Deduct the wallet balance and save the wallet
+            wallet.balance -= walletUsedAmount;
+            wallet.wallet_history.push({
+                date: new Date(),
+                amount: walletUsedAmount,
+                description: 'Order payment using wallet',
+                transactionType: 'debited'
+            });
+            await wallet.save();
+
+            // Delete the cart
+            await Cart.findByIdAndDelete(cartId);
+
+            return res.json({
+                status: true,
+                message: "Fully paid using wallet and order saved successfully.",
+                orderData: {
+                    orderId: generatedOrderId,
+                    user: userId,
+                    cartId,
+                    addressId,
+                    items: orderItems,
+                    totalAmount,
+                    discountAmount: discountOnOrder,
+                    payableAmount: 0,
+                    walletUsedAmount,
+                    paymentMethod: 'Wallet'
+                }
+            });
+        }
+
+        // Razorpay order creation for remaining payable amount
+        const options = {
+            amount: Math.round(payableAmount * 100),
+            currency: "INR",
+            receipt: `receipt#${cartId}`,
+            payment_capture: 1
+        };
+
+        const razorpayOrder = await razorpay.orders.create(options);
+
+        return res.json({
+            status: true,
+            message: "Proceed with Razorpay for remaining payment",
+            data: {
+                razorpayOrder,
+                totalAmount,
+                discountAmount: discountOnOrder,
+                walletUsedAmount,
+                payableAmount
+            },
+            orderData: {
+                user: userId,
+                cartId,
+                addressId,
+                items: orderItems,
+                totalAmount,
+                discountAmount: discountOnOrder,
+                payableAmount,
+                walletUsedAmount
+            }
+        });
+    } catch (error) {
+        console.error('Error in pay_with_walletPOST:', error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
+// verifyWalletPaymentPOST: Verifies Razorpay payment and processes order
+exports.verifyWalletPaymentPOST = async (req, res) => {
+    try {
+        const { paymentId, orderId, signature } = req.body;
+        const { addressId, cartId } = req.body.orderData;
+
+        if (!paymentId || !orderId || !signature || !addressId || !cartId) {
+            return res.status(400).json({ error: 'Missing payment or order information' });
+        }
+
+        // Verify payment signature
+        const generatedSignature = crypto.createHmac('sha256', process.env.RAZOR_PAY_KEY_SECRET)
+            .update(`${orderId}|${paymentId}`)
+            .digest('hex');
+
+        if (signature !== generatedSignature) {
+            return res.status(400).json({ error: 'Payment verification failed' });
+        }
+
+        const razorpayOrder = await razorpay.orders.fetch(orderId);
+        if (!razorpayOrder || razorpayOrder.status !== 'paid') {
+            return res.status(400).json({ error: 'Payment not completed' });
+        }
+
+        const cart = await Cart.findById(cartId).populate('items.product');
+        const address = await Address.findById(addressId);
+        const wallet = await Wallet.findOne({ user: req.session.user.user });
+        const walletBalance = wallet.balance || 0;
+
+        if (!cart) return res.status(404).json({ error: 'Cart not found' });
+        if (!address) return res.status(404).json({ error: 'Address not found' });
+        if (!wallet) return res.status(400).json({ error: 'Wallet not found' });
+
+        let totalAmount = 0;
+        const orderItems = [];
+
+        const productIds = cart.items.map(item => item.product._id);
+        const products = await Products.find({ _id: { $in: productIds } });
+
+        for (let item of cart.items) {
+            const product = products.find(p => p._id.toString() === item.product._id.toString());
+            if (!product) return res.status(400).json({ error: 'Product not found' });
+
+            const variant = product.variants.find(v => v._id.toString() === item.variantId.toString());
+            if (!variant) return res.status(400).json({ error: 'Variant not found' });
+
+            const variantPrice = variant.discount_price || variant.price;
+            totalAmount += variantPrice * item.quantity;
+
+            orderItems.push({
+                product: item.product._id,
+                variantId: variant._id,
+                quantity: item.quantity,
+                price: variantPrice
+            });
+        }
+
+        // Handle discount from coupon
+        let discountOnOrder = 0;
+        const coupon = await Coupon.findOne({
+            "users.userId": cart.user,
+            "users.isBought": false
+        });
+
+        if (coupon) {
+            const discountPercentage = coupon.discount;
+            const discountAmount = (totalAmount * discountPercentage) / 100;
+            discountOnOrder = Math.min(discountAmount, coupon.maximum_coupon_amount);
+
+            await Coupon.findOneAndUpdate(
+                { "users.userId": cart.user, "users.isBought": false },
+                { $set: { "users.$.isBought": true } },
+                { new: true }
+            );
+        }
+
+        const discountedTotalAmount = totalAmount - discountOnOrder;
+         // Calculate individual item discount
+         for (let item of orderItems) {
+            const itemTotal = item.price * item.quantity;
+            const itemDiscount = (itemTotal / totalAmount) * discountOnOrder;
+            item.discount = itemDiscount;
+        }
+        let payableAmount = discountedTotalAmount;
+        if (wallet.balance > 0) {
+            const walletUsedAmount = wallet.balance;
+            payableAmount -= walletUsedAmount;
+            wallet.balance -= walletUsedAmount;
+
+            wallet.wallet_history.push({
+                date: new Date(),
+                amount: walletUsedAmount,
+                description: 'Order payment using wallet',
+                transactionType: 'debited'
+            });
+            await wallet.save();
+        }
+
+        const generatedOrderId = await generateUniqueOrderId();
+
+        console.log('wallet balance', wallet.balance);
+        const newOrder = new Order({
+            orderId: generatedOrderId,
+            user: req.session.user.user,
+            cartId,
+            address: addressId,
+            items: orderItems,
+            totalAmount,
+            discountAmount: discountOnOrder,
+            payableAmount: payableAmount > 0 ? payableAmount : 0,
+            walletUsedAmount: walletBalance,
+            paymentMethod: 'Razorpay',
+            paymentStatus: 'Paid',
+            placedAt: new Date()
+        });
+
+        await newOrder.save();
+
+        await Cart.findByIdAndDelete(cartId);
+
+        return res.json({
+            status: true,
+            message: "Order verified and saved successfully",
+            orderData: newOrder
+        });
+
+    } catch (error) {
+        console.error('Error in verifyWalletPaymentPOST:', error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+};

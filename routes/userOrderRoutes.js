@@ -14,6 +14,9 @@ router.post('/verify_razorpay_payment',isLoggedIn,userOrderController.verify_raz
 
 router.post('/repayment-razorpay',isLoggedIn,userOrderController.repayment_razorpayPOST);
 router.post('/verifyRepayment', isLoggedIn, userOrderController.verifyRepaymentPOST)
+    
+router.post('/pay_with_wallet',isLoggedIn,userOrderController.pay_with_walletPOST);
+router.post('/confirm_razorpay_paymentWallet', isLoggedIn, userOrderController.verifyWalletPaymentPOST);
 
 router.post('/return-product',isLoggedIn,userOrderController.return_productPOST);
 

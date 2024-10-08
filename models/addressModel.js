@@ -29,6 +29,10 @@ const addressSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    isDelete:{
+        type: Boolean,
+        default: false
+    },
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,
