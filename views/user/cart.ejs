@@ -132,6 +132,11 @@ function updateCart(id, quantity) {
         if (data.success) {
             calculateCartTotal();
         } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+            text: `${data.message} `,
+            })
             console.error('Error updating cart:', data.message);
         }
     })

@@ -269,38 +269,77 @@
 
 <script src="/assets/js/dashboard.js"></script>
 <script>
-  document.addEventListener("DOMContentLoaded", async () => {
-    const sortSelect = document.getElementById("sortStats");
-    const customDateInputs = document.getElementById("customDateInputs");
-    const startDateInput = document.getElementById("startDate");
-    const endDateInput = document.getElementById("endDate");
+ document.addEventListener("DOMContentLoaded", async () => {
+  const sortSelect = document.getElementById("sortStats");
+  const customDateInputs = document.getElementById("customDateInputs");
+  const startDateInput = document.getElementById("startDate");
+  const endDateInput = document.getElementById("endDate");
+  const applyDateRangeBtn = document.getElementById("applyDateRange");
 
-    // Disable future dates for both date inputs
-    const today = new Date().toISOString().split('T')[0];
-    startDateInput.setAttribute("max", today);
-    endDateInput.setAttribute("max", today);
+  // Disable future dates for both date inputs
+  const today = new Date().toISOString().split('T')[0];
+  startDateInput.setAttribute("max", today);
+  endDateInput.setAttribute("max", today);
 
-    // Handle sort option change
-    sortSelect.addEventListener("change", function () {
-      const sortValue = this.value;
+  // Handle sort option change
+  sortSelect.addEventListener("change", function () {
+    const sortValue = this.value;
 
-      if (sortValue === "custom") {
-        // Show custom date inputs when "Custom Date" is selected
-        customDateInputs.classList.remove("d-none");
+    const url = new URL(window.location.href);
+
+    if (sortValue === "custom") {
+      // Show custom date inputs when "Custom Date" is selected
+      customDateInputs.classList.remove("d-none");
+    } else {
+      // Hide custom date inputs for other sort options
+      customDateInputs.classList.add("d-none");
+
+      // Clear custom date parameters from the URL when switching to predefined options
+      url.searchParams.delete("startDate");
+      url.searchParams.delete("endDate");
+
+      // Navigate to the new sorted page based on the selected option
+      if (sortValue) {
+        url.searchParams.set("sortStats", sortValue);
       } else {
-        // Hide custom date inputs for other sort options
-        customDateInputs.classList.add("d-none");
-
-        // Navigate to the new sorted page based on the selected option
-        const url = new URL(window.location.href);
-        if (sortValue) {
-          url.searchParams.set("sortStats", sortValue);
-        } else {
-          url.searchParams.delete("sortStats");
-        }
-        window.location.href = url.toString();
+        url.searchParams.delete("sortStats");
       }
-    });
+
+      window.location.href = url.toString();
+    }
+  });
+
+  // Handle the custom date apply action
+  applyDateRangeBtn.addEventListener("click", function () {
+    const startDate = startDateInput.value;
+    const endDate = endDateInput.value;
+
+    // Validate if dates are selected
+    if (!startDate || !endDate) {
+      Swal.fire({
+        icon: "error",
+        title: "Invalid Date",
+        text: "Please select both start and end dates.",
+      });
+      return;
+    }
+
+    // Validate if the start date is before the end date
+    if (new Date(startDate) > new Date(endDate)) {
+      Swal.fire({
+        icon: "error",
+        title: "Invalid Date Range",
+        text: "Start date must be before or equal to the end date.",
+      });
+      return;
+    }
+
+    // Update the URL with custom date range
+    const url = new URL(window.location.href);
+    url.searchParams.set("startDate", startDate);
+    url.searchParams.set("endDate", endDate);
+    window.location.href = url.toString();
+  });
 
   // Download Report Button in Modal
   document.getElementById("downloadReportBtn").addEventListener("click", async function () {
@@ -369,5 +408,5 @@
       });
     }
   });
-  });
+});
 </script>

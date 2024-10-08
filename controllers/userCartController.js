@@ -9,6 +9,7 @@ const { isLoggedIn } = require('../middleware/userAuth');
 const { storeUserSession } = require('../utility/sessionUtil');
 const Coupon = require('../models/coupenModel');
 const Order = require('../models/orderModel');
+const Wallet = require('../models/walletModel');
 // GET: Add to Cart Page
 exports.addToCartGET = async (req, res) => {
     try {
@@ -108,6 +109,10 @@ exports.updateCartQuantity = async (req, res) => {
         const { id } = req.params;
         const { quantity } = req.body;
 
+        console.log(id, quantity, 'from cart controller');
+        if(quantity < 1){
+            return res.status(400).json({ success: false, message: 'Quantity must be greaer than 0' });
+        }
         const cart = await Cart.findOne({ 'items._id': id });
         if (!cart) {
             return res.status(404).json({ success: false, message: 'Cart item not found' });
@@ -149,6 +154,8 @@ exports.updateCartQuantity = async (req, res) => {
             return res.redirect('/');
         }
 
+        const wallet = await Wallet.findOne({ user: userId });
+        const walletBalance = wallet ? wallet.balance : 0;
         const coupons = await Coupon.find();
 
         const appliedCoupon = await Coupon.findOne({
@@ -188,6 +195,7 @@ exports.updateCartQuantity = async (req, res) => {
             addresses,
             cartTotal,
             appliedCoupon,
+            walletBalance,
             layout: 'layouts/homeLayout',
         });
 

@@ -178,15 +178,25 @@
                                     <p class="text-muted mb-1">Discount</p>
                                     <p class="text-success mb-1">- ₹<%= order.discountAmount %></p>
                                 </div>
-                            
+                                
+                                <% if (order.walletUsedAmount > 0) { %>
+                                 <!-- Discount -->
+                                <div class="col-12 d-flex justify-content-between">
+                                    <p class="text-muted mb-1">Payed using Wallet</p>
+                                    <p class="text-success mb-1">- ₹<%= order.walletUsedAmount %></p>
+                                </div>
+                                <% } %>
                                 <!-- Total Amount -->
                                 <div class="col-12 d-flex justify-content-between fw-bold border-top mt-2 pt-2">
                                     <p class="mb-0">Total Amount</p>
-                                    <p class="mb-0">₹<%= order.totalAmount - order.discountAmount %></p>
+                                    <% if (order.walletUsedAmount > 0) { %>
+                                        <p class="mb-0">₹<%= (order.totalAmount - order.discountAmount) - order.walletUsedAmount %></p>
+                                    <% }else{ %>
+                                        <p class="mb-0">₹<%= order.totalAmount - order.discountAmount%></p>
+                                    <% } %>
+                                    
                                 </div>
                             </div>
-                            
-                        <!-- Additional order details here... -->
                     </div>
                 </div>
             </div>

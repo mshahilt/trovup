@@ -79,7 +79,7 @@
 
   <div class="address-book mb-5">
     <% addresses.forEach(function(address) { %>
-      <div class="address-item">
+      <div class="address-item" id="address-<%= address._id %>">
         <div class="address-info">
           <h3><%= address.fullName %></h3>
           <p><strong>Address:</strong> <%= address.streetAddress %>, <%= address.city %></p>
@@ -104,6 +104,7 @@
       form.querySelector('.btn-delete').addEventListener('click', function(e) {
         e.preventDefault();
         const deleteUrl = form.action;
+        const addressId = form.closest('.address-item').id;
 
         Swal.fire({
           title: 'Are you sure?',
@@ -116,7 +117,40 @@
           cancelButtonText: 'Cancel'
         }).then((result) => {
           if (result.isConfirmed) {
-            window.location.href = deleteUrl;
+            // Using fetch to send a DELETE request
+            fetch(deleteUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              }
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                Swal.fire(
+                  'Deleted!',
+                  'The address has been deleted.',
+                  'success'
+                );
+                // Remove the deleted address from the DOM
+                document.getElementById(addressId).remove();
+              } else {
+                Swal.fire(
+                  'Error!',
+                  'There was a problem deleting the address.',
+                  'error'
+                );
+              }
+            })
+            .catch(error => {
+              console.log(error)
+              Swal.fire(
+                'Error!',
+                'There was a problem deleting the address.',
+                'error'
+              );
+            });
           }
         });
       });

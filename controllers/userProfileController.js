@@ -262,7 +262,12 @@ let isUserLoggedIn;
 exports.addressBookGET = async (req, res) => {
     try {
         isUserLoggedIn = req.session.user;
-        const addresses = await Address.find({ userId: req.session.user.user });
+        const address = await Address.find({ userId: req.session.user.user });
+        const addresses = address.filter((address)=>{
+            if(address.isDelete === false){
+                return address
+            }
+        })
         res.render('user/addressBook', { addresses , title: 'Adress Book', layout:'layouts/homeLayout',isUserLoggedIn});
     } catch (err) {
         console.error(err);
@@ -302,7 +307,9 @@ exports.addressEditPOST = async (req, res) => {
 
 exports.deleteAddressPOST = async (req, res) => {
     try {
-        await Address.findByIdAndDelete(req.params.id);
+        const address = await Address.findById(req.params.id);
+        address.isDelete = true;
+        await address.save();
         res.redirect('/profile/addresses');
     } catch (err) {
         console.error(err);
