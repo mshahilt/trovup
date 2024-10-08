@@ -65,22 +65,12 @@
                               <td><%= element.offer_percentage %>%</td>
                               <td><%= new Date(element.offer_start_date).toLocaleString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true }) %></td>
                               <td><%= new Date(element.offer_end_date).toLocaleString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true }) %></td>
+                              
                               <td>
-                                <div class="d-flex justify-content-center">
-                                  <div class="mx-2">
-                                    <a href="#" class="btn btn-primary btn-rounded btn-icon btn-sm" data-bs-toggle="modal" data-bs-target="#editOfferModal" onclick="populateEditModal('<%= element._id %>','<%= element.offer_name %>','<%= element.offer_percentage %>','<%= element.offer_start_date %>','<%= element.offer_end_date %>')">
-                                      <span>Edit</span>
-                                    </a>
-                                  </div>
-                                  <div>
-                                    <% if (element.is_delete) { %>
-                                    <a href="/admin/offerManagement/unBlockOffer/<%= element._id %>" class="btn btn-secondary btn-sm">UnBlock</a>
-                                    <% } else { %>
-                                    <a href="/admin/offerManagement/blockOffer/<%= element._id %>" class="btn btn-danger btn-sm">Block</a>
-                                    <% } %>
-                                  </div>
-                                </div>
-                              </td>
+                                  <form onsubmit="return confirmOfferDelete(event, '<%= element._id %>');">
+                                      <button type="submit" class="btn btn-danger">Delete</button>
+                                  </form>
+                              </td>   
                             </tr>
                             <% }) %>
                           </tbody>
@@ -356,8 +346,8 @@
 </div>
 <!-- Include SweetAlert CSS and JS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/1.1.3/sweetalert.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/1.1.3/sweetalert.min.js"></script>
-
+<!-- SweetAlert and Validation Script -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
   function validDetailsModal() {
     var name = document.getElementById("add_coupon_code").value;
@@ -466,6 +456,38 @@
         swal("Error!", "An error occurred while updating the offer.", "error");
     }
 }
+</script>
 
+<script>
+  function confirmOfferDelete(event, offerId) {
+  event.preventDefault();
+  Swal.fire({
+      title: 'Are you sure?',
+      text: 'This coupon will be permanently deleted!',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, delete it!',
+      cancelButtonText: 'No, cancel!'
+  }).then(async (result) => {
+      if (result.isConfirmed) {
+          try {
+              const response = await fetch(`/admin/delete-offer/${offerId}`, {
+                  method: 'POST'
+              });
 
+              const result = await response.json();
+
+              if (response.ok) {
+                  Swal.fire('Deleted!', 'Your coupon has been deleted.', 'success').then(() => {
+                      window.location.reload();
+                  });
+              } else {
+                  Swal.fire('Error', result.message || 'Failed to delete coupon.', 'error');
+              }
+          } catch (error) {
+              Swal.fire('Error', 'An error occurred while deleting the coupon.', 'error');
+          }
+      }
+  });
+}
 </script>

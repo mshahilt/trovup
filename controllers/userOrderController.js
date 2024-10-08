@@ -10,11 +10,12 @@ const Coupon = require('../models/coupenModel');
 const generateUniqueOrderId = require('../config/generateUniqueId');
 const pdf = require('html-pdf');
 const fs = require('fs');
+
 exports.order_confirmPOST = async (req, res) => {
     try {
         const { addressId, cartId } = req.body;
         let { paymentMethod } = req.body;
-
+        let deliveryCharge = 0;
         // Validate address
         const address = await Address.findById(addressId);
         if (!address) {
@@ -106,6 +107,12 @@ exports.order_confirmPOST = async (req, res) => {
             const itemDiscount = (itemTotal / totalAmount) * discountOnOrder;
             item.discount = itemDiscount;
         }
+        if(totalAmount < 3000){
+            deliveryCharge = 50
+        }
+        if(totalAmount > 3000){
+            return res.status(400).json({success: false, message: 'Orders below Rs 3000 are not allowed for Cash On Delivery',})
+        }
         const orderId = await generateUniqueOrderId();
 
         const order = new Order({
@@ -117,6 +124,7 @@ exports.order_confirmPOST = async (req, res) => {
             discountAmount: discountOnOrder,
             payableAmount,
             paymentMethod,
+            deliveryCharge,
             paymentStatus: 'Pending',
             couponApplied: coupon ? coupon._id : null
         });
@@ -204,11 +212,12 @@ exports.order_detailsGET = async (req, res) => {
     }
 };
 
-
 exports.create_razor_orderPOST = async (req, res) => {
     try {
         const { cartId, addressId } = req.body.orderData;
         const userId = req.session.user.user;
+
+        let deliveryCharge = 0;
 
         if (!cartId || !addressId) {
             return res.status(400).json({ error: 'Missing cart or address information' });
@@ -230,6 +239,7 @@ exports.create_razor_orderPOST = async (req, res) => {
         const productIds = cart.items.map(item => item.product._id);
         const products = await Products.find({ _id: { $in: productIds } });
 
+        // Check if all products exist and are not deleted
         for (const product of products) {
             if (product.isDelete) {
                 return res.status(400).json({
@@ -239,6 +249,7 @@ exports.create_razor_orderPOST = async (req, res) => {
             }
         }
 
+        // Loop through cart items to calculate total and check stock
         for (let item of cart.items) {
             const product = products.find(p => p._id.toString() === item.product._id.toString());
             if (!product) {
@@ -250,6 +261,15 @@ exports.create_razor_orderPOST = async (req, res) => {
                 return res.status(400).json({ error: 'Variant not found' });
             }
 
+            // Check if the variant has sufficient stock
+            if (variant.stock < item.quantity) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Insufficient stock for product ${product.product_name}, variant ${variant.name}. Available stock: ${variant.stock}`
+                });
+            }
+
+            // Calculate price and total
             const variantPrice = variant.discount_price || variant.price;
             totalAmount += variantPrice * item.quantity;
 
@@ -259,7 +279,6 @@ exports.create_razor_orderPOST = async (req, res) => {
                 quantity: item.quantity,
                 price: variantPrice
             });
-
         }
 
         let discountOnOrder = 0;
@@ -276,8 +295,12 @@ exports.create_razor_orderPOST = async (req, res) => {
 
         const payableAmount = Math.max(0, totalAmount - discountOnOrder);
 
+        if (totalAmount < 3000) {
+            deliveryCharge = 50;
+        }
+        
         const options = {
-            amount: Math.round(payableAmount * 100),
+            amount: Math.round((payableAmount + deliveryCharge) * 100),
             currency: "INR",
             receipt: `receipt#${cartId}`,
             payment_capture: 1
@@ -306,16 +329,13 @@ exports.create_razor_orderPOST = async (req, res) => {
     }
 };
 
+
 exports.verify_razorpay_paymentPOST = async (req, res) => {
     try {
         const { payment_id, order_id, signature } = req.body;
-        console.log('payment_id',payment_id);
-        console.log('order_id',order_id);
-        console.log('signature',signature);
     
         const { cartId, addressId } = req.body.orderData;
-        console.log('order data cartId',cartId);
-        console.log('order data addressId',addressId);
+        let deliveryCharge = 0;
         const body = `${order_id}|${payment_id}`;
         const crypto = require("crypto");
         const expectedSignature = crypto
@@ -404,6 +424,9 @@ exports.verify_razorpay_paymentPOST = async (req, res) => {
             item.discount = itemDiscount;
         }
 
+        if(deliveryCharge < 3000){
+            deliveryCharge = 50;
+        }
         const generatedOrderId = await generateUniqueOrderId();
         const order = new Order({
             orderId: generatedOrderId,
@@ -413,6 +436,7 @@ exports.verify_razorpay_paymentPOST = async (req, res) => {
             totalAmount,
             discountAmount: discountOnOrder,
             payableAmount,
+            deliveryCharge,
             paymentMethod: 'Razorpay',
             razorpayOrderId: order_id,
             paymentStatus: 'Pending', // Set to pending initially
@@ -771,7 +795,7 @@ exports.pay_with_walletPOST = async (req, res) => {
     try {
         const { cartId, addressId } = req.body.orderData;
         const userId = req.session.user.user;
-
+        let deliveryCharge = 0;
         if (!cartId || !addressId) {
             return res.status(400).json({ error: 'Missing cart or address information' });
         }
@@ -896,8 +920,12 @@ exports.pay_with_walletPOST = async (req, res) => {
         }
 
         // Razorpay order creation for remaining payable amount
+        if(totalAmount < 3000){
+            deliveryCharge = 50;
+        }
+        console.log(deliveryCharge)
         const options = {
-            amount: Math.round(payableAmount * 100),
+            amount: Math.round((payableAmount + deliveryCharge) * 100),
             currency: "INR",
             receipt: `receipt#${cartId}`,
             payment_capture: 1
@@ -941,6 +969,7 @@ exports.verifyWalletPaymentPOST = async (req, res) => {
         if (!paymentId || !orderId || !signature || !addressId || !cartId) {
             return res.status(400).json({ error: 'Missing payment or order information' });
         }
+        let deliveryCharge = 0;
 
         // Verify payment signature
         const generatedSignature = crypto.createHmac('sha256', process.env.RAZOR_PAY_KEY_SECRET)
@@ -1031,12 +1060,15 @@ exports.verifyWalletPaymentPOST = async (req, res) => {
         }
 
         const generatedOrderId = await generateUniqueOrderId();
-
+        if(totalAmount < 3000){
+            deliveryCharge = 50;
+        }
         console.log('wallet balance', wallet.balance);
         const newOrder = new Order({
             orderId: generatedOrderId,
             user: req.session.user.user,
             cartId,
+            deliveryCharge,
             address: addressId,
             items: orderItems,
             totalAmount,
