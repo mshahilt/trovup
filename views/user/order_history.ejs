@@ -135,7 +135,7 @@
                         <td><%= new Date(order.placedAt).toLocaleDateString('en-US') %></td>
                         
                         <!-- Paid Amount -->
-                        <td><%= order.payableAmount.toFixed(2) %></td>
+                        <td><%= (order.payableAmount + order.deliveryCharge).toFixed(2) %></td>
                         
                         <!-- Order Quantity (sum of item quantities) -->
                         <td>

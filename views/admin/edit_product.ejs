@@ -3,6 +3,22 @@
         <div class="card">
             <div class="card-body">
                 <h4 class="card-title">Edit Product Information</h4>
+                <% if (messages.error) { %>
+                    <div class="alert alert-danger">
+                      <ul>
+                        <% messages.error.forEach(function(error) { %>
+                          <li><%= error %></li>
+                        <% }) %>
+                      </ul>
+                    </div>
+                  <% } %>
+                  
+                  <% if (messages.success) { %>
+                    <div class="alert alert-success">
+                      <%= messages.success %>
+                    </div>
+                  <% } %>
+                  
                 <form class="form-sample" action="/admin/update_product/<%= product._id %>" method="POST" enctype="multipart/form-data">
                     <!-- Hidden input for variant count -->
                     <input type="hidden" id="variant_count" name="variant_count" value="<%= product.variants.length %>">

@@ -21,18 +21,16 @@
                 <td><%= order.paymentMethod %></td>
                 <td>
                   <span class="badge 
-                      <%= order.orderStatus === 'Delivered' ? 'badge-success' :
-                            order.orderStatus === 'Processing' ? 'badge-warning' : 
-                            order.orderStatus === 'Cancelled' ? 'badge-danger' : 'badge-info' %>">
-                    <%= order.orderStatus %>
-                  </span>
+                  <%= order.paymentStatus === 'Paid' ? 'badge-success' : order.paymentStatus === 'Pending' ? 'badge-warning' : 'badge-danger' %>" style="width: 100px; display: inline-block; text-align: center;">
+                  <%= order.paymentStatus %>
+                </span>                
                 </td>
                 <td>
                   <button class="btn btn-outline-info btn-sm toggle-details-btn" data-order-id="<%= order.orderId %>">
                     Show Details
                   </button>
                 </td>
-              </tr>
+              </tr>              
               <tr class="order-details-row" data-order-id="<%= order.orderId %>" style="display:none;">
                 <td colspan="5">
                   <div class="order-details p-3 border rounded shadow-sm" style="background-color: rgb(249, 249, 249);">

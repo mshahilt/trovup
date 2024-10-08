@@ -374,26 +374,41 @@ exports.edit_categoryGET = async (req, res) => {
     res.redirect("/admin/category-list"); // Redirect to a safe page on error
   }
 };
-
 exports.edit_categoryPOST = async (req, res) => {
   try {
     const { categoryId, new_category_name } = req.body;
+
+    const categoryExists = await Category.findOne({
+      category_name: { $regex: new RegExp(`^${new_category_name}$`, "i") }, 
+      _id: { $ne: categoryId }
+    });
+
+    if (categoryExists) {
+      console.log("A category with the same name already exists.");
+      req.flash("error", "A category with the same name already exists.");
+      return res.redirect(`/admin/categories`); 
+    }
+
     const updatedCategory = await Category.findByIdAndUpdate(
-      categoryId, // The ID of the category to update
+      categoryId, 
       { category_name: new_category_name }
-    ); // The new data to update
+    );
 
     if (!updatedCategory) {
-      console.log("Category not found");
+      console.log("Category not found.");
+      req.flash("error", "Category not found.");
       return res.redirect("/admin/categories");
     }
 
+    req.flash("success", "Category updated successfully.");
     res.redirect("/admin/categories");
   } catch (error) {
     console.log("An error occurred while posting edit category:", error);
+    req.flash("error", "An error occurred while updating the category.");
     res.redirect("/admin/categories"); // Redirect on error
   }
 };
+
 exports.delete_categoryPOST = async (req, res) => {
   try {
     const categoryId = req.params.id;
@@ -563,10 +578,39 @@ exports.update_productPOST = async (req, res) => {
       color,
     } = req.body;
 
-    const images = req.files;
-    console.log("req.body", req.body);
-    console.log("req.files:", images);
+    console.log("req.body", price);
 
+    const images = req.files;
+
+    let errors = [];
+
+    if (!product_name || product_name.trim().length < 3) {
+      errors.push("Product name must be at least 3 characters long.");
+    }
+    if (!product_description) {
+      errors.push("Product description is required.");
+    }
+    price.forEach((p) => {
+      if (!p || isNaN(p) || p <= 0) { 
+        errors.push("All prices are required.")
+      }
+    })
+    if (!category_id) {
+      errors.push("Category ID is required.");
+    }
+    if (!brand_id) {
+      errors.push("Brand ID is required.");
+    }
+
+    // Validate variants
+    if (!variant_count || isNaN(variant_count) || variant_count <= 0) {
+      errors.push("You must provide a valid number of variants.");
+    }
+
+    if (errors.length > 0) {
+      req.flash("error", errors);
+      return res.redirect(`/admin/edit-product/${product_id}`);
+    }
     const product = await Product.findById(product_id);
     if (!product) {
       return res
@@ -799,6 +843,35 @@ exports.edit_brandGET = async (req, res) => {
       error
     );
     res.status(500).send("Internal Server Error");
+  }
+};
+exports.edit_brandPOST = async (req, res) => {
+  try {
+    console.log("ádmin function called")
+    const { id } = req.params;
+    const { brand_name, categories } = req.body;
+
+    const brandExists = await Brand.findOne({ 
+      brand_name: brand_name, 
+      _id: { $ne: id } 
+    });
+
+    if (brandExists) {
+      req.flash("error", "A brand with the same name already exists.");
+      return res.redirect(`/admin/brands}`); 
+    }
+
+    await Brand.findByIdAndUpdate(id, {
+      brand_name,
+      categories,
+    });
+
+    req.flash("success", "Brand updated successfully");
+    res.redirect("/admin/brands");
+  } catch (error) {
+    console.log("An error occurred while updating the brand:", error);
+    req.flash("error", "An error occurred while updating the brand");
+    res.redirect("/admin/brands");
   }
 };
 
@@ -1051,6 +1124,16 @@ exports.edit_couponPOST = async (req, res) => {
   }
 };
 
+exports.delete_couponPOST = async (req, res) => {
+  try {
+    const couponId = req.params.id;
+    await Coupon.findByIdAndDelete(couponId);
+    res.status(200).json({ message: "Coupon deleted successfully!" });
+  }catch (err) {
+    console.error("Error updating coupon:", err);
+    res.status(500).json({ message: "Server error. Please try again later." });
+  }
+}
 exports.offerAdminGET = async (req, res) => {
   try {
     const offerData = await Offer.find();
@@ -1262,6 +1345,17 @@ exports.updateCategoryOfferPOST = async (req, res) => {
       .json({ success: false, message: "Server error while updating offers." });
   }
 };
+
+exports.deleteOfferPOST = async (req, res) => {
+  try {
+    const offerId = req.params.id;
+    await Offer.findByIdAndDelete(offerId)
+    res.status(200).json({ message: "Coupon deleted successfully!" });
+  }catch(error){
+    console.error("Error occurred while accepting the return request", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
 exports.accept_return_requestPOST = async (req, res) => {
   try {
     const { itemId, orderId } = req.body;

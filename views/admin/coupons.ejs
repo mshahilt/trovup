@@ -43,17 +43,11 @@
                                 <button type="button" class="btn btn-warning" onclick="openEditModal('<%= coupon._id %>', '<%= coupon.coupon_code %>', <%= coupon.discount %>, '<%= coupon.start_date.toISOString().split('T')[0] %>', '<%= coupon.expiry_date.toISOString().split('T')[0] %>', <%= coupon.minimum_purchase_amount %>, <%= coupon.maximum_coupon_amount %>, '<%= coupon.coupon_description %>')">Edit</button>
                             </td>                            
                             <td>
-                                <% if (new Date(coupon.expiry_date) < new Date()) { %>
-                                    <form action="/admin/delete-coupon/<%= coupon._id %>" method="POST">
-                                        <button type="submit" class="btn btn-success">Restore</button>
+                                <td>
+                                    <form onsubmit="return confirmDelete(event, '<%= coupon._id %>');">
+                                        <button type="submit" class="btn btn-danger">Delete</button>
                                     </form>
-                                <% } else { %>
-                                    <td>
-                                        <form onsubmit="return confirmDelete(event, '<%= coupon._id %>');">
-                                            <button type="submit" class="btn btn-danger">Delete</button>
-                                        </form>
-                                    </td>                                    
-                                <% } %>
+                                </td>                                    
                             </td>
                         </tr>
                         <% }) %>
@@ -264,6 +258,7 @@ document.getElementById('editCouponForm').addEventListener('submit', async (e) =
 });
 
 </script>
+
 <script>
     function confirmDelete(event, couponId) {
     event.preventDefault();

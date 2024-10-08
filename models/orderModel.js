@@ -68,7 +68,7 @@ const orderSchema = new mongoose.Schema({
     paymentMethod: {
         type: String,
         required: true,
-        enum: ['Cash on Delivery', 'Razorpay']
+        enum: ['Cash on Delivery', 'Razorpay', 'Wallet']
     },
     razorpayOrderId: {
         type: String,
@@ -85,6 +85,14 @@ const orderSchema = new mongoose.Schema({
         required: true
     },
     discountAmount: {  
+        type: Number,
+        default: 0
+    },
+    walletUsedAmount: {
+        type: Number,
+        default: 0
+    },
+    deliveryCharge: {
         type: Number,
         default: 0
     },
