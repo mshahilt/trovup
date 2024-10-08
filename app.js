@@ -73,15 +73,6 @@ app.use('/profile',userProfileRoutes);
 app.use('/wishlist',wishlistRoutes);
 app.use('/wallet',walletRoutes);
 
-app.use((req, res) => {
-    title = '404';
-    const isUserLoggedIn = req.session.user;
-    res.status(404).render('404',{
-        layouts: 'layouts/loginAndSignupLayout',
-        title,
-        isUserLoggedIn
-    });
-})
 // Start the server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {

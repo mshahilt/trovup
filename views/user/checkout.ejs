@@ -240,17 +240,28 @@
                         <span>Subtotal:</span>
                         <span>₹ <%= subtotal.toFixed(2) %></span>
                     </div>
+                    <% if (deliveryCharge > 0) { %>
+                        <div class="product-item">
+                            <span>Shipping:</span>
+                            <span>₹ <%= deliveryCharge %></span>
+                        </div>
+                    <% }else{ %>
                     <div class="product-item">
                         <span>Shipping:</span>
                         <span>Free</span>
                     </div>
+                    <% } %>
                     <div class="product-item">
                         <span>Discount:</span>
                         <span id="discountInCheckout">₹ 0</span>
                     </div>
                     <div class="product-item total">
                         <span>Total:</span>
-                        <span id="total_price">₹ <%= subtotal.toFixed(2) %></span>
+                        <% if (deliveryCharge > 0) { %>
+                            <span id="total_price">₹ <%= (subtotal + deliveryCharge).toFixed(2) %></span>
+                        <% }else{ %>
+                            <span id="total_price">₹ <%= (subtotal).toFixed(2) %></span>
+                        <% } %>
                     </div>
                     <% } else { %>
                     <p>Your cart is empty.</p>
@@ -635,7 +646,7 @@ document.getElementById('couponsList').addEventListener('change', function(event
                             Swal.fire({
                                 icon: 'error',
                                 title: 'Order Failed',
-                                text: 'There was an error placing your order. Please try again later.',
+                                text: error.responseJSON.message,
                                 confirmButtonText: 'OK'
                             });
                         }
@@ -791,7 +802,12 @@ document.getElementById('couponsList').addEventListener('change', function(event
                     console.log(data.data.razorpayOrder, 'data.data.razorpayOrder');
                     const razorpayOrder = data.data.razorpayOrder;
                     const walletUsedAmount = data.data.walletUsedAmount;
-                    const payableAmount = data.data.payableAmount;
+                    let payableAmount = data.data.payableAmount;
+                    const deliveryCharge = data.data.deliveryCharge;
+
+                    if(deliveryCharge > 0){
+                        payableAmount += deliveryCharge
+                    }
 
                     Swal.fire({
                         title: 'Partial Payment',

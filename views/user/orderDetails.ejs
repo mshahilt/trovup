@@ -172,6 +172,12 @@
                                     <p class="text-muted mb-1">Selling Price (1 item)</p>
                                     <p class="text-muted mb-1">₹<%= order.totalAmount %></p>
                                 </div>
+                                <% if (order.deliveryCharge > 0) { %>
+                                    <div class="col-12 d-flex justify-content-between">
+                                        <p class="text-muted mb-1">Delivery Charge</p>
+                                        <p class="text-muted mb-1">₹<%= order.deliveryCharge %></p>
+                                    </div>
+                                <% } %>
                                 
                                 <!-- Discount -->
                                 <div class="col-12 d-flex justify-content-between">
@@ -190,7 +196,7 @@
                                 <div class="col-12 d-flex justify-content-between fw-bold border-top mt-2 pt-2">
                                     <p class="mb-0">Total Amount</p>
                                     <% if (order.walletUsedAmount > 0) { %>
-                                        <p class="mb-0">₹<%= (order.totalAmount - order.discountAmount) - order.walletUsedAmount %></p>
+                                        <p class="mb-0">₹<%= ((order.totalAmount - order.discountAmount)+order.deliveryCharge) - order.walletUsedAmount %></p>
                                     <% }else{ %>
                                         <p class="mb-0">₹<%= order.totalAmount - order.discountAmount%></p>
                                     <% } %>

@@ -33,6 +33,7 @@ router.post('/delete-category/:id', isAuthenticatedAdmin, adminControllers.delet
 router.get('/brands', isAuthenticatedAdmin, adminControllers.adminBrandGET);
 router.post('/add-brand', isAuthenticatedAdmin, adminControllers.adminAddBrandPOST);
 router.get('/edit-brand/:id', isAuthenticatedAdmin, adminControllers.edit_brandGET);
+router.post('/edit-brand/:id', isAuthenticatedAdmin, adminControllers.edit_brandPOST);
 router.post('/delete-brand/:id', isAuthenticatedAdmin, adminControllers.delete_brandPOST);
 
 // Product Management Routes
@@ -54,7 +55,7 @@ router.post('/update-product-status', isAuthenticatedAdmin, adminControllers.upd
 router.get('/coupons', isAuthenticatedAdmin, adminControllers.couponGET);
 router.post('/add-coupon', isAuthenticatedAdmin, adminControllers.add_couponPOST);
 router.post('/edit-coupon/:id',isAuthenticatedAdmin, adminControllers.edit_couponPOST)
-
+router.post('/delete-coupon/:id',isAuthenticatedAdmin, adminControllers.delete_couponPOST)
 
 // Offer Management Routes
 // -------------------------
@@ -62,6 +63,7 @@ router.get('/offers', isAuthenticatedAdmin, adminControllers.offerAdminGET);
 router.post('/addOffer',isAuthenticatedAdmin, adminControllers.addOfferPOST);
 router.post('/updateOffer',isAuthenticatedAdmin, adminControllers.updateOfferPOST);
 router.post('/ChangeCategoryOffer', isAuthenticatedAdmin, adminControllers.updateCategoryOfferPOST)
+router.post('/delete-offer/:id',isAuthenticatedAdmin, adminControllers.deleteOfferPOST)
 
 router.post('/accept-return-request',isAuthenticatedAdmin, adminControllers.accept_return_requestPOST);
 router.post('/decline-return-request',isAuthenticatedAdmin, adminControllers.decline_return_requestPOST);

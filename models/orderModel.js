@@ -92,6 +92,10 @@ const orderSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    deliveryCharge: {
+        type: Number,
+        default: 0
+    },
     payableAmount: {
         type: Number,
         required: true
