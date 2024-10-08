@@ -172,17 +172,22 @@
                                     <p class="text-muted mb-1">Selling Price (1 item)</p>
                                     <p class="text-muted mb-1">₹<%= order.totalAmount %></p>
                                 </div>
-                                
-                                <!-- Discount -->
+                                 <% if (order.discountAmount > 0) { %>
                                 <div class="col-12 d-flex justify-content-between">
                                     <p class="text-muted mb-1">Discount</p>
                                     <p class="text-success mb-1">- ₹<%= order.discountAmount %></p>
                                 </div>
-                            
+                                <% } %>
+                                <% if (order.deliveryCharge > 0) { %>
+                                    <div class="col-12 d-flex justify-content-between">
+                                        <p class="text-muted mb-1">Delivery Charge</p>
+                                        <p class="text-success mb-1">- ₹<%= order.deliveryCharge %></p>
+                                    </div>
+                                <% } %>
                                 <!-- Total Amount -->
                                 <div class="col-12 d-flex justify-content-between fw-bold border-top mt-2 pt-2">
                                     <p class="mb-0">Total Amount</p>
-                                    <p class="mb-0">₹<%= order.totalAmount - order.discountAmount %></p>
+                                    <p class="mb-0">₹<%= (order.totalAmount - order.discountAmount) + order.deliveryCharge %></p>
                                 </div>
                             </div>
                             

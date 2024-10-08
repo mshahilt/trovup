@@ -97,6 +97,10 @@ const orderSchema = new mongoose.Schema({
         ref: 'Coupon',
         required: false
     },
+    deliveryCharge: {
+        type: Number,
+        default: 0
+    },
     placedAt: {
         type: Date,
         default: Date.now

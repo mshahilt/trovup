@@ -15,8 +15,8 @@ exports.order_confirmPOST = async (req, res) => {
     try {
         const { addressId, cartId } = req.body;
         let { paymentMethod } = req.body;
+        let deliveryCharge = 0;
 
-        // Validate address
         const address = await Address.findById(addressId);
         if (!address) {
             return res.status(400).json({
@@ -25,7 +25,6 @@ exports.order_confirmPOST = async (req, res) => {
             });
         }
 
-        // Fetch the cart and populate items with products
         let cart = await Cart.findById(cartId).populate('items.product');
         if (!cart) {
             return res.status(400).json({
@@ -33,8 +32,6 @@ exports.order_confirmPOST = async (req, res) => {
                 message: 'Invalid cart ID',
             });
         }
-
-        // Convert payment method for COD
         if (paymentMethod === 'cod') {
             paymentMethod = 'Cash on Delivery';
         }
@@ -42,11 +39,9 @@ exports.order_confirmPOST = async (req, res) => {
         let totalAmount = 0;
         const orderItems = [];
 
-        // Get products from cart
         const productIds = cart.items.map(item => item.product._id);
         const products = await Products.find({ _id: { $in: productIds } });
 
-        // Calculate total amount and prepare order items
         for (let item of cart.items) {
             const product = products.find(p => p._id.toString() === item.product._id.toString());
             if (!product) {
@@ -56,7 +51,6 @@ exports.order_confirmPOST = async (req, res) => {
                 });
             }
 
-            // Find matching variant
             let variant = product.variants.find(v => v._id.toString() === item.variantId.toString());
             if (variant) {
                 let itemPrice = variant.discount_price * item.quantity; // Use discount price for calculation
@@ -103,6 +97,9 @@ exports.order_confirmPOST = async (req, res) => {
         }
         const orderId = await generateUniqueOrderId();
 
+        if(totalAmount < 1000){
+            deliveryCharge = 50;
+        }
         const order = new Order({
             orderId,  // Use the generated orderId
             user: userId,
@@ -111,6 +108,7 @@ exports.order_confirmPOST = async (req, res) => {
             totalAmount,
             discountAmount: discountOnOrder,
             payableAmount,
+            deliveryCharge,
             paymentMethod,
             paymentStatus: 'Pending',
             couponApplied: coupon ? coupon._id : null
@@ -204,6 +202,8 @@ exports.create_razor_orderPOST = async (req, res) => {
         const { cartId, addressId } = req.body.orderData;
         const userId = req.session.user.user;
 
+        let deliveryCharge = 0;
+
         if (!cartId || !addressId) {
             return res.status(400).json({ error: 'Missing cart or address information' });
         }
@@ -260,9 +260,11 @@ exports.create_razor_orderPOST = async (req, res) => {
         }
 
         const payableAmount = Math.max(0, totalAmount - discountOnOrder);
-
+        if(totalAmount < 1000){
+            deliveryCharge = 50;
+        }
         const options = {
-            amount: Math.round(payableAmount * 100),
+            amount: Math.round((payableAmount + deliveryCharge) * 100),
             currency: "INR",
             receipt: `receipt#${cartId}`,
             payment_capture: 1
@@ -293,13 +295,11 @@ exports.create_razor_orderPOST = async (req, res) => {
 exports.verify_razorpay_paymentPOST = async (req, res) => {
     try {
         const { payment_id, order_id, signature } = req.body;
-        console.log('payment_id',payment_id);
-        console.log('order_id',order_id);
-        console.log('signature',signature);
+
+        let deliveryCharge = 0;
     
         const { cartId, addressId } = req.body.orderData;
-        console.log('order data cartId',cartId);
-        console.log('order data addressId',addressId);
+
         const body = `${order_id}|${payment_id}`;
         const crypto = require("crypto");
         const expectedSignature = crypto
@@ -380,7 +380,9 @@ exports.verify_razorpay_paymentPOST = async (req, res) => {
             const itemDiscount = (itemTotal / totalAmount) * discountOnOrder;
             item.discount = itemDiscount;
         }
-
+        if(totalAmount < 1000){
+            deliveryCharge = 50
+        }
         const generatedOrderId = await generateUniqueOrderId();
         const order = new Order({
             orderId: generatedOrderId,
@@ -390,9 +392,10 @@ exports.verify_razorpay_paymentPOST = async (req, res) => {
             totalAmount,
             discountAmount: discountOnOrder,
             payableAmount,
+            deliveryCharge: deliveryCharge,
             paymentMethod: 'Razorpay',
             razorpayOrderId: order_id,
-            paymentStatus: 'Pending', // Set to pending initially
+            paymentStatus: 'Pending', 
             cartId: cart._id
         });
 

@@ -143,6 +143,7 @@ exports.updateCartQuantity = async (req, res) => {
     try {
         const userId = req.session.user.user;
 
+        let deliveryCharge = 0;
         const cart = await Cart.findOne({ user: userId }).populate('items.product');
 
         if (!cart || cart.items.length === 0) {
@@ -175,7 +176,10 @@ exports.updateCartQuantity = async (req, res) => {
         const applicableCoupons = coupons.filter(coupon => {
             return cartTotal >= coupon.minimum_purchase_amount;
         });
-        console.log(cartTotal);
+
+        if(cartTotal < 1000){
+            deliveryCharge = 50;
+        }
 
         const addresses = await Addresses.find({ userId });
         const isUserLoggedIn = !!req.session.user;
@@ -187,6 +191,7 @@ exports.updateCartQuantity = async (req, res) => {
             cart,
             addresses,
             cartTotal,
+            deliveryCharge,
             appliedCoupon,
             layout: 'layouts/homeLayout',
         });
