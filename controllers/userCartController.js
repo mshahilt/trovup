@@ -147,8 +147,8 @@ exports.updateCartQuantity = async (req, res) => {
 };exports.cartCheckout = async (req, res) => {
     try {
         const userId = req.session.user.user;
-        let deliveryCharge = 0;
 
+        let deliveryCharge = 0;
         const cart = await Cart.findOne({ user: userId }).populate('items.product');
 
         if (!cart || cart.items.length === 0) {
@@ -198,6 +198,7 @@ exports.updateCartQuantity = async (req, res) => {
             addresses,
             deliveryCharge,
             cartTotal,
+            deliveryCharge,
             appliedCoupon,
             walletBalance,
             layout: 'layouts/homeLayout',

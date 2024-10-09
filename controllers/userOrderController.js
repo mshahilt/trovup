@@ -25,7 +25,6 @@ exports.order_confirmPOST = async (req, res) => {
             });
         }
 
-        // Fetch the cart and populate items with products
         let cart = await Cart.findById(cartId).populate('items.product');
         if (!cart) {
             return res.status(400).json({
@@ -33,8 +32,6 @@ exports.order_confirmPOST = async (req, res) => {
                 message: 'Invalid cart ID',
             });
         }
-
-        // Convert payment method for COD
         if (paymentMethod === 'cod') {
             paymentMethod = 'Cash on Delivery';
         }
@@ -42,20 +39,10 @@ exports.order_confirmPOST = async (req, res) => {
         let totalAmount = 0;
         const orderItems = [];
 
-        // Get products from cart
         const productIds = cart.items.map(item => item.product._id);
         const products = await Products.find({ _id: { $in: productIds } });
 
-
-        for (const product of products) {
-            if (product.isDelete) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Product not found',
-                });
-            }
-        }
-
+        // Calculate total amount and prepare order items
         for (let item of cart.items) {
             const product = products.find(p => p._id.toString() === item.product._id.toString());
             if (!product) {
@@ -115,6 +102,9 @@ exports.order_confirmPOST = async (req, res) => {
         }
         const orderId = await generateUniqueOrderId();
 
+        if(totalAmount < 1000){
+            deliveryCharge = 50;
+        }
         const order = new Order({
             orderId,
             user: userId,
@@ -123,6 +113,7 @@ exports.order_confirmPOST = async (req, res) => {
             totalAmount,
             discountAmount: discountOnOrder,
             payableAmount,
+            deliveryCharge,
             paymentMethod,
             deliveryCharge,
             paymentStatus: 'Pending',
@@ -439,7 +430,7 @@ exports.verify_razorpay_paymentPOST = async (req, res) => {
             deliveryCharge,
             paymentMethod: 'Razorpay',
             razorpayOrderId: order_id,
-            paymentStatus: 'Pending', // Set to pending initially
+            paymentStatus: 'Pending', 
             cartId: cart._id
         });
 

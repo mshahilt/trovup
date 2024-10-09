@@ -875,6 +875,18 @@ exports.edit_brandPOST = async (req, res) => {
   }
 };
 
+exports.edit_brandPOST = async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(req.params, 'sdf')
+    const brand = await Brand.findById(id);
+    console.log(req.body);
+    console.log(brand);
+  } catch (error) {
+    console.log("An error occurred while editing the brand:",error);
+    res.status(500).send("Internal Server Error");
+  }
+}
 exports.delete_brandPOST = async (req, res) => {
   try {
     const brandId = req.params.id;

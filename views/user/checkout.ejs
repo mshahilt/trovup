@@ -240,15 +240,10 @@
                         <span>Subtotal:</span>
                         <span>₹ <%= subtotal.toFixed(2) %></span>
                     </div>
-                    <% if (deliveryCharge > 0) { %>
-                        <div class="product-item">
-                            <span>Shipping:</span>
-                            <span>₹ <%= deliveryCharge %></span>
-                        </div>
-                    <% }else{ %>
                     <div class="product-item">
-                        <span>Shipping:</span>
+                     <span>Shipping:</span>
                         <span>Free</span>
+                        <% } %>
                     </div>
                     <% } %>
                     <div class="product-item">
@@ -257,11 +252,7 @@
                     </div>
                     <div class="product-item total">
                         <span>Total:</span>
-                        <% if (deliveryCharge > 0) { %>
-                            <span id="total_price">₹ <%= (subtotal + deliveryCharge).toFixed(2) %></span>
-                        <% }else{ %>
-                            <span id="total_price">₹ <%= (subtotal).toFixed(2) %></span>
-                        <% } %>
+                        <span id="total_price">₹ <%= subtotal.toFixed(2) %></span>
                     </div>
                     <% } else { %>
                     <p>Your cart is empty.</p>
