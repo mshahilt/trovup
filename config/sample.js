@@ -11,4 +11,3 @@ const GoogleStrategy = require( 'passport-google-oauth2' ).Strategy;
 //     passReqToCallback   : true
 //   }
 
-  console.log(process)

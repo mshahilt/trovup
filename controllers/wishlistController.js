@@ -13,7 +13,6 @@ exports.wishlistGET = async (req, res) => {
                     // Find the variant based on variantId stored as a string
                     const variant = item.product.variants.find(v => v._id.toString() === item.variantId);
 
-                    console.log(variant, 'from loop in wishlist');
                 }
             }
 
@@ -37,8 +36,7 @@ exports.postWishlist = async (req, res) => {
         const userId = req.session.user.user; 
         const { variantId } = req.body;
         const productId = req.params.id;
-    
-        console.log(req.body, 'inside wishlist post function');
+
     
         const userData = await User.findById(userId);
         let wishlist = await Wishlist.findOne({ user_id: userData._id });
@@ -79,7 +77,6 @@ exports.postWishlist = async (req, res) => {
 // DELETE: Remove product from wishlist
 exports.deleteWishlist = async (req, res) => {
     try {
-      console.log('dlt function called in wishlist controller');
   
       const { wishlistItemId } = req.body; // Now we accept the item ID
       const user_id = req.session.user.user;
@@ -90,10 +87,9 @@ exports.deleteWishlist = async (req, res) => {
   
       const result = await Wishlist.updateOne(
         { user_id: user_id },
-        { $pull: { items: { _id: wishlistItemId } } } // Use the item ID directly
+        { $pull: { items: { _id: wishlistItemId } } }
       );
   
-      console.log(result, 'result inside deleteWishlist');
   
       if (result.modifiedCount === 0) {
         return res.status(404).json({ success: false, message: 'Item not found in wishlist or already deleted' });

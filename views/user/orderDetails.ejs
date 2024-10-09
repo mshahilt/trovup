@@ -94,7 +94,7 @@
                                     <div class="container">
                                         <div class="row">
                                             <div class="col-6">
-                                                <% if (order.paymentMethod === 'Razorpay' && order.paymentStatus !== 'Failed') { %>
+                                                <% if ((order.paymentMethod === 'Razorpay' && order.paymentStatus !== 'Failed') || (order.paymentMethod === 'Cash on Delivery')) { %>
                                                     <!-- Check Order Status -->
                                                     <% if (item.orderStatus === 'Cancelled') { %>
                                                         <button class="btn btn-secondary mt-3" disabled>Order Canceled</button>
@@ -116,7 +116,6 @@
                                                     <% } %>
                                             </div>
 
-                                            <!-- Loader (Initially hidden) -->
                                             <div id="loader" class="loader" style="display: none;"></div>
                                         </div>
                                     </div>
@@ -159,7 +158,9 @@
                             </div>
                             <% }); %>
                             <div class="col-6 d-flex justify-content-end">
-                                <button class="btn btn-dark mt-3" onclick="downloadInvoice('')">Download Invoice</button>
+                                <% if (order.paymentStatus === 'Paid') { %>
+                                    <button class="btn btn-dark mt-3" onclick="downloadInvoice('')">Download Invoice</button>
+                                <% } %>
                             </div>
                             
                             <div class="row pt-2">
@@ -198,7 +199,7 @@
                                     <% if (order.walletUsedAmount > 0) { %>
                                         <p class="mb-0">₹<%= ((order.totalAmount - order.discountAmount)+order.deliveryCharge) - order.walletUsedAmount %></p>
                                     <% }else{ %>
-                                        <p class="mb-0">₹<%= order.totalAmount - order.discountAmount%></p>
+                                        <p class="mb-0">₹<%= (order.totalAmount - order.discountAmount)+order.deliveryCharge%></p>
                                     <% } %>
                                     
                                 </div>

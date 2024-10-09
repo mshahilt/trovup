@@ -390,7 +390,6 @@ document.getElementById('couponForm').addEventListener('submit', async function(
 
             // Calculate new total after applying discount
             const discount = result.discount.toFixed(2);
-            console.log(discount)
             const newTotal = Math.max(0, total - discount);
 
             appliedCouponDiscount.innerText = `₹ ${discount}`;
@@ -665,7 +664,6 @@ document.getElementById('couponsList').addEventListener('change', function(event
                     .then(response => response.json())
                     .then(data => {
                         if (data.status) {
-                            console.log(data.data.razorpayOrder.id, 'razor pay order id');
                             var option = {
                                 key: "rzp_test_0cBu6RNEEzVgUn", // Replace with your Razorpay key
                                 amount: data.data.payableAmount * 100, // Convert amount to paisa
@@ -674,7 +672,6 @@ document.getElementById('couponsList').addEventListener('change', function(event
                                 description: "Payment for order",
                                 order_id: data.data.razorpayOrder.id,
                                 handler: function (response) {
-                                    console.log('Razorpay Response:', response);
                                     fetch("/order/verify_razorpay_payment", {
                                         method: "post",
                                         headers: {
@@ -689,7 +686,6 @@ document.getElementById('couponsList').addEventListener('change', function(event
                                     })
                                     .then((response) => response.json())
                                     .then((verifyData) => {
-                                        console.log(verifyData, 'data');
                                         if (verifyData.status) {
                                             Swal.fire({
                                                 icon: 'success',
@@ -722,7 +718,6 @@ document.getElementById('couponsList').addEventListener('change', function(event
                             };
                             var paymentObject = new window.Razorpay(option);
                             paymentObject.on('payment.failed', function (response) {
-                                console.log('Payment failed:', response);
                                 fetch("/order/verify_razorpay_payment", {
                                     method: "post",
                                     headers: {
@@ -737,7 +732,6 @@ document.getElementById('couponsList').addEventListener('change', function(event
                                 })
                                 .then((res) => res.json())
                                 .then((failedData) => {
-                                    console.log(failedData, 'failedData');
                                     Swal.fire({
                                         icon: 'warning',
                                         title: 'Payment Failed',
@@ -787,7 +781,6 @@ document.getElementById('couponsList').addEventListener('change', function(event
         })
         .then(response => response.json())
         .then(data => {
-            console.log(data, 'data');
             if (data.status) {
                 if (data.order) {
                     Swal.fire({
@@ -799,7 +792,6 @@ document.getElementById('couponsList').addEventListener('change', function(event
                         window.location.href = '/order/order_history';
                     });
                 } else if (data.data.razorpayOrder) {
-                    console.log(data.data.razorpayOrder, 'data.data.razorpayOrder');
                     const razorpayOrder = data.data.razorpayOrder;
                     const walletUsedAmount = data.data.walletUsedAmount;
                     let payableAmount = data.data.payableAmount;
@@ -827,7 +819,6 @@ document.getElementById('couponsList').addEventListener('change', function(event
                                     "description": "Order Payment",
                                     "order_id": razorpayOrder.id,
                                     "handler": function(response) {
-                                        console.log(response, 'response');
                                         fetch("/order/confirm_razorpay_paymentWallet", {
                                             method: "post",
                                             headers: {
@@ -843,7 +834,6 @@ document.getElementById('couponsList').addEventListener('change', function(event
                                         .then(response => response.json())
                                         .then(response => {
                                             if (response.status) {
-                                                console.log(response, 'response');
                                                 Swal.fire({
                                                     title: 'Payment Successful',
                                                     text: 'Your order has been placed successfully!',

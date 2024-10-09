@@ -122,6 +122,7 @@
                     <th>Date</th>
                     <th>Paid Amount</th>
                     <th>Order Qty</th>
+                    <th>Payment Status</th>
                     <th>Show Details</th>
                 </tr>
             </thead>
@@ -137,7 +138,6 @@
                         <!-- Paid Amount -->
                         <td><%= (order.payableAmount + order.deliveryCharge).toFixed(2) %></td>
                         
-                        <!-- Order Quantity (sum of item quantities) -->
                         <td>
                             <% 
                                 let totalQty = 0;
@@ -148,6 +148,7 @@
                             <%= totalQty %>
                         </td>
                         
+                        <td><%= order.paymentStatus %></td>
                         <!-- Show Details Button/Link -->
                         <td>
                             <a href="/order/order-details/<%= order._id %>" class="view-details-btn">View Details</a>

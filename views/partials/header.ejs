@@ -33,11 +33,15 @@
       <div class="navbar-icons d-flex align-items-center">
         <a href="/wishlist" class="position-relative me-4" style="transition: all 0.3s ease;">
           <i class="far fa-heart" style="font-size: 20px; color: black;"></i>
-          <span class="badge position-absolute top-0 start-100 translate-middle badge rounded-circle bg-danger" style="font-size: 12px;">2</span>
+          <% if (wishlistCount > 0) { %>
+            <span class="badge position-absolute top-0 start-100 translate-middle badge rounded-circle bg-danger" style="font-size: 12px;"><%= wishlistCount %></span>
+          <% } %>
         </a>
         <a href="/cart" class="position-relative me-4" style="transition: all 0.3s ease;">
           <i class="fas fa-shopping-cart" style="font-size: 25px; color: black;"></i>
-          <span class="badge position-absolute top-0 start-100 translate-middle badge rounded-circle bg-danger" style="font-size: 12px;">3</span>
+          <% if (cartCount > 0) { %>
+            <span class="badge position-absolute top-0 start-100 translate-middle badge rounded-circle bg-danger" style="font-size: 12px;"><%= cartCount %></span>
+          <% } %>
         </a>
         <a href="/profile" class="me-3" style="transition: all 0.3s ease;">
           <i class="far fa-user" style="font-size: 22px; color: black;"></i>

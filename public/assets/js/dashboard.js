@@ -126,9 +126,7 @@
 
     // Update chart when dropdown is clicked
     $(document).ready(function () {
-      console.log("ready");
       $('.chart-sort').on('click', function () {
-        console.log("clicked");
         const sortBy = $(this).data('sort');
         fetchChartData(sortBy); // Function for fetching the chart data
       });

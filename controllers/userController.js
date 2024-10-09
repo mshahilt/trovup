@@ -45,7 +45,6 @@ exports.registerUserGet = async (req, res) => {
 exports.registerUser = async (req, res) => {
     const { username, email, phone_number, password } = req.body;
     const {refer_code} = req.query;
-    console.log(refer_code,'referred code', req.query)
     if (!email || !password || !username || !phone_number) {
         req.flash('error', 'All fields are required');
         return res.render('user/register', {
@@ -79,7 +78,6 @@ exports.registerUser = async (req, res) => {
         const otp = Math.floor(1000 + Math.random() * 9000);
         const otpExpiresAt = Date.now() + 180000;
 
-        console.log('sadsafds',otp);
         await sendMail(transporter, {
             ...mailOptions,
             to: newUser.email,
@@ -135,7 +133,6 @@ exports.getVerifyOTP = (req, res) => {
 exports.verifyOTP = async (req, res) => {
     const { otp1, otp2, otp3, otp4 } = req.body;
     const otp = otp1 + otp2 + otp3 + otp4; 
-    console.log('otp has reached', otp);
 
     const userId = req.session.user.user;
 
@@ -163,11 +160,9 @@ exports.verifyOTP = async (req, res) => {
         if (user.refferedById) {
             const referredUser = await User.findOne({ referralId: user.refferedById });
             if (referredUser) {
-                console.log(referredUser, 'founded')
                 const referredUserWallet = await Wallet.findOne({ user: referredUser._id }); 
                 
                 if (referredUserWallet) {
-                    console.log('wallet founded')
                     referredUserWallet.balance += 500;
         
                     referredUserWallet.wallet_history.push({
@@ -189,8 +184,6 @@ exports.verifyOTP = async (req, res) => {
         
                     await newWallet.save(); 
                 }
-        
-                console.log('500 credited to referred user\'s wallet');
             } else {
                 console.log('Referred user not found');
             }
@@ -203,8 +196,6 @@ exports.verifyOTP = async (req, res) => {
             phone_number: user.phone_number,
             is_verify: user.is_verify
         };
-
-        console.log('data stored to session',req.session.user);
         return res.status(200).json({ success: true, message: 'OTP verified successfully.' });
 
     } catch (error) {
@@ -216,11 +207,7 @@ exports.verifyOTP = async (req, res) => {
 exports.resendOTP = async (req, res) => {
 
     const userId = req.session.user.user;
-    console.log(req.session)
-    console.log(req.session.user)
-    console.log(req.session.user.user)
-    
-    console.log("resendOTP/++-")
+
     try {
         const user = await User.findById(userId);
 
@@ -246,7 +233,6 @@ exports.resendOTP = async (req, res) => {
         });
 
 
-        console.log('new otp sented')
         req.flash('success', 'A new OTP has been sent to your email.');
         res.redirect('/verifyOTP');
         
@@ -261,15 +247,13 @@ exports.resendOTP = async (req, res) => {
 exports.loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;
-        console.log(`email ${email} password ${password}`);
        
         const user = await User.findOne({ $and: [{ email: email }, { googleId: null }] });
 
         if (user) {
 
             const match = await bcrypt.compare(password, user.password);
-            console.log(match);
-
+    
             if (user.isBlock) {
                 req.flash('error', 'Sorry, user is blocked by Admin!');
                 return res.redirect('/login');
@@ -308,7 +292,6 @@ exports.loginUser = async (req, res) => {
                 return res.redirect('/login');
             }
         } else {
-            console.log('User not found');
             req.flash('error', 'Invalid user!');
             return res.redirect('/login');
         }
@@ -443,7 +426,6 @@ exports.getUserProfile = async (req, res) => {
 exports.logout = async (req, res) => {
     req.session.destroy((err) => {
         if (err) {
-            console.log('Error destroying session:', err);
             return res.status(500).send('Server error during logout');
         }
 
@@ -625,8 +607,7 @@ exports.productPageGET = async (req, res) => {
 exports.getReferralCode = async (req, res) => {
     try {
         const userId = req.session.user.user;
-        const user = await User.findById(userId); // await added to ensure the user is fetched
-        console.log(user, 'User available at referral');
+        const user = await User.findById(userId);
 
         let referralCode;
 

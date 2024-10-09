@@ -224,29 +224,19 @@ document.querySelectorAll('.btn-warning').forEach(button => {
     const reason = this.dataset.reason;
     const additionalReason = this.dataset.additionalReason;
 
-    console.log('itemId:', itemId);
-    console.log('orderId:', orderId);
-    console.log('reason:', reason);
-    console.log('additionalReason:', additionalReason);
-
-    // Set itemId and orderId in modal's dataset
     const modal = document.getElementById('returnRequestModal');
     modal.dataset.itemId = itemId;
     modal.dataset.orderId = orderId;
 
-    // Set the reasons in the modal
     document.getElementById('return-reason').textContent = reason;
     document.getElementById('additional-reason').textContent = additionalReason;
 
-    // Show the modal
     const modalInstance = new bootstrap.Modal(modal);
     modalInstance.show();
   });
 });
 
-// Accept return request
 document.getElementById('accept-return').addEventListener('click', function() {
-  // Retrieve itemId and orderId from the modal's dataset
   const modal = document.getElementById('returnRequestModal');
   const itemId = modal.dataset.itemId;
   const orderId = modal.dataset.orderId;
@@ -290,9 +280,6 @@ document.getElementById('decline-return').addEventListener('click', function() {
   const modal = document.getElementById('returnRequestModal');
   const itemId = modal.dataset.itemId;
   const orderId = modal.dataset.orderId;
-
-  console.log('itemId:', itemId);
-  console.log('orderId:', orderId);
 
   Swal.fire({
     title: 'Are you sure?',

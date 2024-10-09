@@ -23,7 +23,6 @@ exports.addToCartGET = async (req, res) => {
                     if (variant) {
                         item.variantImage = variant.images[0];
                         item.price = variant.discount_price ? variant.discount_price : variant.price; 
-                        console.log(item.price, 'from loop in cart');
                     }
                 }
             }
@@ -109,7 +108,6 @@ exports.updateCartQuantity = async (req, res) => {
         const { id } = req.params;
         const { quantity } = req.body;
 
-        console.log(id, quantity, 'from cart controller');
         if(quantity < 1){
             return res.status(400).json({ success: false, message: 'Quantity must be greaer than 0' });
         }
@@ -264,7 +262,6 @@ exports.place_orderPOST = async (req, res) => {
         });
 
         await newAddress.save();
-        console.log('Order and address saved successfully');
         return res.status(200).json({ message: 'Order placed successfully!' });
     } catch (error) {
         console.log('Error occurred while placing the order:', error);
@@ -274,13 +271,11 @@ exports.place_orderPOST = async (req, res) => {
 
 
 exports.deleteCart = async (req, res) => {
-    console.log('deleteCart function called');
+
     try {
         const { id: itemId } = req.params;
         const userId = req.session.user.user;
 
-        console.log('userId:', userId);
-        console.log('itemId:', itemId);
 
         const cart = await Cart.findOneAndUpdate(
             { user: userId }, 
@@ -289,10 +284,8 @@ exports.deleteCart = async (req, res) => {
         );
 
         if (cart) {
-            console.log('Cart updated successfully');
             return res.status(200).json({ success: true, cart });
         } else {
-            console.log('Cart not found');
             return res.status(404).json({ success: false, message: 'Cart not found' });
         }
     } catch (error) {

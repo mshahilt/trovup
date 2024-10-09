@@ -3,7 +3,6 @@ const User = require("../models/userModel");
 
 async function refundToWallet(userId, amount, reason) {
   try {
-    console.log('refundToWallet function called for', userId, amount, reason);
     
     if (!amount || amount <= 0) {
       console.error("Invalid refund amount:", amount);
@@ -22,7 +21,6 @@ async function refundToWallet(userId, amount, reason) {
       return false;
     }
 
-    console.log("Wallet balance before refund:", wallet.balance);
 
     wallet.balance += amount;
 
@@ -35,7 +33,6 @@ async function refundToWallet(userId, amount, reason) {
 
     await wallet.save();
 
-    console.log("Wallet balance after refund:", wallet.balance);
     return true;
 
   } catch (error) {

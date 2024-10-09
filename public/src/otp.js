@@ -3,7 +3,6 @@ function moveToNext(current, nextFieldID) {
         document.getElementById(nextFieldID).focus();
     }
 }
-console.log('im worked')
 let timeLeft = 180; 
 const timerElement = document.getElementById('timer');
 const resendLink = document.getElementById('resendLink');

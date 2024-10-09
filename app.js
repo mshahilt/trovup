@@ -14,6 +14,7 @@ const flash = require('connect-flash');
 const passport = require('passport');
 const nochache = require('nocache');
 const { isLoggedIn } = require('./middleware/userAuth');
+const {cartMiddleware, wishlistMiddleware} = require('./middleware/wishlistAndCartCountMiddleware');
 require('dotenv').config();
 
 require('./config/auth');
@@ -45,6 +46,9 @@ app.use(passport.session());
 // Initialize flash
 app.use(flash());
 app.use(nochache());
+
+app.use(cartMiddleware);
+app.use(wishlistMiddleware);
 
 // Use express-ejs-layouts for layout management
 app.use(expressLayouts);

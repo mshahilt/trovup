@@ -357,7 +357,7 @@ exports.edit_categoryGET = async (req, res) => {
     const category = await Category.findById(categoryId);
 
     if (!category) {
-      console.log("Category not found");
+ 
       return res.redirect("/admin/category-list"); // Redirect if the category is not found
     }
 
@@ -384,7 +384,7 @@ exports.edit_categoryPOST = async (req, res) => {
     });
 
     if (categoryExists) {
-      console.log("A category with the same name already exists.");
+
       req.flash("error", "A category with the same name already exists.");
       return res.redirect(`/admin/categories`); 
     }
@@ -395,7 +395,6 @@ exports.edit_categoryPOST = async (req, res) => {
     );
 
     if (!updatedCategory) {
-      console.log("Category not found.");
       req.flash("error", "Category not found.");
       return res.redirect("/admin/categories");
     }
@@ -415,7 +414,6 @@ exports.delete_categoryPOST = async (req, res) => {
     const category = await Category.findById(categoryId);
 
     if (!category) {
-      console.log("Category not found");
       req.flash("error", "Category not found");
       return res.redirect("/admin/categories");
     }
@@ -451,8 +449,6 @@ exports.adminProductsGET = async (req, res) => {
     const products = await Product.find()
       .populate("category_id", "category_name")
       .populate("brand_id", "brand_name");
-
-    console.log(products);
 
     res.render("admin/products", {
       products,
@@ -497,14 +493,11 @@ exports.submit_productPOST = async (req, res) => {
     } = req.body;
 
     const images = req.files;
-    console.log("req.body", req.body);
-    console.log("req.files:", images);
 
     const variantDetails = [];
 
-    console.log("variant count from body:", variant_count);
+
     for (let i = 0; i < variant_count; i++) {
-      console.log("Processing variant:", i);
 
       const price = req.body.price[i];
       const storage_size = req.body.storage_size[i];
@@ -529,7 +522,6 @@ exports.submit_productPOST = async (req, res) => {
           });
         }
 
-        console.log("Variant images:", variantImages);
 
         variantDetails.push({
           price: numericPrice,
@@ -553,7 +545,6 @@ exports.submit_productPOST = async (req, res) => {
     });
 
     await product.save();
-    console.log("Product saved:", product);
 
     res.redirect("/admin/products");
   } catch (error) {
@@ -578,7 +569,6 @@ exports.update_productPOST = async (req, res) => {
       color,
     } = req.body;
 
-    console.log("req.body", price);
 
     const images = req.files;
 
@@ -619,7 +609,6 @@ exports.update_productPOST = async (req, res) => {
     }
 
     const variantDetails = [];
-    console.log("Total variants:", variant_count);
 
     for (let i = 0; i < variant_count; i++) {
       const variantImages = [];
@@ -639,8 +628,6 @@ exports.update_productPOST = async (req, res) => {
       ) {
         variantImages.push(...product.variants[i].images);
       }
-
-      console.log(`Variant ${i + 1} images:`, variantImages);
 
       if (price[i]) {
         variantDetails.push({
@@ -688,8 +675,6 @@ exports.edit_productGET = async (req, res) => {
 
     const categories = await Category.find();
     const brands = await Brand.find();
-    console.log(product);
-
     if (!product) {
       return res.status(404).send("Product not found");
     }
@@ -717,7 +702,6 @@ exports.delete_productPOST = async (req, res) => {
       .populate("brand_id");
 
     if (!product) {
-      console.log("Product not found");
       req.flash("error", "Product not found");
       return res.redirect("/admin/products");
     }
@@ -830,7 +814,6 @@ exports.edit_brandGET = async (req, res) => {
       "category_name"
     );
     const categories = await Category.find();
-    console.log(categories);
     res.render("admin/edit_brand", {
       brand,
       categories,
@@ -847,7 +830,6 @@ exports.edit_brandGET = async (req, res) => {
 };
 exports.edit_brandPOST = async (req, res) => {
   try {
-    console.log("ádmin function called")
     const { id } = req.params;
     const { brand_name, categories } = req.body;
 
@@ -881,7 +863,6 @@ exports.delete_brandPOST = async (req, res) => {
     const brand = await Brand.findById(brandId);
 
     if (!brand) {
-      console.log("Brand not found");
       req.flash("error", "Brand not found");
       return res.redirect("/admin/brands");
     }
@@ -970,20 +951,16 @@ exports.orderGET = async (req, res) => {
 
 exports.update_order_statusPOST = async (req, res) => {
   try {
-    console.log("Update order status request body:", req.body);
 
     const { itemId, status } = req.body;
-    console.log(`Updating order status for item ${itemId} to ${status}`);
 
     const order = await Orders.findOne({ "items._id": itemId });
     if (!order) {
-      console.error(`Order not found for item ID: ${itemId}`);
       return res.status(404).json({ success: false, message: "Order not found." });
     }
 
     const item = order.items.id(itemId);
     if (!item) {
-      console.error(`Item with ID: ${itemId} not found in order.`);
       return res.status(404).json({ success: false, message: "Item not found." });
     }
 
@@ -999,12 +976,15 @@ exports.update_order_statusPOST = async (req, res) => {
 
       if(order.paymentStatus === "Paid") {
         const amount = item.price - item.discount;
-        console.log("Refunding amount:", amount);
         const refundSuccessful = await refundToWallet(order.user, amount, status);
         if (!refundSuccessful) {
           return res.status(500).json({ success: false, message: "Failed to refund to wallet." });
         } 
       }
+    }
+
+    if(status === "Delivered"){
+      order.paymentStatus = 'Paid';
     }
 
     item.orderStatus = status;
@@ -1170,7 +1150,6 @@ exports.addOfferPOST = async (req, res) => {
   try {
     const { offerName, offerPercentage, offerStartDate, offerEndDate } =
       req.body;
-    console.log(req.body);
     const newOffer = new Offer({
       offer_name: offerName,
       offer_percentage: offerPercentage,
@@ -1189,13 +1168,11 @@ exports.addOfferPOST = async (req, res) => {
 exports.updateOfferPOST = async (req, res) => {
   try {
     const { productId, offerId, variantId } = req.body;
-    console.log(req.body);
 
     const productData = await Product.findOne({
       _id: productId,
       "variants._id": variantId,
     });
-    console.log(productData, "productData");
 
     const offerData = await Offer.findOne({ _id: offerId });
 
@@ -1380,17 +1357,7 @@ exports.accept_return_requestPOST = async (req, res) => {
 
     item.isAdminAcceptedReturn = "Accepted";
 
-    console.log("orderId:", orderId);
-    console.log("itemId:", itemId);
-    console.log("order:", order);
-    console.log("item:", item);
-    console.log("item.price:", item.price);
-    console.log("item.discount:", item.discount);
-    console.log("item.qty:", item.quantity);
     const refundAmount = (item.price - item.discount )* item.quantity;
-    console.log("refundAmount:", refundAmount);
-
-
     wallet.balance += refundAmount;
 
     wallet.wallet_history.push({
@@ -1420,7 +1387,6 @@ exports.accept_return_requestPOST = async (req, res) => {
 exports.decline_return_requestPOST = async (req, res) => {
   const { itemId, orderId } = req.body;
 
-  console.log(orderId, "foasier ");
   const order = await Orders.findOne({ orderId });
 
   if (!order) {
@@ -1460,9 +1426,7 @@ const pdf = require("html-pdf");
 const Wallet = require("../models/walletModel");
 exports.downloadSalesReport = async (req, res) => {
     try {
-      console.log("Function executed");
       const { startDate, endDate } = req.body;
-      console.log("Received date range:", req.body);
   
       // Construct the date range query
       const query = {};
@@ -1486,7 +1450,6 @@ exports.downloadSalesReport = async (req, res) => {
   
       // Check if any orders were found
       if (!orders || orders.length === 0) {
-        console.log("No orders found for the specified date range.");
         return res.status(404).json({ error: "No orders found for the selected date range." });
       }
   

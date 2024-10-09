@@ -111,7 +111,7 @@ exports.order_confirmPOST = async (req, res) => {
             deliveryCharge = 50
         }
         if(totalAmount > 3000){
-            return res.status(400).json({success: false, message: 'Orders below Rs 3000 are not allowed for Cash On Delivery',})
+            return res.status(400).json({success: false, message: 'Orders above Rs 3000 are not allowed for Cash On Delivery',})
         }
         const orderId = await generateUniqueOrderId();
 
@@ -218,7 +218,6 @@ exports.create_razor_orderPOST = async (req, res) => {
         const userId = req.session.user.user;
 
         let deliveryCharge = 0;
-
         if (!cartId || !addressId) {
             return res.status(400).json({ error: 'Missing cart or address information' });
         }
@@ -346,16 +345,12 @@ exports.verify_razorpay_paymentPOST = async (req, res) => {
         const cart = await Cart.findById(cartId).populate('items.product');
         const address = await Address.findById(addressId);
         if (!cart) {
-            console.log('Cart not found');
             return res.status(404).json({ error: 'Cart not found' });
         }
 
         if (!address) {
-            console.log('Address not found');
             return res.status(404).json({ error: 'Address not found' });
         }
-
-        console.log('Cart and address found:', { cart, address });
 
         let totalAmount = 0;
         const orderItems = [];
@@ -372,13 +367,11 @@ exports.verify_razorpay_paymentPOST = async (req, res) => {
         for (let item of cart.items) {
             const product = products.find(p => p._id.toString() === item.product._id.toString());
             if (!product) {
-                console.log('Product not found');
                 return res.status(400).json({ error: 'Product not found' });
             }
 
             let variant = product.variants.find(v => v._id.toString() === item.variantId.toString());
             if (!variant) {
-                console.log('Variant not found');
                 return res.status(400).json({ error: 'Variant not found' });
             }
 
@@ -424,7 +417,7 @@ exports.verify_razorpay_paymentPOST = async (req, res) => {
             item.discount = itemDiscount;
         }
 
-        if(deliveryCharge < 3000){
+        if(totalAmount < 3000){
             deliveryCharge = 50;
         }
         const generatedOrderId = await generateUniqueOrderId();
@@ -446,8 +439,6 @@ exports.verify_razorpay_paymentPOST = async (req, res) => {
         await order.save();
 
         if (!signature || !payment_id) {
-            console.log('Payment not completed (user closed Razorpay or canceled)');
-
             order.paymentStatus = 'Failed';
             await order.save();
 
@@ -464,12 +455,10 @@ exports.verify_razorpay_paymentPOST = async (req, res) => {
         }
 
         if (expectedSignature === signature) {
-            console.log('Successful payment');
 
             order.paymentStatus = 'Paid';
             await order.save();
 
-            console.log('Order created and saved:', order);
 
             await Cart.findByIdAndDelete(cart._id);
 
@@ -479,8 +468,6 @@ exports.verify_razorpay_paymentPOST = async (req, res) => {
                 order
             });
         } else {
-            console.log('Payment verification failed (signature mismatch)');
-
             order.paymentStatus = 'Failed';
             await order.save();
 
@@ -637,65 +624,68 @@ exports.cancel_productPOST = async (req, res) => {
             `;
         });
 
+        const deliveryCharge = order.deliveryCharge || 0;
         const payableAmount = totalAmount;
 
-        const html = `
-                    <html>
-                        <head>
-                        <style>
-                            body { font-family: Arial, sans-serif; background-color: #f4f4f4; }
-                            .invoice-box { max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; background: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.15); }
-                            .invoice-box h2 { text-align: center; margin: 0 0 20px; color: #333; }
-                            .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-                            .invoice-table th, .invoice-table td { border: 1px solid #eee; padding: 10px; text-align: left; }
-                            .invoice-table th { background-color: #f2f2f2; }
-                            .totals { text-align: right; margin-top: 20px; }
-                            .seal { text-align: center; margin-top: 30px; border: 2px dashed red; padding: 20px; display: inline-block; }
-                            .seal img { width: 100px; }
-                            .seal h4 { margin: 5px 0; }
-                            .seal p { font-size: 12px; color: #777; }
-                        </style>
-                        </head>
-                        <body>
-                        <div class="invoice-box">
-                            <h2>Invoice</h2>
-                            <p><strong>Order ID:</strong> ${order.orderId}</p>
-                            <p><strong>Payment Status:</strong> ${order.paymentStatus}</p>
-                            <p><strong>Payment Method:</strong> ${order.paymentMethod}</p>
-                            
-                            <h3>Shipping Address</h3>
-                            <p>${address.fullName}</p>
-                            <p>${address.streetAddress}, ${address.city}</p>
-                            <p>${address.phoneNumber}</p>
-                            <p>${address.emailAddress}</p>
-                            
-                            <h3>Order Details</h3>
-                            <table class="invoice-table">
-                            <tr>
-                                <th>Product Name</th>
-                                <th>Variant Details</th>
-                                <th>Quantity</th>
-                                <th>Price</th>
-                                <th>Discount</th>
-                                <th>Total</th>
-                            </tr>
-                            ${itemsHtml}
-                            </table>
-                            
-                            <div class="totals">
-                            <p><strong>Total Amount:</strong> ${order.totalAmount.toFixed(2)}</p>
-                            <p><strong>Total Discount:</strong> ${totalDiscount.toFixed(2)}</p>
-                            <p><strong>Payable Amount:</strong> ${payableAmount.toFixed(2)}</p>
-                            </div>
-                            <div class="seal">
-                            <h4>Trovup</h4>
-                            <p>Your trusted partner in quality.</p>
-                            </div>
+        
+const html = `
+<html>
+    <head>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; }
+        .invoice-box { max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; background: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.15); }
+        .invoice-box h2 { text-align: center; margin: 0 0 20px; color: #333; }
+        .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .invoice-table th, .invoice-table td { border: 1px solid #eee; padding: 10px; text-align: left; }
+        .invoice-table th { background-color: #f2f2f2; }
+        .totals { text-align: right; margin-top: 20px; }
+        .seal { text-align: center; margin-top: 30px; border: 2px dashed red; padding: 20px; display: inline-block; }
+        .seal img { width: 100px; }
+        .seal h4 { margin: 5px 0; }
+        .seal p { font-size: 12px; color: #777; }
+    </style>
+    </head>
+    <body>
+    <div class="invoice-box">
+        <h2>Invoice</h2>
+        <p><strong>Order ID:</strong> ${order.orderId}</p>
+        <p><strong>Payment Status:</strong> ${order.paymentStatus}</p>
+        <p><strong>Payment Method:</strong> ${order.paymentMethod}</p>
+        
+        <h3>Shipping Address</h3>
+        <p>${address.fullName}</p>
+        <p>${address.streetAddress}, ${address.city}</p>
+        <p>${address.phoneNumber}</p>
+        <p>${address.emailAddress}</p>
+        
+        <h3>Order Details</h3>
+        <table class="invoice-table">
+        <tr>
+            <th>Product Name</th>
+            <th>Variant Details</th>
+            <th>Quantity</th>
+            <th>Price</th>
+            <th>Discount</th>
+            <th>Total</th>
+        </tr>
+        ${itemsHtml}
+        </table>
+        
+        <div class="totals">
+        <p><strong>Total Amount:</strong> ${order.totalAmount.toFixed(2)}</p>
+        <p><strong>Total Discount:</strong> ${totalDiscount.toFixed(2)}</p>
+        <p><strong>Delivery Charge:</strong> ${deliveryCharge.toFixed(2)}</p>
+        <p><strong>Payable Amount:</strong> ${(payableAmount + deliveryCharge).toFixed(2)}</p>
+        </div>
+        <div class="seal">
+        <h4>Trovup</h4>
+        <p>Your trusted partner in quality.</p>
+        </div>
 
-                        </div>
-                        </body>
-                    </html>
-                    `;
+    </div>
+    </body>
+</html>
+`;
 
         // Create the PDF file from the HTML
         const options = { format: 'A4' };
@@ -768,8 +758,6 @@ exports.verifyRepaymentPOST = async (req, res) => {
             .update(body.toString())
             .digest('hex');
 
-        console.log('expectedSignature', expectedSignature);
-        console.log('razorpay_signature', razorpay_signature);
         if (expectedSignature === razorpay_signature) {
 
             const order = await Order.findById(orderId);
@@ -777,7 +765,6 @@ exports.verifyRepaymentPOST = async (req, res) => {
             order.razorpayOrderId = razorpay_order_id;
             await order.save();
 
-            console.log('func called', order)
             res.status(200).json({ success: true, message: 'Payment successful' });
         } else {
             res.status(400).json({ success: false, message: 'Invalid signature' });
@@ -855,13 +842,11 @@ exports.pay_with_walletPOST = async (req, res) => {
         // Adjust total amount after applying the discount
         const discountedTotalAmount = totalAmount - discountOnOrder;
 
-        console.log('orderItems 1', orderItems);
         for (let item of orderItems) {
             const itemTotal = item.price * item.quantity;
             const itemDiscount = (itemTotal / totalAmount) * discountOnOrder;
             item.discount = itemDiscount;
         }
-        console.log('orderItems 2', orderItems);
         // Apply wallet balance
         const walletBalance = wallet.balance || 0;
         let walletUsedAmount = Math.min(walletBalance, discountedTotalAmount);
@@ -923,7 +908,6 @@ exports.pay_with_walletPOST = async (req, res) => {
         if(totalAmount < 3000){
             deliveryCharge = 50;
         }
-        console.log(deliveryCharge)
         const options = {
             amount: Math.round((payableAmount + deliveryCharge) * 100),
             currency: "INR",
@@ -1063,7 +1047,6 @@ exports.verifyWalletPaymentPOST = async (req, res) => {
         if(totalAmount < 3000){
             deliveryCharge = 50;
         }
-        console.log('wallet balance', wallet.balance);
         const newOrder = new Order({
             orderId: generatedOrderId,
             user: req.session.user.user,

@@ -19,7 +19,6 @@ exports.walletGET = async (req, res) => {
             await wallet.save();
         }
 
-        console.log("Wallet:", wallet);
 
         res.render("user/wallet", {
             title: "Wallet",
@@ -41,30 +40,24 @@ exports.addFundPOST = async (req, res) => {
     try {
         const userId = req.session.user.user;
         const { amount } = req.body;
-        console.log("Request body:", req.body);
-
-        // Ensure a valid amount is provided
         if (!amount || amount <= 0) {
             return res.status(400).json({
                 message: "Invalid amount provided"
             });
         }
 
-        // Razorpay requires the amount in paise, hence multiply by 100
         const options = {
-            amount: parseInt(amount) * 100, // amount in paise
+            amount: parseInt(amount) * 100, 
             currency: "INR",
-            receipt: `receipt_order_${Date.now()}`, // Unique receipt ID
+            receipt: `receipt_order_${Date.now()}`, 
         };
 
-        // Create the Razorpay order
         const order = await razorpay.orders.create(options);
 
-        // Return the order details to the frontend
         res.status(200).json({
             id: order.id,
             currency: order.currency,
-            amount: order.amount, // Return amount in paise (Razorpay format)
+            amount: order.amount, 
         });
     } catch (error) {
         console.error("Error adding fund to wallet:", error);
@@ -78,16 +71,13 @@ exports.addFundPOST = async (req, res) => {
 exports.verifyPaymentPOST = async (req, res) => {
     const { razorpayOrderId, razorpayPaymentId, razorpaySignature, amount } = req.body;
 
-    console.log(req.body, 'ksdjfaghasd2')
     const crypto = require("crypto");
 
-    // Generate the expected signature to verify the payment
     const expectedSignature = crypto
         .createHmac("sha256", process.env.RAZOR_PAY_KEY_SECRET)
         .update(razorpayOrderId + "|" + razorpayPaymentId)
         .digest("hex");
 
-    // Verify signature
     if (expectedSignature === razorpaySignature) {
         try {
             const userId = req.session.user.user;

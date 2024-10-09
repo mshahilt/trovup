@@ -33,7 +33,6 @@ const mailOptions = {
 exports.user_profileGET = async (req, res) => {
     try {
         const userId = req.session.user.user;
-        console.log(userId,'safdsgdsag');
         const user = await User.findOne({_id: userId});
         const isUserLoggedIn = req.session.user;
         res.render('user/profile', { user , title:'Profile Info', layout:'layouts/homeLayout',isUserLoggedIn});
@@ -97,7 +96,6 @@ exports.user_password_change = async (req,res) => {
 }
 
 async function resendOTP(userId) {
-    console.log("resendOTP");
     try {
         const user = await User.findById(userId);
 
@@ -121,7 +119,6 @@ async function resendOTP(userId) {
             text: `Your new OTP is ${otp}`
         });
 
-        console.log('New OTP sent');
         return true;
 
     } catch (error) {
@@ -138,10 +135,8 @@ exports.forgot_password = async (req, res) => {
         const userId = req.session.user.user;
         const user = await User.findById(userId);
         const { email } = req.body;
-        console.log('email recieve')
         if (email === user.email) {
             await resendOTP(userId);
-            console.log('otp sented')
             return res.status(200).json({ success: true, message: 'OTP sent successfully to your email.' });
         } else {
             return res.status(400).json({ success: false, message: 'Email does not match with our records.' });
@@ -155,13 +150,10 @@ exports.forgot_password = async (req, res) => {
     exports.verifyOtpPOST = async (req,res) => {
         const{otp1, otp2, otp3, otp4} = req.body;
         const otp = otp1 + otp2 + otp3 + otp4;
-        console.log('otp recievend',otp,req.session.user.user);
 
         const userId = req.session.user.user;
         try{
             const otpRecord = await OTP.findOne({userId})
-            console.log(otpRecord)
-            console.log('ovrcome')
 
             if(!otpRecord){
                 return res.status(404).json({success:false, message:'OTP not found'})
@@ -173,7 +165,6 @@ exports.forgot_password = async (req, res) => {
             if (otpRecord.otp !== otp) {
                 return res.status(400).json({ success: false, message: 'Invalid OTP.' });
             }
-            console.log('overc ome ')
             await OTP.deleteOne({ _id: otpRecord._id });
 
             req.session.user = {
@@ -197,8 +188,6 @@ exports.forgetPassVerifyOtpGET = async (req,res) => {
             return res.redirect('/register');
         }
 
-        console.log('function for loading ejs worked well')
-        // Render the OTP verification page
         res.render('user/forgetPasswordOtpVerification', {
             title: 'Verify OTP',
             messages: req.flash(),
@@ -213,11 +202,8 @@ exports.changePasswordGET = async (req,res) => {
     try{
         const isUserLoggedIn = req.session.user;
         if(req.session?.user?.verifiedByOtp === true){
-            console.log('if worked')
-            console.log(req.session.user?.verifiedByOtp)
         res.render('user/changePassword',{title:'Change Password',layout:'layouts/homeLayout',isUserLoggedIn});
         }else{
-            console.log('else worled')
             res.redirect('/');
         }
        

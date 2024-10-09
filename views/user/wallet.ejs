@@ -242,14 +242,11 @@
 
             if (!response.ok) {
                 const errorData = await response.json();
-                console.log('Error creating order:', errorData);
                 swal("Error", "Failed to create order. Please try again.", "error");
                 return;
             }
 
             const orderData = await response.json();
-            console.log(orderData, 'jkhkjhkjhjk');
-            console.log(response,'[yfygvhbjn]');
             
             const options = {
                 key: 'rzp_test_0cBu6RNEEzVgUn',
@@ -260,9 +257,7 @@
                 description: 'Adding funds to your wallet',
                 handler: async function (response) {
                     try {
-                        console.log(response, 'Payment details');
                         const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = response;
-                        console.log(response, 'Payment details');
                         const res = await fetch('/wallet/verifyPayment', {
                             method: 'POST',
                             headers: {

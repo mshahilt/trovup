@@ -5,10 +5,10 @@ const router = express.Router();
 const passport = require('passport');
 const googleAuthController = require('../controllers/googleAuthController');
 
-// Initiate Google OAuth with account selection prompt
+
 router.get('/', passport.authenticate('google', { 
     scope: ['email', 'profile'],
-    prompt: 'select_account' // This forces Google to show the account selection screen
+    prompt: 'select_account' 
 }));
 
 router.get('/callback', 

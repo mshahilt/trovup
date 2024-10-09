@@ -208,10 +208,6 @@ document.getElementById('editCouponForm').addEventListener('submit', async (e) =
             maximumAmount: maximumAmountInput.value,
             description: descriptionInput.value
         };
-
-        // Logging form data for debugging
-        console.log(formData);
-
         // Front-end validation
         if (!formData.couponCode || !formData.discount || !formData.startDate || !formData.expiryDate || !formData.minimumAmount || !formData.maximumAmount) {
             Swal.fire('Error', 'Please fill out all fields.', 'error');
