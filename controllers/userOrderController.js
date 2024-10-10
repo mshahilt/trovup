@@ -8,7 +8,8 @@ const razorpay = require('../config/razorPay');
 const crypto = require('crypto');
 const Coupon = require('../models/coupenModel');
 const generateUniqueOrderId = require('../config/generateUniqueId');
-const pdf = require('html-pdf');
+const PDFDocument = require('pdfkit');
+const path = require('path')
 const fs = require('fs');
 
 exports.order_confirmPOST = async (req, res) => {
@@ -297,7 +298,7 @@ exports.create_razor_orderPOST = async (req, res) => {
         if (totalAmount < 3000) {
             deliveryCharge = 50;
         }
-        
+
         const options = {
             amount: Math.round((payableAmount + deliveryCharge) * 100),
             currency: "INR",
@@ -587,128 +588,151 @@ exports.cancel_productPOST = async (req, res) => {
       res.status(500).json({ success: false, message: 'An error occurred while submitting your cancel request' });
     }
   };
+exports.download_invoicePOST = async (req, res) => {
+try {
+    const { orderId } = req.body;
 
-  exports.download_invoicePOST = async (req, res) => {
-    try {
-        const { orderId } = req.body;
+    // Find the order and populate necessary fields
+    const order = await Order.findOne({ orderId }).populate('address items.product');
 
-        const order = await Order.findOne({ orderId }).populate('address items.product');
-
-        if (!order) {
-            return res.status(404).json({ success: false, message: 'Order not found' });
-        }
-
-        const address = order.address;
-
-        let itemsHtml = '';
-        let totalAmount = 0;
-        let totalDiscount = 0;
-
-        order.items.forEach(item => {
-            const product = item.product;
-            const specificVariant = product.variants.find(v => v._id.toString() === item.variantId);
-            const itemTotal = (item.price - item.discount) * item.quantity;
-
-            totalAmount += itemTotal;
-            totalDiscount += item.discount * item.quantity;
-
-            itemsHtml += `
-            <tr>
-                <td>${product.product_name}</td>
-                <td>Color: ${specificVariant.color}<br>Storage: ${specificVariant.storage_size}</td>
-                <td>${item.quantity}</td>
-                <td>${item.price}</td>
-                <td>${item.discount.toFixed(2)}</td>
-                <td>${itemTotal.toFixed(2)}</td>
-            </tr>
-            `;
-        });
-
-        const deliveryCharge = order.deliveryCharge || 0;
-        const payableAmount = totalAmount;
-
-        
-const html = `
-<html>
-    <head>
-    <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f4f4; }
-        .invoice-box { max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; background: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.15); }
-        .invoice-box h2 { text-align: center; margin: 0 0 20px; color: #333; }
-        .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        .invoice-table th, .invoice-table td { border: 1px solid #eee; padding: 10px; text-align: left; }
-        .invoice-table th { background-color: #f2f2f2; }
-        .totals { text-align: right; margin-top: 20px; }
-        .seal { text-align: center; margin-top: 30px; border: 2px dashed red; padding: 20px; display: inline-block; }
-        .seal img { width: 100px; }
-        .seal h4 { margin: 5px 0; }
-        .seal p { font-size: 12px; color: #777; }
-    </style>
-    </head>
-    <body>
-    <div class="invoice-box">
-        <h2>Invoice</h2>
-        <p><strong>Order ID:</strong> ${order.orderId}</p>
-        <p><strong>Payment Status:</strong> ${order.paymentStatus}</p>
-        <p><strong>Payment Method:</strong> ${order.paymentMethod}</p>
-        
-        <h3>Shipping Address</h3>
-        <p>${address.fullName}</p>
-        <p>${address.streetAddress}, ${address.city}</p>
-        <p>${address.phoneNumber}</p>
-        <p>${address.emailAddress}</p>
-        
-        <h3>Order Details</h3>
-        <table class="invoice-table">
-        <tr>
-            <th>Product Name</th>
-            <th>Variant Details</th>
-            <th>Quantity</th>
-            <th>Price</th>
-            <th>Discount</th>
-            <th>Total</th>
-        </tr>
-        ${itemsHtml}
-        </table>
-        
-        <div class="totals">
-        <p><strong>Total Amount:</strong> ${order.totalAmount.toFixed(2)}</p>
-        <p><strong>Total Discount:</strong> ${totalDiscount.toFixed(2)}</p>
-        <p><strong>Delivery Charge:</strong> ${deliveryCharge.toFixed(2)}</p>
-        <p><strong>Payable Amount:</strong> ${(payableAmount + deliveryCharge).toFixed(2)}</p>
-        </div>
-        <div class="seal">
-        <h4>Trovup</h4>
-        <p>Your trusted partner in quality.</p>
-        </div>
-
-    </div>
-    </body>
-</html>
-`;
-
-        // Create the PDF file from the HTML
-        const options = { format: 'A4' };
-        const pdfFilePath = `./invoices/invoice_${orderId}.pdf`;
-
-        pdf.create(html, options).toFile(pdfFilePath, (err, result) => {
-            if (err) {
-                console.error('PDF generation error:', err);
-                return res.status(500).json({ success: false, message: 'Error generating invoice PDF' });
-            }
-
-            // Send the PDF as response
-            res.setHeader('Content-Disposition', `attachment; filename=invoice_${orderId}.pdf`);
-            fs.createReadStream(result.filename).pipe(res);
-        });
-
-    } catch (error) {
-        console.log('Error occurred while downloading invoice for the order', error);
-        res.status(500).json({ success: false, message: 'Server error occurred' });
+    if (!order) {
+    return res.status(404).json({ success: false, message: 'Order not found' });
     }
+
+    const address = order.address;
+    const items = order.items;
+
+    const doc = new PDFDocument({ size: 'A4', margin: 40 });
+
+    res.setHeader('Content-Disposition', `attachment; filename=invoice_${orderId}.pdf`);
+
+    doc.pipe(res);
+
+    // Header Section: Title and Branding
+    doc.fontSize(16).text('Trovup', { align: 'center' });
+    doc.fontSize(8).text('Your trusted partner in quality.', { align: 'center' });
+    doc.moveDown(1);
+    doc.fontSize(14).text('Invoice', { align: 'center' });
+    doc.moveDown(2);
+
+    // Order Information
+    doc.fontSize(10).text(`Order ID: ${order.orderId}`);
+    doc.text(`Payment Status: ${order.paymentStatus}`);
+    doc.text(`Payment Method: ${order.paymentMethod}`);
+    doc.moveDown(1);
+
+    // Shipping Address Section
+    doc.fontSize(12).text('Shipping Address', { underline: true });
+    doc.fontSize(10).text(`${address.fullName}`);
+    doc.text(`${address.streetAddress}, ${address.city}`);
+    doc.text(`Phone: ${address.phoneNumber}`);
+    doc.text(`Email: ${address.emailAddress}`);
+    doc.moveDown(1);
+
+    // Draw a line for separation
+    doc.moveTo(40, doc.y).lineTo(550, doc.y).stroke();
+    doc.moveDown(1);
+
+    // Order Details Table
+    doc.fontSize(12).text('Order Details', { underline: true });
+    doc.moveDown(0.5);
+
+    // Table Header
+    const drawTableHeaders = (headers, y) => {
+    doc.font('Helvetica-Bold').fontSize(10);
+    let x = doc.page.margins.left;
+
+    headers.forEach(header => {
+        doc.text(header.text, x + 5, y + 5, { width: header.width, align: header.align || 'left' });
+        doc.rect(x, y, header.width, 20).stroke();
+        x += header.width;
+    });
+    };
+
+    // Table Row
+    const drawTableRow = (row, y) => {
+    doc.font('Helvetica').fontSize(9); // Increased font size for better visibility
+    let x = doc.page.margins.left;
+
+    row.forEach(cell => {
+        doc.text(cell.text, x + 5, y + 5, { width: cell.width, align: cell.align || 'left' });
+        doc.rect(x, y, cell.width, 20).stroke();
+        x += cell.width;
+    });
+    };
+
+    const headers = [
+    { text: 'Product Name', width: 140 },
+    { text: 'Variant Details', width: 140 },
+    { text: 'Quantity', width: 60, align: 'left' },
+    { text: 'Price', width: 60, align: 'left' },
+    { text: 'Discount', width: 60, align: 'left' },
+    { text: 'Total', width: 70, align: 'left' }
+    ];
+
+    drawTableHeaders(headers, doc.y);
+    let y = doc.y + 20;
+
+    let totalAmount = 0;
+    let totalDiscount = 0;
+
+    // Table Rows for Each Item
+    items.forEach(item => {
+    const product = item.product;
+    const variant = product.variants.find(v => v._id.toString() === item.variantId);
+    const itemTotal = (item.price - item.discount) * item.quantity;
+
+    totalAmount += itemTotal;
+    totalDiscount += item.discount * item.quantity;
+
+    const itemRow = [
+        { text: product.product_name, width: 140 },
+        { text: `Color: ${variant.color}, Storage: ${variant.storage_size}`, width: 140 },
+        { text: item.quantity.toString(), width: 60, align: 'left' },
+        { text: item.price.toFixed(2), width: 60, align: 'left' },
+        { text: item.discount.toFixed(2), width: 60, align: 'left' },
+        { text: itemTotal.toFixed(2), width: 70, align: 'left' }
+    ];
+    drawTableRow(itemRow, y);
+    y += 20;
+
+    // Add page if content exceeds the page height
+    if (y > doc.page.height - doc.page.margins.bottom - 100) {
+        doc.addPage();
+        y = doc.page.margins.top;
+        drawTableHeaders(headers, y);
+        y += 20;
+    }
+    });
+
+    // Add Delivery Charge and Total Payable Amount
+    const deliveryCharge = order.deliveryCharge || 0;
+    const payableAmount = totalAmount + deliveryCharge;
+
+    // Align total section properly with the table
+    doc.moveDown(1.5);
+    doc.fontSize(10);
+    const totalSectionX = doc.page.width - doc.page.margins.right - 200; // Adjust the X position for the total section
+
+    doc.text(`Total Amount: ${totalAmount.toFixed(2)}`, totalSectionX, y + 20, { align: 'right' });
+    doc.text(`Total Discount: ${totalDiscount.toFixed(2)}`, totalSectionX, y + 40, { align: 'right' });
+    doc.text(`Delivery Charge: ${deliveryCharge.toFixed(2)}`, totalSectionX, y + 60, { align: 'right' });
+    doc.text(`Payable Amount: ${payableAmount.toFixed(2)}`, totalSectionX, y + 80, { align: 'right' });
+
+    // Footer Section: Branding
+    doc.moveDown(3);
+    doc.fontSize(8).text('Thank you for your purchase!', { align: 'center' });
+    doc.text('Trovup - Your trusted partner in quality.', { align: 'center' });
+
+    // Finalize the PDF
+    doc.end();
+
+} catch (error) {
+    console.error('Error occurred while generating invoice:', error);
+    res.status(500).json({ success: false, message: 'Server error occurred' });
+}
 };
-
-
+    
 
 exports.repayment_razorpayPOST = async (req, res) => {
     try {

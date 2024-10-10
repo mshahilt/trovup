@@ -104,7 +104,7 @@ exports.adminDashboardGET = async (req, res) => {
         .populate("items.product", "name category brand"),
     ]);
 
-    const totalSales = ordersForStats.reduce((sum, order) => sum + order.payableAmount, 0);
+    const totalSales = ordersForStats.reduce((sum, order) => sum + (order.payableAmount + order.deliveryCharge), 0);
     const totalDiscount = ordersForStats.reduce((sum, order) => sum + (order.discountAmount || 0), 0);
 
     const [totalUsers, totalProducts] = await Promise.all([
@@ -120,10 +120,9 @@ exports.adminDashboardGET = async (req, res) => {
       getTopSellingBrands(),
     ]);
 
-    // Render the admin dashboard with the collected data
     res.render("admin/dashboard", {
       layout: "layouts/adminLayout",
-      orders: ordersForStats.slice(skip, skip + limitInt), // Use pagination here
+      orders: ordersForStats.slice(skip, skip + limitInt),
       totalOrders: totalOrdersCount,
       totalSales,
       totalDiscount,
@@ -1422,150 +1421,138 @@ exports.decline_return_requestPOST = async (req, res) => {
     });
 };
 
-const pdf = require("html-pdf");
+const PDFDocument = require('pdfkit');
 const Wallet = require("../models/walletModel");
+
 exports.downloadSalesReport = async (req, res) => {
-    try {
-      const { startDate, endDate } = req.body;
-  
-      // Construct the date range query
-      const query = {};
-      if (startDate || endDate) {
-        query.createdAt = {};
-        if (startDate) {
-          query.createdAt.$gte = moment(startDate).startOf("day").toDate();
-        }
-        if (endDate) {
-          query.createdAt.$lte = moment(endDate).endOf("day").toDate();
-        }
+  try {
+    const { startDate, endDate } = req.body;
+
+    const query = {};
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) {
+        query.createdAt.$gte = moment(startDate).startOf("day").toDate();
       }
-  
-      const orders = await Order.find(query)
-        .populate("user", "username")
-        .populate({
-          path: "items.product",
-          select: "product_name variants",
-        })
-        .exec();
-  
-      // Check if any orders were found
-      if (!orders || orders.length === 0) {
-        return res.status(404).json({ error: "No orders found for the selected date range." });
+      if (endDate) {
+        query.createdAt.$lte = moment(endDate).endOf("day").toDate();
       }
-  
-      let totalPayableAmount = 0;
-  
-      // Get the current date for the report
-      const reportDate = moment().format("MMMM Do YYYY");
-  
-      const startReportDate = moment(startDate).format("MMMM Do YYYY")
-      const endReportDate = moment(endDate).format("MMMM Do YYYY")
-      // Generate the HTML content for the PDF
-      const html = `
-        <html>
-          <head>
-            <title>Sales Report</title>
-            <style>
-              body { font-family: Arial, sans-serif; font-size: 10px; }
-              table { width: 100%; border-collapse: collapse; }
-              th, td { border: 1px solid #000; padding: 4px; text-align: left; }
-              th { background-color: #f2f2f2; }
-              .nested-table { margin-left: 10px; width: 95%; }
-            </style>
-          </head>
-          <body>
-            <h1 style="font-size: 16px;">Sales Report</h1>
-            <h5 style="font-size: 12px;">Report Generated On: ${reportDate} </h5>
-            <p style="font-size: 12px;">Report Date from: ${startReportDate} to ${endReportDate} </p>
-            <table>
-              <thead>
-                <tr>
-                  <th>Order ID</th>
-                  <th>Date</th>
-                  <th>Total Amount</th>
-                  <th>Status</th>
-                  <th>User</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${orders.map(order => {
-                  totalPayableAmount += order.payableAmount || 0;
-                  return `
-                    <tr>
-                      <td>${order.orderId}</td>
-                      <td>${new Date(order.placedAt).toLocaleDateString()}</td>
-                      <td>₹${order.totalAmount.toFixed(2)}</td>
-                      <td>${order.paymentStatus}</td>
-                      <td>${order.user ? order.user.username : "N/A"}</td>
-                    </tr>
-                    <tr>
-                      <td colspan="5">
-                        <table class="nested-table">
-                          <thead>
-                            <tr>
-                              <th>Product</th>
-                              <th>Variant ID</th>
-                              <th>Quantity</th>
-                              <th>Price</th>
-                              <th>Discount</th>
-                              <th>Net Price</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            ${order.items.map(item => {
-                              const netPrice = (item.price - item.discount) * item.quantity;
-                              const variant = item.product.variants.find(v => v._id.toString() === item.variantId);
-                              const color = variant ? variant.color : "N/A";
-  
-                              return `
-                                <tr>
-                                  <td>${item.product.product_name}</td>
-                                  <td>${color}</td>
-                                  <td>${item.quantity}</td>
-                                  <td>₹${item.price.toFixed(2)}</td>
-                                  <td>₹${item.discount.toFixed(2)}</td>
-                                  <td>₹${netPrice.toFixed(2)}</td>
-                                </tr>
-                              `;
-                            }).join("")}
-                          </tbody>
-                        </table>
-                      </td>
-                    </tr>
-                  `;
-                }).join("")}
-              </tbody>
-            </table>
-            <h2 style="font-size: 14px;">Total Payable Amount: ₹${totalPayableAmount.toFixed(2)}</h2>
-          </body>
-        </html>
-      `;
-  
-      const options = {
-        format: "A4",
-        orientation: "portrait",
-        border: {
-          top: "0.3in",
-          right: "0.3in",
-          bottom: "0.3in",
-          left: "0.3in",
-        },
-      };
-  
-      // Create and send the PDF
-      pdf.create(html, options).toBuffer((err, buffer) => {
-        if (err) {
-          console.error("Error generating PDF:", err);
-          return res.status(500).send("Error generating PDF");
-        }
-  
-        res.setHeader("Content-Type", "application/pdf");
-        res.setHeader("Content-Disposition", "attachment; filename=sales_report.pdf");
-        res.send(buffer);
-      });
-    } catch (error) {
-      console.error("Error generating sales report:", error);
-      res.status(500).json({ error: "An error occurred while generating the sales report" });
     }
-  };
-  
+
+    const orders = await Order.find(query)
+      .populate("user", "username")
+      .populate({
+        path: "items.product",
+        select: "product_name variants",
+      })
+      .exec();
+
+    if (!orders || orders.length === 0) {
+      return res.status(404).json({ error: "No orders found for the selected date range." });
+    }
+
+    let totalPayableAmount = 0;
+
+    const doc = new PDFDocument({ size: 'A4', margin: 30 });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", "attachment; filename=sales_report.pdf");
+
+    doc.pipe(res);
+
+    doc.font('Helvetica-Bold').fontSize(16).text("Sales Report", { align: 'center' });
+    doc.moveDown();
+    doc.font('Helvetica').fontSize(12).text(`Report Generated On: ${moment().format("MMMM Do YYYY")}`, { align: 'left' });
+    doc.text(`Report Date from: ${moment(startDate).format("MMMM Do YYYY")} to ${moment(endDate).format("MMMM Do YYYY")}`, { align: 'left' });
+    doc.moveDown(1.5);
+    const drawTableHeaders = (headers, y) => {
+      doc.font('Helvetica-Bold').fontSize(11);
+      let x = doc.page.margins.left;
+
+      headers.forEach(header => {
+        doc.text(header.text, x + 5, y + 5, { width: header.width, align: header.align || 'left' });
+        doc.rect(x, y, header.width, 20).stroke();
+        x += header.width;
+      });
+    };
+    const drawTableRow = (row, y) => {
+      doc.font('Helvetica').fontSize(10);
+      let x = doc.page.margins.left;
+
+      row.forEach(cell => {
+        doc.text(cell.text, x + 5, y + 5, { width: cell.width, align: cell.align || 'left' });
+        doc.rect(x, y, cell.width, 20).stroke(); 
+        x += cell.width;
+      });
+    };
+    const headers = [
+      { text: "Order ID", width: 80 },
+      { text: "Date", width: 70 },
+      { text: "Delivery Charge", width: 100 },
+      { text: "Total Amount", width: 100 },
+      { text: "Status", width: 80 },
+      { text: "User", width: 100 }
+    ];
+    drawTableHeaders(headers, doc.y);
+
+    let y = doc.y + 20; 
+
+    orders.forEach(order => {
+      totalPayableAmount += (order.payableAmount || 0) + (order.deliveryCharge || 0);
+
+      const orderRow = [
+        { text: order.orderId, width: 80 },
+        { text: new Date(order.placedAt).toLocaleDateString(), width: 70 },
+        { text: `${order.deliveryCharge.toFixed(2)}`, width: 100 }, 
+        { text: `${(order.totalAmount + order.deliveryCharge).toFixed(2)}`, width: 100 },
+        { text: order.paymentStatus, width: 80 },
+        { text: order.user ? order.user.username : "N/A", width: 100 }
+      ];
+      drawTableRow(orderRow, y);
+      y += 20;
+
+      const nestedHeaders = [
+        { text: "Product", width: 120 },
+        { text: "Variant", width: 80 },
+        { text: "Quantity", width: 70 },
+        { text: "Price", width: 80 },
+        { text: "Discount", width: 80 },
+        { text: "Net Price", width: 100 }
+      ];
+      drawTableHeaders(nestedHeaders, y);
+      y += 20;
+
+      order.items.forEach(item => {
+        const netPrice = (item.price - item.discount) * item.quantity;
+        const variant = item.product.variants.find(v => v._id.toString() === item.variantId);
+        const color = variant ? variant.color : "N/A";
+
+        const itemRow = [
+          { text: item.product.product_name, width: 120 },
+          { text: color, width: 80 },
+          { text: item.quantity, width: 70 },
+          { text: `${item.price.toFixed(2)}`, width: 80 },
+          { text: `${item.discount.toFixed(2)}`, width: 80 },
+          { text: `${netPrice.toFixed(2)}`, width: 100 }
+        ];
+        drawTableRow(itemRow, y);
+        y += 20;
+      });
+
+      y += 20;
+
+      if (y > doc.page.height - doc.page.margins.bottom - 100) {
+        doc.addPage();
+        y = doc.page.margins.top;
+      }
+    });
+
+    doc.moveDown(2);
+    doc.font('Helvetica-Bold').fontSize(14).text(`Total Payable Amount: ${totalPayableAmount.toFixed(2)}`, { align: 'right' });
+
+    doc.end();
+  } catch (error) {
+    console.error("Error generating sales report:", error);
+    res.status(500).json({ error: "An error occurred while generating the sales report" });
+  }
+};

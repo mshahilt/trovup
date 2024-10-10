@@ -98,10 +98,8 @@
                         <div class="border p-3 rounded bg-white shadow-sm">
                           <p><strong>Total Amount:</strong> ₹<%= order.totalAmount.toFixed(2) %></p>
                           <p><strong>Discount:</strong> ₹<%= order.discountAmount.toFixed(2) %></p>
-                          <p><strong>Payable Amount:</strong> ₹<%= order.payableAmount.toFixed(2) %></p>
-                          <% if (order.couponApplied) { %>
-                            <p><strong>Coupon Applied:</strong> <%= order.couponApplied.couponCode %></p>
-                          <% } %>
+                          <p><strong>Delivery Charge:</strong> ₹<%= order.deliveryCharge.toFixed(2) %></p>
+                          <p><strong>Payable Amount:</strong> ₹<%= (order.payableAmount + order.deliveryCharge).toFixed(2) %></p>
                         </div>
                       </div>
                     </div>
@@ -274,9 +272,7 @@ document.getElementById('accept-return').addEventListener('click', function() {
   });
 });
 
-// Decline return request
 document.getElementById('decline-return').addEventListener('click', function() {
-  // Retrieve itemId and orderId from the modal's dataset
   const modal = document.getElementById('returnRequestModal');
   const itemId = modal.dataset.itemId;
   const orderId = modal.dataset.orderId;
