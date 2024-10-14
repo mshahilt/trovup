@@ -9,15 +9,6 @@ const Brands = require('../models/brandModel');
 const generateUniqueRefferalId = require('../config/generateUniqueReferal');
 const Wallet = require('../models/walletModel');
 
-// Configure nodemailer transporter
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.USER,
-        pass: process.env.APP_PASSWORD,
-    },
-});
-
 // Mail options template
 const mailOptions = {
     from: {
@@ -78,7 +69,7 @@ exports.registerUser = async (req, res) => {
         const otp = Math.floor(1000 + Math.random() * 9000);
         const otpExpiresAt = Date.now() + 180000;
 
-        await sendMail(transporter, {
+        await sendMail({
             ...mailOptions,
             to: newUser.email,
             text: `Your OTP is ${otp}`

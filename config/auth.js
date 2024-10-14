@@ -15,19 +15,16 @@ passport.use(new GoogleStrategy({
       let user = await User.findOne({ email: profile.emails[0].value });
 
       if (user) {
-        // If the user exists, update the googleId if it's not set
         if (!user.googleId) {
           user.googleId = profile.id;
           await user.save();
         }
         return done(null, user);
       } else {
-        // If the user doesn't exist, create a new Google user
         user = new User({
           googleId: profile.id,
           email: profile.emails[0].value,
           username: profile.displayName,
-          // No need for phone_number and password for Google users
         });
         await user.save();
 
