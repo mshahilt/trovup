@@ -14,9 +14,6 @@
                 </div>
             <% } %>
             <!-- End of Flash Messages -->
-
-            <h4 class="card-title">Hoverable Table</h4>
-            <p class="card-description"> Add class <code>.table-hover</code></p>
             <div class="table-responsive">
                 <table class="table table-hover">
                     <thead>
@@ -36,7 +33,7 @@
                             <td><%= user.username %></td>
                             <td><%= user.email %></td>
                             <td class="<%= user.phone_number > 50 ? 'text-success' : 'text-danger' %>">
-                                <%= user.phone_number %> <i class="<%= user.sale > 50 ? 'ti-arrow-up' : 'ti-arrow-down' %>"></i>
+                                <%= user.phone_number %>
                             </td>
                             <td>
                                 <form action="/admin/user-block/<%= user._id %>" method="POST">

@@ -97,7 +97,7 @@ exports.registerUser = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('something went wrong',error);
+        console.error(error);
         req.flash('error', 'Server Error. Please try again later.',error);
         res.render('user/register', {
             title: "Sign Up",
