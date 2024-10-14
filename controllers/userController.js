@@ -217,7 +217,7 @@ exports.resendOTP = async (req, res) => {
         );
 
 
-        await sendMail(transporter, {
+        await sendMail( {
             ...mailOptions,
             to: user.email,
             text: `Your new OTP is ${otp}`

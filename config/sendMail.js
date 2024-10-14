@@ -10,6 +10,8 @@ const transporter = nodemailer.createTransport({
     },
 });
 
+console.log(process.env.APP_PASSWORD)
+
 // Function to send mail
 const sendMail = (mailOptions) => {
     return new Promise((resolve, reject) => {

@@ -4,9 +4,6 @@ const bcrypt = require('bcrypt')
 const userSchema = new mongoose.Schema({
     username: {
         type: String,
-        required: function() {
-            return !this.googleId;
-        }
     },
     referralId: {
         type: String,
