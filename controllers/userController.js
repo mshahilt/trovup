@@ -8,7 +8,7 @@ const Category = require("../models/catogeryModel");
 const Brands = require("../models/brandModel");
 const generateUniqueRefferalId = require("../config/generateUniqueReferal");
 const Wallet = require("../models/walletModel");
-
+const dotenv = require("dotenv");
 // Mail options template
 const mailOptions = {
   from: {
