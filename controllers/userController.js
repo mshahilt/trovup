@@ -89,7 +89,7 @@ exports.registerUser = async (req, res) => {
       layout: "layouts/authLayout",
     });
   } catch (error) {
-    console.error(error.body.errors);
+    console.error(error.body);
     req.flash("error", "Server Error. Please try again later.", error);
     res.render("user/register", {
       title: "Sign Up",
