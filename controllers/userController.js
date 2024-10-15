@@ -1,25 +1,20 @@
 const User = require("../models/userModel");
 const OTP = require("../models/otpModels");
 const bcrypt = require("bcrypt");
-const nodemailer = require("nodemailer");
-const sendMail = require("../config/sendMail");
 const Products = require("../models/productModel");
 const Category = require("../models/catogeryModel");
 const Brands = require("../models/brandModel");
 const generateUniqueRefferalId = require("../config/generateUniqueReferal");
 const Wallet = require("../models/walletModel");
 const dotenv = require("dotenv");
-// Mail options template
+const sendMail = require('../config/sendMail');
+
 const mailOptions = {
-  from: {
-    name: "Trovup",
-    address: process.env.USER,
-  },
+  from: process.env.USER,
   subject: "Verification code of Trovup",
   text: "",
 };
 
-// GET: Render registration page
 exports.registerUserGet = async (req, res) => {
   res.render("user/register", {
     title: "Register",
@@ -31,10 +26,10 @@ exports.registerUserGet = async (req, res) => {
   });
 };
 
-// POST: Handle user registration
 exports.registerUser = async (req, res) => {
   const { username, email, phone_number, password } = req.body;
   const { refer_code } = req.query;
+
   if (!email || !password || !username || !phone_number) {
     req.flash("error", "All fields are required");
     return res.render("user/register", {
@@ -66,14 +61,13 @@ exports.registerUser = async (req, res) => {
     });
 
     const otp = Math.floor(1000 + Math.random() * 9000);
-    const otpExpiresAt = Date.now() + 180000;
+    const otpExpiresAt = Date.now() + 180000; // OTP expiration time
 
     await sendMail({
       ...mailOptions,
       to: newUser.email,
       text: `Your OTP is ${otp}`,
     });
-
     const newOTP = new OTP({
       userId: newUser._id,
       otp,
@@ -104,6 +98,7 @@ exports.registerUser = async (req, res) => {
     });
   }
 };
+
 exports.getVerifyOTP = (req, res) => {
   if (!req.session.user) {
     req.flash("error", "Session expired. Please register again.");
@@ -248,10 +243,13 @@ exports.loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    console.log(email,password,'login user')
+
     const user = await User.findOne({
-      $and: [{ email: email }, { googleId: null }],
+      $and: [{ email: email }],
     });
 
+    console.log(user)
     if (user) {
       const match = await bcrypt.compare(password, user.password);
 
@@ -275,7 +273,7 @@ exports.loginUser = async (req, res) => {
             { upsert: true }
           );
 
-          await transporter.sendMail({
+          await sendMail({
             ...mailOptions,
             to: user.email,
             text: `Your new OTP is ${otp}`,

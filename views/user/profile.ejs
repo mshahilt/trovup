@@ -149,13 +149,18 @@
                   <label for="newPassword" class="form-label">New Password</label>
                   <input type="password" class="form-control" id="newPassword" placeholder="Enter new password">
                 </div>
+                <div class="col-md-6"></div>
+                <div class="col-md-6">
+                  <label for="ConfirmNewPassword" class="form-label">Confirm New Password</label>
+                  <input type="password" class="form-control" id="ConfirmNewPassword" placeholder="Enter new password">
+                </div>
               </div>
-
+          
               <div class="d-flex justify-content-between">
                 <button type="submit" class="btn btn-custom">Update Password</button>
               </div>
             </form>
-          </div>
+          </div>          
 
           <!-- Forgot Password Button -->
           <div class="mt-4">
@@ -239,35 +244,66 @@
     });
 
     $('#changePasswordForm').on('submit', function(e) {
-      e.preventDefault();
+    e.preventDefault();
 
-      const oldPassword = $('#oldPassword').val();
-      const newPassword = $('#newPassword').val();
+    const oldPassword = $('#oldPassword').val();
+    const newPassword = $('#newPassword').val();
+    const confirmPassword = $('#ConfirmNewPassword').val();
 
-      $.ajax({
-        url: '/profile/change-password',
-        method: 'POST',
-        data: { oldPassword, newPassword },
-        success: function(response) {
-          if (response.success) {
-            Swal.fire({
-              icon: 'success',
-              title: 'Password Changed',
-              text: response.message
-            });
-            $('#oldPassword').val('');
-            $('#newPassword').val('');
-          }
-        },
-        error: function(err) {
+    // Check if new password matches confirm password
+    if (newPassword !== confirmPassword) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'New password and confirm password do not match.'
+      });
+      return; // Stop the form submission if passwords do not match
+    }
+
+    // Check if new password is long enough
+    if (newPassword.length < 6) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'New password must be at least 6 characters long.'
+      });
+      return;
+    }
+
+    // Proceed with AJAX request if validation passes
+    $.ajax({
+      url: '/profile/change-password',
+      method: 'POST',
+      data: { oldPassword, newPassword },
+      success: function(response) {
+        if (response.success) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Password Changed',
+            text: response.message
+          });
+
+          // Clear the form fields
+          $('#oldPassword').val('');
+          $('#newPassword').val('');
+          $('#ConfirmNewPassword').val('');
+        } else {
           Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: 'Unable to change password.'
+            text: response.message || 'Unable to change password.'
           });
         }
-      });
+      },
+      error: function(err) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'An unexpected error occurred. Please try again.'
+        });
+      }
     });
+  });
 
     // Handle forgot password button click
     $('#forgotPasswordBtn').on('click', function() {

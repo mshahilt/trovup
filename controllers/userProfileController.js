@@ -4,30 +4,17 @@ const Products = require('../models/productModel');
 const Address = require('../models/addressModel');
 const Cart = require('../models/cartModel');
 const sendMail = require('../config/sendMail');
-const nodemailer = require('nodemailer');
 const bcrypt = require('bcrypt');   
 const OTP = require('../models/otpModels');
 const Order = require('../models/orderModel'); 
 
 
-// Configure nodemailer transporter
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.USER,
-        pass: process.env.APP_PASSWORD,
-    },
-});
-
 // Mail options template
 const mailOptions = {
-    from: {
-        name: 'Trovup',
-        address: process.env.USER
-    },
+    from: process.env.USER,
     subject: "Verification code of Trovup",
     text: "",
-};
+  };
 
 // GET user profile
 exports.user_profileGET = async (req, res) => {
@@ -103,17 +90,16 @@ async function resendOTP(userId) {
             throw new Error('User not found');
         }
 
-        const otp = Math.floor(1000 + Math.random() * 9000); // Generate a random 4-digit OTP
-        const otpExpiresAt = Date.now() + 180000; // Set OTP expiration time (3 minutes)
+        const otp = Math.floor(1000 + Math.random() * 9000);
+        const otpExpiresAt = Date.now() + 180000;
 
-        // Store the OTP and expiration in the database
         await OTP.findOneAndUpdate(
             { userId: userId },
             { otp: otp, expiresAt: otpExpiresAt },
             { upsert: true }
         );
 
-        await sendMail(transporter, {
+        await sendMail({
             ...mailOptions,
             to: user.email,
             text: `Your new OTP is ${otp}`
@@ -215,28 +201,34 @@ exports.changePasswordPOST = async (req, res) => {
     try {
         const { password } = req.body; 
         const userId = req.session.user?.user; 
-        
+
+        // Check if the user is logged in
         if (!userId) {
             return res.status(400).json({ success: false, message: 'User not logged in or session expired' });
         }
 
+        // Validate the password length
         if (!password || password.length < 6) {
             return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long' });
         }
 
+        // Hash the new password
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        // Update the user's password in the database
         const user = await User.findByIdAndUpdate(userId, { password: hashedPassword }, { new: true });
 
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
+        // Update the session after password change
         req.session.user = {
             ...req.session.user,
             verifiedByOtp: false
         };
 
+        // Send success response
         return res.status(200).json({ success: true, message: 'Password updated successfully' });
     } catch (error) {
         console.error('Error occurred while posting new forgotten password:', error);
