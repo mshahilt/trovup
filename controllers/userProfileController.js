@@ -7,7 +7,7 @@ const sendMail = require('../config/sendMail');
 const bcrypt = require('bcrypt');   
 const OTP = require('../models/otpModels');
 const Order = require('../models/orderModel'); 
-
+const nodemailer = require('nodemailer');
 
 // Mail options template
 const mailOptions = {
@@ -16,6 +16,13 @@ const mailOptions = {
     text: "",
   };
 
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: 'mshahilt3@gmail.com',
+        pass: process.env.MAIL_APP_PASSWORD,
+    },
+  });
 // GET user profile
 exports.user_profileGET = async (req, res) => {
     try {
@@ -99,10 +106,10 @@ async function resendOTP(userId) {
             { upsert: true }
         );
 
-        await sendMail({
+        await sendMail(transporter, {
             ...mailOptions,
             to: user.email,
-            text: `Your new OTP is ${otp}`
+            text: `Your OTP is ${otp}`
         });
 
         return true;

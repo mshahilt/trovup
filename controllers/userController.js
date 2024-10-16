@@ -241,7 +241,7 @@ exports.resendOTP = async (req, res) => {
       { upsert: true }
     );
 
-    await sendMail({
+    await sendMail(transporter,{
       ...mailOptions,
       to: user.email,
       text: `Your new OTP is ${otp}`,
