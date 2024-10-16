@@ -651,7 +651,7 @@ try {
 
     // Table Row
     const drawTableRow = (row, y) => {
-    doc.font('Helvetica').fontSize(9); // Increased font size for better visibility
+    doc.font('Helvetica').fontSize(9);
     let x = doc.page.margins.left;
 
     row.forEach(cell => {
@@ -680,10 +680,10 @@ try {
     items.forEach(item => {
     const product = item.product;
     const variant = product.variants.find(v => v._id.toString() === item.variantId);
-    const itemTotal = (item.price - item.discount) * item.quantity;
+    const itemTotal = (item.price * item.quantity)- item.discount;
 
     totalAmount += itemTotal;
-    totalDiscount += item.discount * item.quantity;
+    totalDiscount += item.discount;
 
     const itemRow = [
         { text: product.product_name, width: 140 },
