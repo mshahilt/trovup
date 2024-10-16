@@ -89,8 +89,12 @@ exports.registerUser = async (req, res) => {
       layout: "layouts/authLayout",
     });
   } catch (error) {
-    console.error(error.body);
-    req.flash("error", "Server Error. Please try again later.", error);
+    if (error.response) {
+      console.error('Error response received from SendGrid:', error.response.body.errors);
+    } else {
+      console.error('An error occurred:', error.message);
+    }
+    req.flash("error", "Server Error. Please try again later.", (error.response || error));
     res.render("user/register", {
       title: "Sign Up",
       messages: req.flash(),
