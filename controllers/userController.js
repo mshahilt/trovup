@@ -8,104 +8,115 @@ const generateUniqueRefferalId = require("../config/generateUniqueReferal");
 const Wallet = require("../models/walletModel");
 const dotenv = require("dotenv");
 const sendMail = require('../config/sendMail');
+const nodemailer = require('nodemailer');
 
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+      user: 'mshahilt3@gmail.com',
+      pass: process.env.MAIL_APP_PASSWORD,
+  },
+});
+
+// Mail options template
 const mailOptions = {
-  from: 'mohammedshahilt3@gmail.com',
+  from: {
+      name: 'Trovup',
+      address: 'mshahilt3@gmail.com'
+  },
   subject: "Verification code of Trovup",
   text: "",
 };
-console.log(mailOptions)
 
+// GET: Render registration page
 exports.registerUserGet = async (req, res) => {
-  res.render("user/register", {
-    title: "Register",
-    messages: {
-      error: req.flash("error"),
-      success: req.flash("success"),
-    },
-    layout: "layouts/authLayout",
+  res.render('user/register', {
+      title: 'Register',
+      messages: {
+          error: req.flash('error'),
+          success: req.flash('success')
+      },
+      layout: 'layouts/authLayout'
   });
 };
 
+
+// POST: Handle user registration
 exports.registerUser = async (req, res) => {
   const { username, email, phone_number, password } = req.body;
-  const { refer_code } = req.query;
-
+  const {refer_code} = req.query;
   if (!email || !password || !username || !phone_number) {
-    req.flash("error", "All fields are required");
-    return res.render("user/register", {
-      refer_code,
-      title: "Sign Up",
-      messages: req.flash(),
-      layout: "layouts/authLayout",
-    });
+      req.flash('error', 'All fields are required');
+      return res.render('user/register', {
+          refer_code,
+          title: "Sign Up",
+          messages: req.flash(), 
+          layout: 'layouts/authLayout'
+      });
   }
 
   try {
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      req.flash("error", "User already exists");
-      return res.render("user/register", {
-        title: "Sign Up",
-        messages: req.flash(),
-        layout: "layouts/authLayout",
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+          req.flash('error', 'User already exists');
+          return res.render('user/register', {
+              title: "Sign Up",
+              messages: req.flash(),
+              layout: 'layouts/authLayout'
+          });
+      }
+
+      const newUser = new User({
+          username,
+          refferedById: refer_code,
+          email,
+          phone_number,
+          password: await bcrypt.hash(password, 10),
+          is_verify: false
       });
-    }
 
-    const newUser = new User({
-      username,
-      refferedById: refer_code,
-      email,
-      phone_number,
-      password: await bcrypt.hash(password, 10),
-      is_verify: false,
-    });
+      const otp = Math.floor(1000 + Math.random() * 9000);
+      const otpExpiresAt = Date.now() + 180000;
 
-    const otp = Math.floor(1000 + Math.random() * 9000);
-    const otpExpiresAt = Date.now() + 180000; // OTP expiration time
+      await sendMail(transporter, {
+          ...mailOptions,
+          to: newUser.email,
+          text: `Your OTP is ${otp}`
+      });
 
-    await sendMail({
-      ...mailOptions,
-      to: newUser.email,
-      text: `Your OTP is ${otp}`,
-    });
+      console.log(mailOptions);
 
-    console.log(mailOptions , 'inside register');
-    const newOTP = new OTP({
-      userId: newUser._id,
-      otp,
-      expiresAt: otpExpiresAt,
-    });
+      const newOTP = new OTP({
+          userId: newUser._id,
+          otp,
+          expiresAt: otpExpiresAt
+      });
 
-    await newUser.save();
-    await newOTP.save();
+      await newUser.save(); 
+      await newOTP.save();
 
-    req.session.user = {
-      user: newUser._id,
-      is_verify: newUser.is_verify,
-    };
+      req.session.user = {
+          user: newUser._id,
+          is_verify: newUser.is_verify
+      };
 
-    req.flash("success", "OTP sent to your email");
-    res.render("user/otp_verification", {
-      title: "Verify OTP",
-      messages: req.flash(),
-      layout: "layouts/authLayout",
-    });
+      req.flash('success', 'OTP sent to your email');
+      res.render('user/otp_verification', {
+          title: 'Verify OTP',
+          messages: req.flash(),
+          layout: 'layouts/authLayout'
+      });
+
   } catch (error) {
-    if (error.response) {
-      console.error('Error response received from SendGrid:', error.response.body.errors);
-    } else {
-      console.error('An error occurred:', error.message);
-    }
-    req.flash("error", "Server Error. Please try again later.", (error.response || error));
-    res.render("user/register", {
-      title: "Sign Up",
-      messages: req.flash(),
-      layout: "layouts/authLayout",
-    });
+      console.error(error);
+      req.flash('error', 'Server Error. Please try again later.');
+      res.render('user/register', {
+          title: "Sign Up",
+          messages: req.flash(), 
+          layout: 'layouts/authLayout'
+      });
   }
 };
-
 exports.getVerifyOTP = (req, res) => {
   if (!req.session.user) {
     req.flash("error", "Session expired. Please register again.");
