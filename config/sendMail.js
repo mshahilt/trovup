@@ -12,6 +12,8 @@ const sendMail = (mailOptions) => {
       text: mailOptions.text, 
     };
 
+    console.log(msg)
+
     sgMail
       .send(msg)
       .then((response) => {
