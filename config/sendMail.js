@@ -7,12 +7,12 @@ const sendMail = (mailOptions) => {
   return new Promise((resolve, reject) => {
     const msg = {
       to: mailOptions.to,
-      from: mailOptions.from.email || mailOptions.from,
+      from: mailOptions.from,
       subject: mailOptions.subject,
       text: mailOptions.text, 
     };
 
-    console.log(msg)
+    console.log(msg, 'msg inside sendmail')
 
     sgMail
       .send(msg)

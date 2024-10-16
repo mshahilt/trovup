@@ -10,11 +10,11 @@ const dotenv = require("dotenv");
 const sendMail = require('../config/sendMail');
 
 const mailOptions = {
-  from: process.env.SENDGRID_SENDER_NAME,
+  from: 'mohammedshahilt3@gmail.com',
   subject: "Verification code of Trovup",
   text: "",
 };
-console.log(process.env.SENDGRID_SENDER_NAME,' js')
+console.log(mailOptions)
 
 exports.registerUserGet = async (req, res) => {
   res.render("user/register", {
@@ -69,6 +69,8 @@ exports.registerUser = async (req, res) => {
       to: newUser.email,
       text: `Your OTP is ${otp}`,
     });
+
+    console.log(mailOptions , 'inside register');
     const newOTP = new OTP({
       userId: newUser._id,
       otp,
