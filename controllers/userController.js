@@ -10,7 +10,7 @@ const dotenv = require("dotenv");
 const sendMail = require('../config/sendMail');
 
 const mailOptions = {
-  from: process.env.USER,
+  from: process.env.USERNAME,
   subject: "Verification code of Trovup",
   text: "",
 };
