@@ -843,6 +843,9 @@ exports.pay_with_walletPOST = async (req, res) => {
             });
         }
 
+        if(totalAmount < 3000){
+            deliveryCharge = 50;
+        }
 
         let discountOnOrder = 0;
         const coupon = await Coupon.findOne({
@@ -886,6 +889,7 @@ exports.pay_with_walletPOST = async (req, res) => {
                 cartId,
                 address: addressId,
                 items: orderItems,
+                deliveryCharge,
                 totalAmount,
                 discountAmount: discountOnOrder,
                 payableAmount: 0,
