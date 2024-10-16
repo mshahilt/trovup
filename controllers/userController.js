@@ -10,10 +10,11 @@ const dotenv = require("dotenv");
 const sendMail = require('../config/sendMail');
 
 const mailOptions = {
-  from: process.env.USERNAME,
+  from: process.env.SENDGRID_SENDER_NAME,
   subject: "Verification code of Trovup",
   text: "",
 };
+console.log(process.env.SENDGRID_SENDER_NAME,' js')
 
 exports.registerUserGet = async (req, res) => {
   res.render("user/register", {
