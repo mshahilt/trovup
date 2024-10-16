@@ -260,14 +260,11 @@ exports.resendOTP = async (req, res) => {
 exports.loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    console.log(email,password,'login user')
-
     const user = await User.findOne({
       $and: [{ email: email }],
     });
 
-    console.log(user)
+    console.log(user, 'inside the login ')
     if (user) {
       const match = await bcrypt.compare(password, user.password);
 
@@ -279,8 +276,8 @@ exports.loginUser = async (req, res) => {
       if (match) {
         if (!user.is_verify) {
           const userId = user._id;
-          req.session.user = { user: { user: userId } };
-
+          req.session.user = {user: userId };
+          console.log(req.session.user, 'inside the not verify function ')
           // Generate OTP and send email
           const otp = Math.floor(1000 + Math.random() * 9000);
           const otpExpiresAt = Date.now() + 180000;
@@ -291,7 +288,7 @@ exports.loginUser = async (req, res) => {
             { upsert: true }
           );
 
-          await sendMail({
+          await sendMail(transporter,{
             ...mailOptions,
             to: user.email,
             text: `Your new OTP is ${otp}`,

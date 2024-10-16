@@ -10,6 +10,7 @@
               <th>User</th>
               <th>Payment Type</th>
               <th>Order Status</th>
+              <th>Is Return Requested</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -25,6 +26,7 @@
                   <%= order.paymentStatus %>
                 </span>                
                 </td>
+                <td><%= order.items.some(item => item.isReturnRequested) ? 'Yes' : 'No' %></td>
                 <td>
                   <button class="btn btn-outline-info btn-sm toggle-details-btn" data-order-id="<%= order.orderId %>">
                     Show Details
