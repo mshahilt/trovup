@@ -67,6 +67,7 @@ router.post('/delete-offer/:id',isAuthenticatedAdmin, adminControllers.deleteOff
 
 router.post('/accept-return-request',isAuthenticatedAdmin, adminControllers.accept_return_requestPOST);
 router.post('/decline-return-request',isAuthenticatedAdmin, adminControllers.decline_return_requestPOST);
-router.post('/download-sales-report', isAuthenticatedAdmin,adminControllers.downloadSalesReport); 
+router.post('/download-sales-report', isAuthenticatedAdmin,adminControllers.downloadSalesReport);
+router.post('/download-sales-report-excel', isAuthenticatedAdmin,adminControllers.downloadSalesReportExcel);
 module.exports = router;
 

@@ -238,7 +238,6 @@
     </div>
   </div>
 </div>
-
 <!-- Modal for Date Range Selection for Report -->
 <div class="modal fade" id="dateSelectionModal" tabindex="-1" aria-labelledby="dateSelectionModalLabel" aria-hidden="true">
   <div class="modal-dialog">
@@ -250,8 +249,16 @@
       <div class="modal-body">
         <label for="reportStartDate">Start Date:</label>
         <input type="date" id="reportStartDate" class="form-control">
+        
         <label for="reportEndDate" class="mt-2">End Date:</label>
         <input type="date" id="reportEndDate" class="form-control">
+        
+        <!-- Dropdown for selecting report type -->
+        <label for="reportType" class="mt-2">Report Type:</label>
+        <select id="reportType" class="form-select">
+          <option value="pdf">PDF</option>
+          <option value="excel">Excel</option>
+        </select>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -260,6 +267,7 @@
     </div>
   </div>
 </div>
+
 
 <!-- SweetAlert CSS and JS -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
@@ -342,20 +350,23 @@
   });
 
   // Download Report Button in Modal
-  document.getElementById("downloadReportBtn").addEventListener("click", async function () {
-    const startDate = document.getElementById("reportStartDate").value;
-    const endDate = document.getElementById("reportEndDate").value;
+document.getElementById("downloadReportBtn").addEventListener("click", async function () {
+  const startDate = document.getElementById("reportStartDate").value;
+  const endDate = document.getElementById("reportEndDate").value;
+  const reportType = document.getElementById("reportType").value; // Get the selected report type
 
-    // Validate the date range
-    if (new Date(startDate) > new Date(endDate)) {
-      Swal.fire({
-        icon: "error",
-        title: "Invalid Date Range",
-        text: "Start date must be before the end date.",
-      });
-      return;
-    }
+  // Validate the date range
+  if (new Date(startDate) > new Date(endDate)) {
+    Swal.fire({
+      icon: "error",
+      title: "Invalid Date Range",
+      text: "Start date must be before the end date.",
+    });
+    return;
+  }
 
+  if (reportType === "pdf") {
+    // Logic for downloading the PDF report
     try {
       // Send a POST request to the backend with the selected date range
       const response = await fetch("/admin/download-sales-report", {
@@ -407,6 +418,57 @@
         text: "An error occurred while downloading the report. Please try again later.",
       });
     }
-  });
+  }else if (reportType === "excel") {
+    try {
+      const response = await fetch("/admin/download-sales-report-excel", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ startDate, endDate }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (errorData.error === "No orders found for the selected date range.") {
+          Swal.fire({
+            icon: "info",
+            title: "No Orders Found",
+            text: "There are no orders in the specified date range.",
+            confirmButtonText: "OK",
+          });
+          return;
+        }
+        throw new Error("Failed to download the Excel report.");
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(new Blob([blob]));
+
+      const downloadLink = document.createElement("a");
+      downloadLink.href = downloadUrl;
+      downloadLink.download = `sales_report_${startDate}_to_${endDate}.xlsx`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+
+      window.URL.revokeObjectURL(downloadUrl);
+      if (typeof bootstrap !== "undefined" && bootstrap.Modal) {
+        const modal = bootstrap.Modal.getInstance(document.getElementById("dateSelectionModal"));
+        modal.hide();
+      } else {
+        $("#dateSelectionModal").modal("hide"); 
+      }
+    } catch (error) {
+      console.error("Error downloading the Excel report:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Download Failed",
+        text: "An error occurred while downloading the Excel report. Please try again later.",
+      });
+    }
+  }
+
+});
+
 });
 </script>

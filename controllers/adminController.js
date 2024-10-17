@@ -11,6 +11,7 @@ const Offer = require("../models/offerModal");
 const Order = require("../models/orderModel");
 const restoreStock = require('../utility/restoreStock');
 const refundToWallet = require('../utility/refundToWallet');
+const ExcelJS = require('exceljs');
 
 // Get All Users (Admin only)
 exports.adminLoginGET = async (req, res) => {
@@ -1554,5 +1555,103 @@ exports.downloadSalesReport = async (req, res) => {
   } catch (error) {
     console.error("Error generating sales report:", error);
     res.status(500).json({ error: "An error occurred while generating the sales report" });
+  }
+};
+
+
+exports.downloadSalesReportExcel = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.body;
+
+    // Prepare the query to fetch orders
+    const query = {};
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) {
+        query.createdAt.$gte = moment(startDate).startOf('day').toDate();
+      }
+      if (endDate) {
+        query.createdAt.$lte = moment(endDate).endOf('day').toDate();
+      }
+    }
+
+    const orders = await Order.find(query)
+      .populate("user", "username")
+      .populate({
+        path: "items.product",
+        select: "product_name variants",
+      })
+      .exec();
+
+    if (!orders || orders.length === 0) {
+      return res.status(404).json({ error: "No orders found for the selected date range." });
+    }
+
+    // Create a new Excel workbook and a worksheet
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Sales Report');
+
+    // Add title and header information
+    worksheet.mergeCells('A1', 'F1');
+    worksheet.getCell('A1').value = 'Sales Report';
+    worksheet.getCell('A1').font = { size: 16, bold: true };
+    worksheet.getCell('A1').alignment = { vertical: 'middle', horizontal: 'center' };
+
+    worksheet.getCell('A3').value = `Report Generated On: ${moment().format("MMMM Do YYYY")}`;
+    worksheet.getCell('A4').value = `Report Date from: ${moment(startDate).format("MMMM Do YYYY")} to ${moment(endDate).format("MMMM Do YYYY")}`;
+
+    // Define headers for the sales report
+    worksheet.addRow([]);
+    worksheet.addRow(["Order ID", "Date", "Delivery Charge", "Total Amount", "Status", "User"]);
+
+    let totalPayableAmount = 0;
+
+    orders.forEach(order => {
+      totalPayableAmount += (order.payableAmount || 0) + (order.deliveryCharge || 0);
+
+      worksheet.addRow([
+        order.orderId,
+        moment(order.placedAt).format("YYYY-MM-DD"),
+        order.deliveryCharge ? order.deliveryCharge.toFixed(2) : 0,
+        (order.totalAmount + order.deliveryCharge).toFixed(2),
+        order.paymentStatus,
+        order.user ? order.user.username : "N/A"
+      ]);
+
+      // Add product details for each order item
+      worksheet.addRow(['Product', 'Variant', 'Quantity', 'Price', 'Discount', 'Net Price']);
+
+      order.items.forEach(item => {
+        const variant = item.product.variants.find(v => v._id.toString() === item.variantId);
+        const color = variant ? variant.color : "N/A";
+        const netPrice = (item.price - item.discount) * item.quantity;
+
+        worksheet.addRow([
+          item.product.product_name,
+          color,
+          item.quantity,
+          item.price.toFixed(2),
+          item.discount.toFixed(2),
+          netPrice.toFixed(2),
+        ]);
+      });
+
+      worksheet.addRow([]); // Blank row between orders
+    });
+
+    worksheet.addRow([]);
+    worksheet.addRow([`Total Payable Amount:`, '', '', '', '', totalPayableAmount.toFixed(2)]);
+    worksheet.getRow(worksheet.lastRow.number).font = { bold: true };
+
+    // Write the Excel file and send it as a response
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename=sales_report_${startDate}_to_${endDate}.xlsx`);
+
+    await workbook.xlsx.write(res);
+    res.end();
+
+  } catch (error) {
+    console.error("Error generating sales report (Excel):", error);
+    res.status(500).json({ error: "An error occurred while generating the sales report in Excel" });
   }
 };
