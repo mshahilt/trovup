@@ -264,7 +264,6 @@ exports.loginUser = async (req, res) => {
       $and: [{ email: email }],
     });
 
-    console.log(user, 'inside the login ')
     if (user) {
       const match = await bcrypt.compare(password, user.password);
 

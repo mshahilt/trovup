@@ -8,7 +8,7 @@ exports.walletGET = async (req, res) => {
         const userId = req.session.user.user;
  
         const isUserLoggedIn = req.session.user;
-        let wallet = await Wallet.findOne({ user: userId });
+        let wallet = await Wallet.findOne({ user: userId }).sort({createdAt : -1})
 
         if (!wallet) {
             wallet = new Wallet({

@@ -876,7 +876,7 @@ exports.pay_with_walletPOST = async (req, res) => {
         }
         // Apply wallet balance
         const walletBalance = wallet.balance || 0;
-        let walletUsedAmount = Math.min(walletBalance, discountedTotalAmount);
+        let walletUsedAmount = Math.min(walletBalance, discountedTotalAmount) + deliveryCharge;
         let payableAmount = discountedTotalAmount - walletUsedAmount;
 
         if (payableAmount <= 0) {

@@ -136,7 +136,7 @@
                         <td><%= new Date(order.placedAt).toLocaleDateString('en-US') %></td>
                         
                         <!-- Paid Amount -->
-                        <td><%= (order.payableAmount + order.deliveryCharge).toFixed(2) %></td>
+                        <td><%= (order.totalAmount - order.discountAmount + order.deliveryCharge).toFixed(2) %></td>
                         
                         <td>
                             <% 
