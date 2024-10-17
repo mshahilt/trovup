@@ -8,7 +8,8 @@ exports.walletGET = async (req, res) => {
         const userId = req.session.user.user;
  
         const isUserLoggedIn = req.session.user;
-        let wallet = await Wallet.findOne({ user: userId }).sort({createdAt : -1})
+        let wallet = await Wallet.findOne({ user: userId })
+        
 
         if (!wallet) {
             wallet = new Wallet({
@@ -19,6 +20,7 @@ exports.walletGET = async (req, res) => {
             await wallet.save();
         }
 
+        wallet.wallet_history.sort((a,b)=> { return b.date - a.date})
 
         res.render("user/wallet", {
             title: "Wallet",
