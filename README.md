@@ -73,7 +73,7 @@ In admin side,
  
    User can register by filling the validated form, and then have to verify registered by OTP which recieved on email.<br>
  
-   <img src="https://private-user-images.githubusercontent.com/145194767/376303576-5a3564f1-fb32-4bbd-94cc-eb9019cc66a4.png?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3Mjg5MTk4MzUsIm5iZiI6MTcyODkxOTUzNSwicGF0aCI6Ii8xNDUxOTQ3NjcvMzc2MzAzNTc2LTVhMzU2NGYxLWZiMzItNGJiZC05NGNjLWViOTAxOWNjNjZhNC5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjQxMDE0JTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI0MTAxNFQxNTI1MzVaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT04Njc0NGQxOGVkYTNiMDJmNTk0NDk4MzQ0YzE2OTRiMzIwNzg5YjIxNDc3ZGI3MjZjMDI1YmFlZGFkY2YyMGJmJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCJ9.eD493tbu4ssFLgT2DrvOVratTH-_cQgCfh6AWDD5QD8" width="500"> <br>
+   <img src="https://github.com/mshahilt/utility/blob/main/register%20user.png" width="500"> <br>
 
 - ### **Login** <br>
   
