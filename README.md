@@ -62,11 +62,11 @@ In admin side,
 
    Home page is visible for every user entering into website. It contains the products and the features of the ecommerce platform/ when user signed in then it will be noted on navbar
    
-   <img src="https://private-user-images.githubusercontent.com/145194767/376303489-3afb57ca-3659-4523-9509-0b82bb50fb96.png?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3Mjg5MTk4MzUsIm5iZiI6MTcyODkxOTUzNSwicGF0aCI6Ii8xNDUxOTQ3NjcvMzc2MzAzNDg5LTNhZmI1N2NhLTM2NTktNDUyMy05NTA5LTBiODJiYjUwZmI5Ni5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjQxMDE0JTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI0MTAxNFQxNTI1MzVaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1hYWMyODk4MGJlNjEyZTM4MjIzNDllMDdmMzQ0NWUxMmNlNTUzNjRiMjU3MWY5OWVjMmVmYjhkODNlMmUxZjJjJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCJ9.2LIQzXrTQzT8IombrAQjcugPQOJn-RI3jowjAMH12v8" width="500"> <br>
+   <img src="https://raw.githubusercontent.com/mshahilt/utility/refs/heads/main/home%20without%20login.png" width="500"> <br>
  
    **Navbar difference for logged in user and other users**
  
-   <img src="https://private-user-images.githubusercontent.com/145194767/376303467-97e072f0-129f-4b6c-b7d6-03f9ce945efc.png?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3Mjg5MTk4MzUsIm5iZiI6MTcyODkxOTUzNSwicGF0aCI6Ii8xNDUxOTQ3NjcvMzc2MzAzNDY3LTk3ZTA3MmYwLTEyOWYtNGI2Yy1iN2Q2LTAzZjljZTk0NWVmYy5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjQxMDE0JTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI0MTAxNFQxNTI1MzVaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT00NzNiMjUzOWZlYTk0MjZiMTNkYTljZTViY2I2ZGU3YmExZWMyYzk4YTg0YmVhN2Q2MDJjYzFkMmE2OGE1MTg0JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCJ9.ss25KT_lBI7yPAmn6gsejAmcRjiDZmD_zOkKTn9qhj8" height="282">
+   <img src="https://raw.githubusercontent.com/mshahilt/utility/refs/heads/main/home%20with%20login.png" height="282">
 
  
  - ### **Register** <br>
@@ -79,7 +79,7 @@ In admin side,
   
    User have to enter verified email and password to enter into shop. In case of forgot password, there is an option to set new password by matching OTP received to verified email. <br>
  
-   <img src="https://private-user-images.githubusercontent.com/145194767/376303514-bc79a28a-2838-4013-862f-5a3657d35efd.png?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3Mjg5MTk4MzUsIm5iZiI6MTcyODkxOTUzNSwicGF0aCI6Ii8xNDUxOTQ3NjcvMzc2MzAzNTE0LWJjNzlhMjhhLTI4MzgtNDAxMy04NjJmLTVhMzY1N2QzNWVmZC5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjQxMDE0JTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI0MTAxNFQxNTI1MzVaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT00NjA2MGE5MGM3MGUxYzgwYWMzOWEyYTU3MmM5NTIwNzIwYzc3ZTRhMDE2ZDdkZGVlMGZkNTQzMmFhNjQ4MWY1JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCJ9.zhBv41MV6P5CCEde21yR10MSI1aXLwhfU2Bxt8iZV-g" width="500"> <br>
+   <img src="https://raw.githubusercontent.com/mshahilt/utility/refs/heads/main/login%20user.png" width="500"> <br>
  
    **Forgot password** 
  
