@@ -445,6 +445,7 @@ exports.delete_categoryPOST = async (req, res) => {
 // Admin Products GET
 exports.adminProductsGET = async (req, res) => {
   try {
+
     // Populate category_id and brand_id with the actual data
     const products = await Product.find()
       .populate("category_id", "category_name")
@@ -1563,7 +1564,6 @@ exports.downloadSalesReportExcel = async (req, res) => {
   try {
     const { startDate, endDate } = req.body;
 
-    // Prepare the query to fetch orders
     const query = {};
     if (startDate || endDate) {
       query.createdAt = {};
@@ -1636,14 +1636,13 @@ exports.downloadSalesReportExcel = async (req, res) => {
         ]);
       });
 
-      worksheet.addRow([]); // Blank row between orders
+      worksheet.addRow([]);
     });
 
     worksheet.addRow([]);
     worksheet.addRow([`Total Payable Amount:`, '', '', '', '', totalPayableAmount.toFixed(2)]);
     worksheet.getRow(worksheet.lastRow.number).font = { bold: true };
 
-    // Write the Excel file and send it as a response
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader("Content-Disposition", `attachment; filename=sales_report_${startDate}_to_${endDate}.xlsx`);
 
@@ -1654,4 +1653,4 @@ exports.downloadSalesReportExcel = async (req, res) => {
     console.error("Error generating sales report (Excel):", error);
     res.status(500).json({ error: "An error occurred while generating the sales report in Excel" });
   }
-};
+  };
