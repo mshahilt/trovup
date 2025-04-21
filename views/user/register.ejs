@@ -5,7 +5,6 @@
 
             <p class="mb-3" style="font-size: 0.9rem;">Enter your details below</p>
 
-            <!-- Display flash messages -->
             <% if (messages.error && messages.error.length) { %>
                 <div class="alert alert-danger">
                     <%= messages.error[0] %>
@@ -29,17 +28,17 @@
             </div>
             <div class="mb-3">
                 <label for="phone_number" class="form-label" style="font-size: 0.85rem;">Phone Number</label>
-                <input type="number" name="phone_number" id="phone_number" class="form-control custom-input" placeholder="Phone Number">
+                <input type="tel" name="phone_number" id="phone_number" class="form-control custom-input" placeholder="Phone Number">
                 <div class="invalid-feedback">Phone number must be 10 digits.</div>
             </div>
             <div class="mb-3">
                 <label for="password" class="form-label" style="font-size: 0.85rem;">Password</label>
                 <input type="password" name="password" id="password" class="form-control custom-input" placeholder="Password" required>
-                <div class="invalid-feedback">Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, and one number.</div>
+                <div class="invalid-feedback">Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.</div>
             </div>
             <div class="mb-3">
-                <label for="conform_password" class="form-label" style="font-size: 0.85rem;">Confirm Password</label>
-                <input type="password" name="conform_password" id="conform_password" class="form-control custom-input" placeholder="Confirm Password" required>
+                <label for="confirm_password" class="form-label" style="font-size: 0.85rem;">Confirm Password</label>
+                <input type="password" name="confirm_password" id="confirm_password" class="form-control custom-input" placeholder="Confirm Password" required>
                 <div class="invalid-feedback">Passwords do not match.</div>
             </div>
 
@@ -48,7 +47,7 @@
                     <button type="submit" value="submit" class="btn btn-dark px-4 py-2" style="font-size: 0.9rem;">Signup</button>
                 </div>
                 <div class="col-sm-6 mt-1 text-end">
-                    <a href="#" class="f-p text-dark text-decoration-none" style="font-size: 0.9rem;">Forget Password?</a>
+                    <a href="/forgot-password" class="f-p text-dark text-decoration-none" style="font-size: 0.9rem;">Forgot Password?</a>
                 </div>
             </div>
 
@@ -57,7 +56,7 @@
                     <!-- Google Sign In Button -->
                     <span class="ms-2 fs-6 fw-bold">Sign in with Google</span>
                 </a>
-                <p class="mb-0" style="font-size: 0.85rem;">Don’t have an account? <a href="#" class="fw-bold text-dark text-decoration-none">Sign up for free!</a></p>
+                <p class="mb-0" style="font-size: 0.85rem;">Already have an account? <a href="/login" class="fw-bold text-dark text-decoration-none">Sign in</a></p>
             </div>
         </form>
     </div>
@@ -109,70 +108,68 @@
     }
 </style>
 <script>
-    document.getElementById('signupForm').addEventListener('submit', function(e) {
-   
-        const urlParams = new URLSearchParams(window.location.search);
-        const referCode = urlParams.get('refer_code');
-        console.log(urlParams, referCode)
-        if (referCode) {
-            this.action = `/register?refer_code=${referCode}`;
-        }
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('signupForm');
+        
+        form.addEventListener('submit', function(e) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const referCode = urlParams.get('refer_code');
+            
+            if (referCode) {
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'refer_code';
+                hiddenInput.value = referCode;
+                form.appendChild(hiddenInput);
+            }
+        });
     });
 </script>
 
 <script>
     document.getElementById('signupForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
         let isValid = true;
+        const formInputs = document.querySelectorAll('.custom-input');
+        
+        formInputs.forEach(input => {
+            input.classList.remove('is-invalid');
+        });
 
-        // Username Validation
         const username = document.getElementById('username');
-        if (username.value.length < 3) {
+        if (username.value.trim().length < 3) {
             username.classList.add('is-invalid');
             isValid = false;
-        } else {
-            username.classList.remove('is-invalid');
         }
-
-        // Email Validation
         const email = document.getElementById('email');
         const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailPattern.test(email.value)) {
+        if (!emailPattern.test(email.value.trim())) {
             email.classList.add('is-invalid');
             isValid = false;
-        } else {
-            email.classList.remove('is-invalid');
         }
 
-        // Phone Number Validation (optional, but must be 10 digits if provided)
         const phoneNumber = document.getElementById('phone_number');
-        if (phoneNumber.value && phoneNumber.value.length !== 10) {
+        if (phoneNumber.value.trim() && !(/^\d{10}$/).test(phoneNumber.value.trim())) {
             phoneNumber.classList.add('is-invalid');
             isValid = false;
-        } else {
-            phoneNumber.classList.remove('is-invalid');
         }
 
-        // Password Validation
         const password = document.getElementById('password');
-        const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/;
+        const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+={}[\]\\|:;"'<>,.?/~`]).{8,}$/;
         if (!passwordPattern.test(password.value)) {
             password.classList.add('is-invalid');
             isValid = false;
-        } else {
-            password.classList.remove('is-invalid');
         }
 
-        // Confirm Password Validation
-        const confirmPassword = document.getElementById('conform_password');
+        const confirmPassword = document.getElementById('confirm_password');
         if (password.value !== confirmPassword.value) {
             confirmPassword.classList.add('is-invalid');
             isValid = false;
-        } else {
-            confirmPassword.classList.remove('is-invalid');
         }
 
-        if (!isValid) {
-            e.preventDefault();
+        if (isValid) {
+            this.submit();
         }
     });
 </script>
